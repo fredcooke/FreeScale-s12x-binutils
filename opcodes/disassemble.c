@@ -51,6 +51,7 @@
 #define ARCH_m32r
 #define ARCH_m68hc11
 #define ARCH_m68hc12
+#define ARCH_mc9s12x
 #define ARCH_m68k
 #define ARCH_m88k
 #define ARCH_maxq
@@ -243,6 +244,11 @@ disassembler (abfd)
       break;
     case bfd_arch_m68hc12:
       disassemble = print_insn_m68hc12;
+      break;
+#endif
+#ifdef ARCH_mc9s12x
+    case bfd_arch_mc9s12x:
+      disassemble = print_insn_mc9s12x;
       break;
 #endif
 #ifdef ARCH_m68k

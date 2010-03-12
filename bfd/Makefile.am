@@ -101,6 +101,7 @@ ALL_MACHINES = \
 	cpu-m32r.lo \
 	cpu-m68hc11.lo \
 	cpu-m68hc12.lo \
+	cpu-mc9s12x.lo \
 	cpu-m68k.lo \
 	cpu-m88k.lo \
 	cpu-maxq.lo \
@@ -172,6 +173,7 @@ ALL_MACHINES_CFILES = \
 	cpu-m32r.c \
 	cpu-m68hc11.c \
 	cpu-m68hc12.c \
+	cpu-mc9s12x.c \
 	cpu-m68k.c \
 	cpu-m88k.c \
 	cpu-maxq.c \
@@ -294,6 +296,7 @@ BFD32_BACKENDS = \
 	elf32-m68hc11.lo \
 	elf32-m68hc12.lo \
 	elf32-m68hc1x.lo \
+	elf32-mc9s12x.lo \
 	elf32-m68k.lo \
 	elf32-m88k.lo \
 	elf32-mcore.lo \
@@ -477,6 +480,7 @@ BFD32_BACKENDS_CFILES = \
 	elf32-m68hc11.c \
 	elf32-m68hc12.c \
 	elf32-m68hc1x.c \
+	elf32-mc9s12x.c \
 	elf32-m68k.c \
 	elf32-m88k.c \
 	elf32-mcore.c \

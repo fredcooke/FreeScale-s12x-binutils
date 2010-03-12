@@ -150,6 +150,8 @@ TARGET_LIBOPCODES_CFILES = \
 	m32r-opinst.c \
 	m68hc11-dis.c \
 	m68hc11-opc.c \
+	mc9s12x-dis.c \
+	mc9s12x-opc.c \
 	m68k-dis.c \
 	m68k-opc.c \
 	m88k-dis.c \

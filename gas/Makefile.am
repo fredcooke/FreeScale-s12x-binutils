@@ -64,6 +64,7 @@ CPU_TYPES = \
 	m32c \
 	m32r \
 	m68hc11 \
+	mc9s12x \
 	m68k \
 	maxq \
 	mcore \
@@ -266,6 +267,7 @@ TARGET_CPU_CFILES = \
 	config/tc-m32c.c \
 	config/tc-m32r.c \
 	config/tc-m68hc11.c \
+	config/tc-mc9s12x.c \
 	config/tc-m68k.c \
 	config/tc-maxq.c \
 	config/tc-mcore.c \
@@ -329,6 +331,7 @@ TARGET_CPU_HFILES = \
 	config/tc-m32c.h \
 	config/tc-m32r.h \
 	config/tc-m68hc11.h \
+	config/tc-mc9s12x.h \
 	config/tc-m68k.h \
 	config/tc-maxq.h \
 	config/tc-mcore.h \

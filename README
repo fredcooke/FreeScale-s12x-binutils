@@ -1,3 +1,42 @@
+#########################################################################################
+IF AT ANY TIME YOU FIND ANY INACCURACIES WITH DOCUMENTATION(INCLUDING THIS README) OR CODE
+THAT WASN'T PART OF THE OFFICIAL BINUTILS RE LASE PLEASE LET ME KNOW(support@computer-ss.com)
+
+The intent of this work is to create a set of binutils for the Freescale S12X and XGATE 
+cores.  Since we are dealing with two different cores we will build two different sets of
+binary utilities. Below is an example bash script that will build the s12x binutils
+followed by an example of how to build for the xgate core.
+
+#!/bin/bash
+mkdir mc9s12x-test
+cd mc9s12x-test
+make distclean
+make clean
+ sh ./../../binutils-2.20/configure --target=mc9s12x-elf \
+	--program-prefix=mc9s12x-elf-
+	--enable-targets=mc9s12x
+make
+make install
+
+
+#!/bin/bash
+mkdir mc9xgate-test
+cd mc9xgate-test
+make distclean
+make clean
+ sh ./../../binutils-2.20/configure --target=mc9xgate-elf \
+	--program-prefix=mc9xgate-elf-
+	--enable-targets=mc9xgate
+make
+make install
+  
+TODO
+1.Give an example of how to link the two object files together to make a single s19 file
+2.Create a table of support and unsupported instructions
+
+
+#########################################################################################
+
 		   README for GNU development tools
 
 This directory contains various GNU compilers, assemblers, linkers, 

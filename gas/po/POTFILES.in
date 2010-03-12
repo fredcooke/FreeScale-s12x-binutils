@@ -87,6 +87,7 @@ config/tc-m32r.c
 config/tc-m32r.h
 config/tc-m68hc11.c
 config/tc-m68hc11.h
+config/tc-mc9s12x.h
 config/tc-m68k.c
 config/tc-m68k.h
 config/tc-maxq.c

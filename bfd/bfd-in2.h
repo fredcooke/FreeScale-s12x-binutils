@@ -1918,6 +1918,8 @@ enum bfd_architecture
 #define bfd_mach_m6812_default 0
 #define bfd_mach_m6812         1
 #define bfd_mach_m6812s        2
+  bfd_arch_mc9s12x,   /* Motorola S12X */
+#define bfd_mach_mc9s12x 0
   bfd_arch_z8k,       /* Zilog Z8000 */
 #define bfd_mach_z8001         1
 #define bfd_mach_z8002         2
@@ -4163,6 +4165,53 @@ to follow the 16K memory bank of 68HC12 (seen as mapped in the window).  */
 /* Motorola 68HC12 reloc.
 This is the 5 bits of a value.  */
   BFD_RELOC_M68HC12_5B,
+
+/* Motorola MC9S12X reloc.
+This is the 8 bit high part of an absolute address.  */
+  BFD_RELOC_MC9S12X_HI8,
+
+/* Motorola MC9S12X reloc.
+This is the 8 bit low part of an absolute address.  */
+  BFD_RELOC_MC9S12X_LO8,
+
+/* Motorola MC9S12X reloc.
+This is the 3 bit of a value.  */
+  BFD_RELOC_MC9S12X_3B,
+
+/* Motorola MC9S12X reloc.
+This reloc marks the beginning of a jump/call instruction.
+It is used for linker relaxation to correctly identify beginning
+of instruction and change some branches to use PC-relative
+addressing mode.  */
+  BFD_RELOC_MC9S12X_RL_JUMP,
+
+/* Motorola MC9S12X reloc.
+This reloc marks a group of several instructions that gcc generates
+and for which the linker relaxation pass can modify and/or remove
+some of them.  */
+  BFD_RELOC_MC9S12X_RL_GROUP,
+
+/* Motorola MC9S12X reloc.
+This is the 16-bit lower part of an address.  It is used for 'call'
+instruction to specify the symbol address without any special
+transformation (due to memory bank window).  */
+  BFD_RELOC_MC9S12X_LO16,
+
+/* Motorola MC9S12X reloc.
+This is a 8-bit reloc that specifies the page number of an address.
+It is used by 'call' instruction to specify the page number of
+the symbol.  */
+  BFD_RELOC_MC9S12X_PAGE,
+
+/* Motorola MC9S12X reloc.
+This is a 24-bit reloc that represents the address with a 16-bit
+value and a 8-bit page number.  The symbol address is transformed
+to follow the 16K memory bank of MC9S12X (seen as mapped in the window).  */
+  BFD_RELOC_MC9S12X_24,
+
+/* Motorola MC9S12X reloc.
+This is the 5 bits of a value.  */
+  BFD_RELOC_MC9S12X_5B,
 
 /* NS CR16C Relocations.  */
   BFD_RELOC_16C_NUM08,

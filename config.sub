@@ -302,6 +302,11 @@ case $basic_machine in
 		basic_machine=$basic_machine-unknown
 		os=-none
 		;;
+        mc9s12x)
+		# FreeScale 12x.
+		basic_machine=$basic_machine-unknown
+		os=-none
+		;;
 	m88110 | m680[12346]0 | m683?2 | m68360 | m5200 | v70 | w65 | z8k)
 		;;
 	ms1)

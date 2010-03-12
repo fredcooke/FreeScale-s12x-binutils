@@ -117,6 +117,7 @@
 #include "elf/m32r.h"
 #include "elf/m68k.h"
 #include "elf/m68hc11.h"
+#include "elf/mc9s12x.h"
 #include "elf/mcore.h"
 #include "elf/mep.h"
 #include "elf/microblaze.h"
@@ -1007,6 +1008,10 @@ dump_relocations (FILE * file,
 	  rtype = elf_m68hc11_reloc_type (type);
 	  break;
 
+	case EM_MC9S12X:
+	  rtype = elf_mc9s12x_reloc_type (type);
+	  break;
+
 	case EM_68K:
 	  rtype = elf_m68k_reloc_type (type);
 	  break;
@@ -1815,6 +1820,7 @@ get_machine_name (unsigned e_machine)
     case EM_MIPS_X:		return "Stanford MIPS-X";
     case EM_COLDFIRE:		return "Motorola Coldfire";
     case EM_68HC12:		return "Motorola M68HC12";
+    case EM_MC9S12X:	return "Freescale S12X";
     case EM_ALPHA:		return "Alpha";
     case EM_CYGNUS_D10V:
     case EM_D10V:		return "d10v";

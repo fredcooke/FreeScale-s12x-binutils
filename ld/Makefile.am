@@ -274,6 +274,8 @@ ALL_EMULATIONS = \
 	em68hc11elfb.o \
 	em68hc12elf.o \
 	em68hc12elfb.o \
+	emc9s12xelf.o \
+	emc9s12xelfb.o \
 	em68k4knbsd.o \
 	em68kaout.o \
 	em68kaux.o \
@@ -1305,7 +1307,15 @@ em68hc12elf.c: $(srcdir)/emulparams/m68hc12elf.sh \
 em68hc12elfb.c: $(srcdir)/emulparams/m68hc12elfb.sh \
   $(srcdir)/emultempl/m68hc1xelf.em $(ELF_DEPS) \
   $(srcdir)/scripttempl/elfm68hc12.sc ${GEN_DEPENDS}
-	${GENSCRIPTS} m68hc12elfb "$(tdir_m68hc12b)"
+	${GENSCRIPTS} m68hc12elfb "$(tdir_m68hc12b)"	
+emc9s12xelf.c: $(srcdir)/emulparams/mc9s12xelf.sh \
+  $(srcdir)/emultempl/mc9s12xelf.em $(ELF_DEPS) \
+  $(srcdir)/scripttempl/elfmc9s12x.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} mc9s12xelf "$(tdir_mc9s12x)"
+emc9s12xelfb.c: $(srcdir)/emulparams/mc9s12xelfb.sh \
+  $(srcdir)/emultempl/mc9s12xelf.em $(ELF_DEPS) \
+  $(srcdir)/scripttempl/elfmc9s12x.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} mc9s12xelfb "$(tdir_mc9s12xb)"	
 em68k4knbsd.c:	$(srcdir)/emulparams/m68k4knbsd.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68k4knbsd "$(tdir_m68k4knbsd)"
