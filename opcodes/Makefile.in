@@ -422,6 +422,8 @@ TARGET_LIBOPCODES_CFILES = \
 	m68hc11-opc.c \
 	mc9s12x-dis.c \
 	mc9s12x-opc.c \
+	mc9xgate-dis.c \
+	mc9xgate-opc.c \
 	m68k-dis.c \
 	m68k-opc.c \
 	m88k-dis.c \
@@ -794,6 +796,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maxq-dis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mc9s12x-dis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mc9s12x-opc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mc9xgate-dis.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mc9xgate-opc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mcore-dis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mep-asm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mep-desc.Plo@am__quote@

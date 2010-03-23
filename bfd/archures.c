@@ -253,6 +253,8 @@ DESCRIPTION
 .#define bfd_mach_m6812s        2
 .  bfd_arch_mc9s12x,   {* Motorola S12X *}
 .#define bfd_mach_mc9s12x 0
+.  bfd_arch_mc9xgate,   {* Motorola mc9xgate Co-Proc *}
+.#define bfd_mach_mc9xgate 0
 .  bfd_arch_z8k,       {* Zilog Z8000 *}
 .#define bfd_mach_z8001		1
 .#define bfd_mach_z8002		2
@@ -494,6 +496,7 @@ extern const bfd_arch_info_type bfd_m32r_arch;
 extern const bfd_arch_info_type bfd_m68hc11_arch;
 extern const bfd_arch_info_type bfd_m68hc12_arch;
 extern const bfd_arch_info_type bfd_mc9s12x_arch;
+extern const bfd_arch_info_type bfd_mc9xgate_arch;
 extern const bfd_arch_info_type bfd_m68k_arch;
 extern const bfd_arch_info_type bfd_m88k_arch;
 extern const bfd_arch_info_type bfd_maxq_arch;
@@ -571,6 +574,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_m68hc11_arch,
     &bfd_m68hc12_arch,
     &bfd_mc9s12x_arch,
+    &bfd_mc9xgate_arch,
     &bfd_m68k_arch,
     &bfd_m88k_arch,
     &bfd_maxq_arch,

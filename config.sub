@@ -303,7 +303,12 @@ case $basic_machine in
 		os=-none
 		;;
         mc9s12x)
-		# FreeScale 12x.
+		# FreeScale s12x.
+		basic_machine=$basic_machine-unknown
+		os=-none
+		;;
+	mc9xgate)
+		# FreeScale s12xgate.
 		basic_machine=$basic_machine-unknown
 		os=-none
 		;;

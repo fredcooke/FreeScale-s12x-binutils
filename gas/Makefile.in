@@ -331,6 +331,7 @@ CPU_TYPES = \
 	m32r \
 	m68hc11 \
 	mc9s12x	\
+	mc9xgate \
 	m68k \
 	maxq \
 	mcore \
@@ -532,6 +533,7 @@ TARGET_CPU_CFILES = \
 	config/tc-m32r.c \
 	config/tc-m68hc11.c \
 	config/tc-mc9s12x.c \
+	config/tc-mc9xgate.c \
 	config/tc-m68k.c \
 	config/tc-maxq.c \
 	config/tc-mcore.c \
@@ -596,6 +598,7 @@ TARGET_CPU_HFILES = \
 	config/tc-m32r.h \
 	config/tc-m68hc11.h \
 	config/tc-mc9s12x.h \
+	config/tc-mc9xgate.h \
 	config/tc-m68k.h \
 	config/tc-maxq.h \
 	config/tc-mcore.h \
@@ -975,6 +978,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-m32r.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-m68hc11.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-mc9s12x.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-mc9xgate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-m68k.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-maxq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tc-mcore.Po@am__quote@
@@ -1414,6 +1418,19 @@ tc-mc9s12x.obj: config/tc-mc9s12x.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tc-mc9s12x.obj `if test -f 'config/tc-mc9s12x.c'; then $(CYGPATH_W) 'config/tc-mc9s12x.c'; else $(CYGPATH_W) '$(srcdir)/config/tc-mc9s12x.c'; fi`
 
+tc-mc9xgate.o: config/tc-mc9xgate.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tc-mc9xgate.o -MD -MP -MF $(DEPDIR)/tc-mc9xgate.Tpo -c -o tc-mc9xgate.o `test -f 'config/tc-mc9xgate.c' || echo '$(srcdir)/'`config/tc-mc9xgate.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/tc-mc9xgate.Tpo $(DEPDIR)/tc-mc9xgate.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='config/tc-mc9xgate.c' object='tc-mc9xgate.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tc-mc9xgate.o `test -f 'config/tc-mc9xgate.c' || echo '$(srcdir)/'`config/tc-mc9xgate.c
+
+tc-mc9xgate.obj: config/tc-mc9xgate.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tc-mc9xgate.obj -MD -MP -MF $(DEPDIR)/tc-mc9xgate.Tpo -c -o tc-mc9xgate.obj `if test -f 'config/tc-mc9xgate.c'; then $(CYGPATH_W) 'config/tc-mc9xgate.c'; else $(CYGPATH_W) '$(srcdir)/config/tc-mc9xgate.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/tc-mc9xgate.Tpo $(DEPDIR)/tc-mc9xgate.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='config/tc-mc9xgate.c' object='tc-mc9xgate.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tc-mc9xgate.obj `if test -f 'config/tc-mc9xgate.c'; then $(CYGPATH_W) 'config/tc-mc9xgate.c'; else $(CYGPATH_W) '$(srcdir)/config/tc-mc9xgate.c'; fi`
 
 
 tc-m68k.o: config/tc-m68k.c
