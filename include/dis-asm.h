@@ -260,6 +260,7 @@ extern int print_insn_m32r		(bfd_vma, disassemble_info *);
 extern int print_insn_m68hc11		(bfd_vma, disassemble_info *);
 extern int print_insn_m68hc12		(bfd_vma, disassemble_info *);
 extern int print_insn_mc9s12x		(bfd_vma, disassemble_info *);
+extern int print_insn_mc9xgate		(bfd_vma, disassemble_info *);
 extern int print_insn_m68k		(bfd_vma, disassemble_info *);
 extern int print_insn_m88k		(bfd_vma, disassemble_info *);
 extern int print_insn_maxq_big		(bfd_vma, disassemble_info *);

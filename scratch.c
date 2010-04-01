@@ -13,3 +13,7 @@ elf32_m68hc11_build_stubs
 m68hc1x_add_stub_section
 
 em68hc11elf
+
+elf32-mc9s12x
+
+Can't disassemble for architecture

@@ -52,6 +52,7 @@
 #define ARCH_m68hc11
 #define ARCH_m68hc12
 #define ARCH_mc9s12x
+#define ARCH_mc9xgate
 #define ARCH_m68k
 #define ARCH_m88k
 #define ARCH_maxq
@@ -249,6 +250,11 @@ disassembler (abfd)
 #ifdef ARCH_mc9s12x
     case bfd_arch_mc9s12x:
       disassemble = print_insn_mc9s12x;
+      break;
+#endif
+#ifdef ARCH_mc9xgate
+    case bfd_arch_mc9xgate:
+      disassemble = print_insn_mc9xgate;
       break;
 #endif
 #ifdef ARCH_m68k
