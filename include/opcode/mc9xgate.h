@@ -359,7 +359,8 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 /* 68HC11 operands formats as stored in the MC9XGATE_opcode table.  These
    flags do not correspond to anything in the 68HC11 or 68HC12.
    They are only used by GAS to recognize operands.  */
-#define MC9XGATE_OP_NONE         0        /* No operand AKA Inherint*/
+#define MC9XGATE_OP_NONE         "0000000000000000"        /* No operand AKA Inherint*/
+#define MC9XGATE_OP_INH			 "0000000000000000"
 #define MC9XGATE_OP_DIRECT       0x0001   /* Page 0 addressing:   *<val-8bits>  */
 #define MC9XGATE_OP_IMM3		 0x0002   /*  3 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM4		 0x0004	  /*  4 bits immediat:    #<val-8bits>  */
@@ -454,7 +455,7 @@ struct mc9xgate_opcode_alias
 
 /* The opcode table.  The table contains all the opcodes (all pages).
    You can't rely on the order.  */
-extern const struct mc9xgate_opcode mc9xgate_opcodes[];
+extern struct mc9xgate_opcode mc9xgate_opcodes[];
 extern const int mc9xgate_num_opcodes;
 
 /* Alias table for 68HC12.  It translates some 68HC11 insn which are not

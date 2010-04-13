@@ -3,6 +3,10 @@
    Free Software Foundation, Inc.
    Written by Stephane Carrez (stcarrez@nerim.fr)
 */
+/*
+Fatal error: selected target format
+*/
+
 #include "as.h"
 #include "safe-ctype.h"
 #include "subsegs.h"
@@ -50,8 +54,10 @@ static void s_mc9xgate_mark_symbol (int);/* Pseudo op to control the ELF flags. 
    are using 'rtc' for returning.  It is necessary to use 'call'
    to invoke them.  This is also used by the debugger to correctly
    find the stack frame.  */
-
 /* END LOCAL FUNCTIONS */
+
+/* LOCAL DATA */
+static struct hash_control *mc9xgate_hash;
 
 struct mc9xgate_opcode_def {
   long format;
@@ -246,7 +252,7 @@ mc9xgate_arch_format(void)
 {
 	get_default_target();
 	if (current_architecture & cpumc9xgate){
-		return "elf-mc9xgate";
+		return "elf32-mc9xgate";
 	}else {
 		printf("\n ERROR in mc9xgate_arch_format ---unknown----\n");  //for debugging
 		return "error";
@@ -266,14 +272,12 @@ get_default_target (void)
   target = bfd_find_target (0, &abfd);
   if (target && target->name)
     {
-      if (strcmp (target->name, "elf32-m68hc12") == 0)
-	{
-      as_bad (_("Default target `%s' is not supported."), target->name);
-	}
-      else if (strcmp (target->name, "elf32-mc9xgate") == 0)
+    if (strcmp (target->name, "elf32-mc9xgate") == 0)
 	{
       current_architecture = cpumc9xgate;
 	  default_cpu = "mc9xgate";
+	  printf("\n found default cpu->%s\n",target->name);
+	  return;
 	}
       else
 	{
@@ -284,21 +288,16 @@ get_default_target (void)
 
 /* end baggage */
 
-
-struct xgate_opcodes {
-	char 	*name;
-	char 	*constraints;
-	int		length;  /* length in words */
-	char	*bin_opcode;
-	char	minCycles;
-	char	maxCycles;
-	int		cpu_variant;
-
-};
-
-
 void md_begin(void){
+	struct mc9xgate_opcode *mc9xgate_opcode_ptr;
+	mc9xgate_hash = hash_new(); /* create a new has control table */
 
+	/* TODO create a copy of the opcode table, this prevents damaging the origional accidently
+		for now remove const from our "const mc9xgate_opcodes" pointer*/
+	for(mc9xgate_opcode_ptr = mc9xgate_opcodes; mc9xgate_opcode_ptr->name; mc9xgate_opcode_ptr++){
+		//printf("\n inserted %s\n",mc9xgate_opcode_prt->)
+		hash_insert(mc9xgate_hash,mc9xgate_opcode_ptr->name, (char *) mc9xgate_opcode_ptr->bin_opcode);
+	}
 	return;
 }
 
@@ -565,4 +564,3 @@ mc9xgate_elf_final_processing (void)
   elf_elfheader (stdoutput)->e_flags &= ~EF_MC9XGATE_ABI;
   elf_elfheader (stdoutput)->e_flags |= elf_flags;
 }
-
