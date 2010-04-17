@@ -85,9 +85,9 @@
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 
-	{ "brk",  OP_INH,				1, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},
-	{ "csem", OP_INH,				1, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
-	{  NULL,  NULL,                 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less code */
+	{ "brk",  OP_INH, "0000000000000000", 1, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},
+	{ "csem", OP_INH, "0000000100000000", 1, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
+	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
 
 };
 

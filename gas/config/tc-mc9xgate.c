@@ -46,10 +46,13 @@ const char FLT_CHARS[] = "dD";
 
 /*  LOCAL FUNCTIONS */
 static void s_mc9xgate_mode (int); /* Pseudo op to control the ELF flags.  */
+static inline char * skip_whitespace(char *);
 static void get_default_target (void); /* Pseudo op to indicate a relax group.  */
 static void s_mc9xgate_relax (int);
 static void s_mc9xgate_mode (int);
 static void s_mc9xgate_mark_symbol (int);/* Pseudo op to control the ELF flags.  */
+static char* extract_word(char *, char *, char);
+static char * mc9xgate_new_instruction(int size); /* number of bytes */
 /* Mark the symbols with STO_M68HC12_FAR to indicate the functions
    are using 'rtc' for returning.  It is necessary to use 'call'
    to invoke them.  This is also used by the debugger to correctly
@@ -59,14 +62,20 @@ static void s_mc9xgate_mark_symbol (int);/* Pseudo op to control the ELF flags. 
 /* LOCAL DATA */
 static struct hash_control *mc9xgate_hash;
 
-struct mc9xgate_opcode_def {
-  long format;
-  int min_operands;
-  int max_operands;
-  int nb_modes;
-  int used;
-  struct mc9xgate_opcode *opcode;
-};
+/* */
+//struct mc9xgate_opcode_s {
+ // const char*    name;     /* Op-code name */
+//  const char*    constraints; /* */
+//  const char*    format;   /* format string */
+//  unsigned int   size;   /* size in words */
+//  unsigned int   bin_opcode;  /* binary opcode with operands masked off */
+//  unsigned char  cycles_min; /* minimum cpu cycles needed */
+//  unsigned char  cycles_max; /* maximum cpu cycles needed */
+//  unsigned char  set_flags_mask; /* CCR flags set */
+//  unsigned char  clr_flags_mask; /* CCR flags cleared */
+// unsigned char  chg_flags_mask; /* CCR flags changed */
+//  unsigned char  arch; /* cpu type, may always be mc9s12 only */
+//};
 
 /* This table describes how you change sizes for the various types of variable
    size expressions.  This version only supports two kinds.  */
@@ -187,7 +196,8 @@ static int current_architecture;
 static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
 static struct hash_control *mc9xgate_hash;
-static struct mc9xgate_opcode_def *mc9xgate_opcode_defs = 0;
+//static struct mc9xgate_opcode_def *mc9xgate_opcode_defs = 0;
+static unsigned int numberOfCalls = 0;
 /* ELF flags to set in the output file header.  */
 static int elf_flags = E_MC9XGATE_F64;
 
@@ -295,8 +305,9 @@ void md_begin(void){
 	/* TODO create a copy of the opcode table, this prevents damaging the origional accidently
 		for now remove const from our "const mc9xgate_opcodes" pointer*/
 	for(mc9xgate_opcode_ptr = mc9xgate_opcodes; mc9xgate_opcode_ptr->name; mc9xgate_opcode_ptr++){
-		//printf("\n inserted %s\n",mc9xgate_opcode_prt->)
-		hash_insert(mc9xgate_hash,mc9xgate_opcode_ptr->name, (char *) mc9xgate_opcode_ptr->bin_opcode);
+		//printf("\n inserted %s %d \n",mc9xgate_opcode_ptr->name);
+		hash_insert(mc9xgate_hash,mc9xgate_opcode_ptr->name, (char *) mc9xgate_opcode_ptr);
+
 	}
 	return;
 }
@@ -346,24 +357,24 @@ mc9xgate_mach (void)
 void
 mc9xgate_print_statistics (FILE *file)
 {
-  int i;
-  struct mc9xgate_opcode_def *opc;
+//  int i;
+  struct mc9xgate_opcode *opc;
 
   hash_print_statistics (file, "opcode table", mc9xgate_hash);
 
-  opc = mc9xgate_opcode_defs;
+  opc = mc9xgate_opcodes;
   if (opc == 0 || mc9xgate_nb_opcode_defs == 0)
     return;
 
   /* Dump the opcode statistics table.  */
-  fprintf (file, _("Name   # Modes  Min ops  Max ops  Modes mask  # Used\n"));
-  for (i = 0; i < mc9xgate_nb_opcode_defs; i++, opc++)
-    {
-      fprintf (file, "%-7.7s  %5d  %7d  %7d  0x%08lx  %7d\n",
-	       opc->opcode->name,
-	       opc->nb_modes,
-	       opc->min_operands, opc->max_operands, opc->format, opc->used);
-    }
+//  fprintf (file, _("Name   # Modes  Min ops  Max ops  Modes mask  # Used\n"));
+//  for (i = 0; i < mc9xgate_nb_opcode_defs; i++, opc++)
+ //   {
+ //     fprintf (file, "%-7.7s  %5d  %7d  %7d  0x%08lx  %7d\n",
+//	       opc->opcode->name,
+//	       opc->nb_modes,
+//	       opc->min_operands, opc->max_operands, opc->format, opc->used);
+//    }
 }
 
 const char *
@@ -388,9 +399,28 @@ md_section_align (asection *seg, valueT addr)
 }
 
 void
-md_assemble (char *str)
+md_assemble (char *input_line)
 {
- *str = (char) 't';  //for testing duh
+
+ struct mc9xgate_opcode *opcode;
+ //opcode->arch = 1;
+
+ numberOfCalls++;
+ printf("\n in md_assemble, called %d \n",numberOfCalls);//for debug
+ char op_name[12];
+ extract_word(input_line, op_name, sizeof(op_name));
+ if (!op_name[0]){
+	 as_bad(_("opcode missing or not found"));
+	 return;
+ }
+ printf("\n found code %s\n",op_name);
+
+ opcode = (struct mc9xgate_opcode *) hash_find (mc9xgate_hash, op_name);
+
+ printf("\n hash returned %s \n",opcode->name);
+ mc9xgate_new_instruction(4);
+
+
 }
 
 static void
@@ -563,4 +593,36 @@ mc9xgate_elf_final_processing (void)
     elf_flags |= EF_MC9XGATE_MACH;
   elf_elfheader (stdoutput)->e_flags &= ~EF_MC9XGATE_ABI;
   elf_elfheader (stdoutput)->e_flags |= elf_flags;
+}
+
+static inline char *
+skip_whitespace(char *s){
+	while (*s == ' ' || *s=='\t'){
+		s++;
+	}
+	return s;
+}
+
+static char *
+extract_word(char *input, char *destination, char limit){
+	skip_whitespace(input);
+	*destination = 0; /* null terminate now incase no opcode is found*/
+	while(*input != ' ' && limit){
+		*destination++ = TOLOWER(*input++);
+		limit--;
+	}
+	*destination = 0; /* null terminate */
+	return input;
+}
+
+/* Create a new fragment for our instruction. Record the
+   line information of that insn in the dwarf2 debug sections. */
+static char *
+mc9xgate_new_instruction(int size){
+//	char *f = frag_more(size);
+//	dwarf2_emit_insn(size);
+//	return f;
+ int test = size;
+ test++;
+ return NULL;
 }
