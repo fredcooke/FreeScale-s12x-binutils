@@ -431,18 +431,27 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 
 /* The opcode table is an array of struct mc9xgate_opcode.  */
 struct mc9xgate_opcode {
-  const char*    name;     /* Op-code name */
-  const char*    constraints; /* */
-  const char*    format;   /* format string */
-  unsigned int   size;   /* size in words */
-  unsigned int   bin_opcode;  /* binary opcode with operands masked off */
-  unsigned char  cycles_min; /* minimum cpu cycles needed */
-  unsigned char  cycles_max; /* maximum cpu cycles needed */
-  unsigned char  set_flags_mask; /* CCR flags set */
-  unsigned char  clr_flags_mask; /* CCR flags cleared */
-  unsigned char  chg_flags_mask; /* CCR flags changed */
-  unsigned char  arch; /* cpu type, may always be mc9s12 only */
+	const char*    name;     /* Op-code name */
+	const char*    constraints; /* */
+	const char*    format;   /* format string */
+	unsigned int   size;   /* size in words */
+	unsigned int   bin_opcode;  /* binary opcode with operands masked off */
+	unsigned char  cycles_min; /* minimum cpu cycles needed */
+	unsigned char  cycles_max; /* maximum cpu cycles needed */
+	unsigned char  set_flags_mask; /* CCR flags set */
+	unsigned char  clr_flags_mask; /* CCR flags cleared */
+	unsigned char  chg_flags_mask; /* CCR flags changed */
+	unsigned char  arch; /* cpu type, may always be mc9s12 only */
 };
+
+//struct mc9xgate_opcode
+//{
+//  char *        name;
+//  char *        constraints;
+//  int           insn_size;		/* In words.  */
+//  int           isa;
+//  unsigned int  bin_opcode;
+//};
 
 /* Alias definition for 68HC12.  */
 struct mc9xgate_opcode_alias

@@ -88,8 +88,14 @@ struct mc9xgate_opcode mc9xgate_opcodes[] = {
 	{ "brk",  OP_INH, "0000000000000000", 1, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},
 	{ "csem", OP_INH, "0000000100000000", 1, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
 	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
-
 };
+
+//struct mc9xgate_opcode mc9xgate_opcodes[] =
+//{
+//		{"brk", "", 1,cpumc9xgate,0x0000},
+//		{"csem","",1,cpumc9xgate,0x100},
+//		{NULL,NULL, 0, 0, 0}
+//};
 
 const int mc9xgate_num_opcodes = TABLE_SIZE (mc9xgate_opcodes);
 

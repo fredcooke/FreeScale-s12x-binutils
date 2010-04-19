@@ -195,7 +195,7 @@ const pseudo_typeS md_pseudo_table[] = {
 static int current_architecture;
 static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
-static struct hash_control *mc9xgate_hash;
+//static struct hash_control *mc9xgate_hash;
 //static struct mc9xgate_opcode_def *mc9xgate_opcode_defs = 0;
 static unsigned int numberOfCalls = 0;
 /* ELF flags to set in the output file header.  */
@@ -305,11 +305,16 @@ void md_begin(void){
 	/* TODO create a copy of the opcode table, this prevents damaging the origional accidently
 		for now remove const from our "const mc9xgate_opcodes" pointer*/
 	for(mc9xgate_opcode_ptr = mc9xgate_opcodes; mc9xgate_opcode_ptr->name; mc9xgate_opcode_ptr++){
-		//printf("\n inserted %s %d \n",mc9xgate_opcode_ptr->name);
+		//printf("\n inserted %s \n",mc9xgate_opcode_ptr->name);
 		hash_insert(mc9xgate_hash,mc9xgate_opcode_ptr->name, (char *) mc9xgate_opcode_ptr);
-
 	}
-	return;
+
+	char *test = "brk";
+	mc9xgate_opcode_ptr = NULL;
+	mc9xgate_opcode_ptr = (struct mc9xgate_opcode *) hash_find (mc9xgate_hash, test);
+	//printf("checking %s ",mc9xgate_opcode_ptr->name); /* fine up until this point lookup segfaults
+	//													 when called from another function*/
+	//return;
 }
 
 void
@@ -403,23 +408,27 @@ md_assemble (char *input_line)
 {
 
  struct mc9xgate_opcode *opcode;
+ char *f; /* instruction fragment pointer */
  //opcode->arch = 1;
 
  numberOfCalls++;
- printf("\n in md_assemble, called %d \n",numberOfCalls);//for debug
- char op_name[12];
+ //printf("\n in md_assemble, called %d \n",numberOfCalls);//for debug
+ char op_name[11];
  extract_word(input_line, op_name, sizeof(op_name));
  if (!op_name[0]){
 	 as_bad(_("opcode missing or not found"));
 	 return;
  }
+
  printf("\n found code %s\n",op_name);
 
- opcode = (struct mc9xgate_opcode *) hash_find (mc9xgate_hash, op_name);
+ if(!(opcode = (struct mc9xgate_opcode *) hash_find (mc9xgate_hash, op_name) )){
+	 as_bad(_("opcode not found in hash"));
+	 printf("%s\n",op_name);
+ }
 
- printf("\n hash returned %s \n",opcode->name);
- mc9xgate_new_instruction(4);
-
+ f = mc9xgate_new_instruction(opcode->size);
+ number_to_chars_bigendian (f, opcode->bin_opcode, opcode->size);
 
 }
 
@@ -618,11 +627,12 @@ extract_word(char *input, char *destination, char limit){
 /* Create a new fragment for our instruction. Record the
    line information of that insn in the dwarf2 debug sections. */
 static char *
-mc9xgate_new_instruction(int size){
-//	char *f = frag_more(size);
-//	dwarf2_emit_insn(size);
-//	return f;
- int test = size;
- test++;
- return NULL;
+mc9xgate_new_instruction(int size)
+{
+
+	char *f = frag_more(size);
+
+	dwarf2_emit_insn(size); /* avr code passes 0 for size */
+
+	return f;
 }
