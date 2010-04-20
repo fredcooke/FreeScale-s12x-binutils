@@ -62,36 +62,54 @@ static const char *const reg_dst_table[] = {
 //static int print_indexed_operand (bfd_vma, struct disassemble_info *,
  //                                 int*, int, int, bfd_vma);
 static int print_insn (bfd_vma, struct disassemble_info *, int);
-
-
-
-
-/* Read the 68HC12 indexed operand byte and print the corresponding mode.
-   Returns the number of bytes read or -1 if failure.  */
+static int read_memory (bfd_vma , bfd_byte*, int, struct disassemble_info*);
 
 /* Disassemble one instruction at address 'memaddr'.  Returns the number
    of bytes used by that instruction.  */
 static int
 print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 {
-  unsigned long temp = memaddr;
-  int temp2 = info->bytes_per_line;
-  temp2 = arch;
-  temp = temp2;
-  return 1;
+ // printf("\nin print_insn\n");
+  int temp = arch;
+  temp++;
+  int status;
+  bfd_byte buffer[4];
+  status = read_memory (memaddr, buffer, 1, info);
+   if (status != 0)
+     {
+	   printf("\nstatus is NULL\n");
+       return status;
+     }
+   /* TODO add code to determine the size of the instruction here */
+   (*info->fprintf_func) (info->stream, "%d,%s",
+   			     (int) 55, "brk");
+   printf("\n read %d \n",status);
+  return 2;
 }
 
-/* Disassemble one instruction at address 'memaddr'.  Returns the number
-   of bytes used by that instruction.  */
-//int
-//print_insn_mc9xgate (bfd_vma memaddr, struct disassemble_info* info)
-//{
-//  return print_insn (memaddr, info, cpu6811);
-//}
 
 int
 print_insn_mc9xgate (bfd_vma memaddr, struct disassemble_info* info)
 {
-//  printf("\nin print_insn_mc9xgate");
-  return print_insn (memaddr, info, cpumc9xgate);
+   // printf("\nin print_insn_mc9xgate\n");
+    return print_insn (memaddr, info, cpumc9xgate);
+//	return 1;
 }
+
+static int
+read_memory (bfd_vma memaddr, bfd_byte* buffer, int size,
+             struct disassemble_info* info)
+{
+  int status;
+
+  /* Get first byte.  Only one at a time because we don't know the
+     size of the insn.  */
+  status = (*info->read_memory_func) (memaddr, buffer, size, info);
+  if (status != 0)
+    {
+      (*info->memory_error_func) (status, memaddr, info);
+      return -1;
+    }
+  return 0;
+}
+

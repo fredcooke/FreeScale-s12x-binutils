@@ -434,7 +434,7 @@ struct mc9xgate_opcode {
 	const char*    name;     /* Op-code name */
 	const char*    constraints; /* */
 	const char*    format;   /* format string */
-	unsigned int   size;   /* size in words */
+	unsigned int   size;   /* size in bytes , was in words */
 	unsigned int   bin_opcode;  /* binary opcode with operands masked off */
 	unsigned char  cycles_min; /* minimum cpu cycles needed */
 	unsigned char  cycles_max; /* maximum cpu cycles needed */

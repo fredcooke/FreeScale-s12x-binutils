@@ -408,6 +408,7 @@ md_assemble (char *input_line)
 {
 
  struct mc9xgate_opcode *opcode;
+ char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
  char *f; /* instruction fragment pointer */
  //opcode->arch = 1;
 
@@ -429,6 +430,8 @@ md_assemble (char *input_line)
 
  f = mc9xgate_new_instruction(opcode->size);
  number_to_chars_bigendian (f, opcode->bin_opcode, opcode->size);
+
+ input_line = saved_input_line;
 
 }
 
