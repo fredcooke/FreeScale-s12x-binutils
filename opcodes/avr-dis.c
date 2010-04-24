@@ -287,9 +287,7 @@ print_insn_avr (bfd_vma addr, disassemble_info *info)
       
       avr_bin_masks = xmalloc (nopcodes * sizeof (unsigned int));
 
-      for (opcode = avr_opcodes, maskptr = avr_bin_masks;
-	   opcode->name;
-	   opcode++, maskptr++)
+      for (opcode = avr_opcodes, maskptr = avr_bin_masks; opcode->name; opcode++, maskptr++)
 	{
 	  char * s;
 	  unsigned int bin = 0;
