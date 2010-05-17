@@ -1051,6 +1051,7 @@ get_operand (operand *oper, int which, long opmode)
 	  oper->reg1 = reg;
 	  oper->exp.X_op = O_constant;
 	  oper->exp.X_add_number = 0;
+	  printf("\n adding a numper to expression on line1054");
 	  oper->mode = MC9S12X_OP_IDX;
 	  return 1;
 	}
@@ -1134,6 +1135,7 @@ get_operand (operand *oper, int which, long opmode)
 
       /* Parse as an expression.  */
       expression (&oper->exp);
+      printf("\n read expression line 1137");
 
       if (c)
 	{
@@ -1143,6 +1145,7 @@ get_operand (operand *oper, int which, long opmode)
   else
     {
       expression (&oper->exp);
+      //printf("\n read expression line 1147, %d",(int) oper.exp->X_unsigned);
     }
 
   if (oper->exp.X_op == O_illegal)
@@ -1438,6 +1441,7 @@ fixup16 (expressionS *oper, int mode, int opmode ATTRIBUTE_UNUSED)
 		  oper->X_add_number);
 	}
       number_to_chars_bigendian (f, oper->X_add_number & 0x0FFFF, 2);
+      printf("\n in fixup16 line 1444, %d",(signed int) oper->X_add_number & 0x0FFFF);
     }
   else if (oper->X_op != O_register)
     {
@@ -1487,6 +1491,7 @@ fixup24 (expressionS *oper, int mode, int opmode ATTRIBUTE_UNUSED)
 		  oper->X_add_number);
 	}
       number_to_chars_bigendian (f, oper->X_add_number & 0x0FFFFFF, 3);
+      printf("\n in fixup24 line 1494");
     }
   else if (oper->X_op != O_register)
     {
@@ -2376,6 +2381,7 @@ find_opcode (struct mc9s12x_opcode_def *opc, operand operands[],
       int result;
 
       result = get_operand (&operands[i], i, opc->format);
+      printf("\n result of get_operands is %d",result);
       if (result <= 0)
 	return 0;
 

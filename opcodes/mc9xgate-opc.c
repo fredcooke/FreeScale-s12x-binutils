@@ -50,7 +50,7 @@
 #define CHG_ZVC         0,0,MC9XGATE_ZVC_BIT
 #define CHG_NZC         0,0,MC9XGATE_NZC_BIT
 #define CHG_NZV         0,0,MC9XGATE_NZV_BIT
-#define CHG_NZVC        0,0,MC9XGATE_NZVC_BIT
+#define CHG_NZVC        0,0,(MC9XGATE_NZVC_BIT)
 #define CHG_HNZVC       0,0,MC9XGATE_HNZVC_BIT  // TODO DELETE
 #define CHG_ALL         0,0,0xff
 
@@ -75,7 +75,23 @@
 #define _M 0xff
 #define OP_NONE         MC9XGATE_OP_NONE
 #define OP_INH			MC9XGATE_OP_INH
+#define OP_TRI			MC9XGATE_OP_TRI
+#define OP_DYA			MC9XGATE_OP_DYA
+#define OP_IMM4			MC9XGATE_OP_IMM4
+#define BI_MODE(mode1,mode2)	"mode1 | mode2"
 
+/*
+                            Table 4-1 Access Detail Notation
+V — Vector fetch: always an aligned word read, lasts for at least one RISC core cycle
+P — Program word fetch: always an aligned word read, lasts for at least one RISC core cycle
+r — 8-bit data read: lasts for at least one RISC core cycle
+R — 16-bit data read: lasts for at least one RISC core cycle
+w — 8-bit data write: lasts for at least one RISC core cycle
+W — 16-bit data write: lasts for at least one RISC core cycle
+A — Alignment cycle: no read or write, lasts for zero or one RISC core cycles
+f — Free cycle: no read or write, lasts for one RISC core cycles
+
+ */
 
 /*
    { "test", OP_NONE,          1, 0x00,  5, _M,  CHG_NONE,  cpu6811 },
@@ -86,12 +102,24 @@
                                    +--------------------- Opcode
 */
 
+/* it seems each insns mode will need its own entry based on this example
+                      Mode
+ASR RD, #IMM4       IMM4     0 0 0 0 1  RD      IMM4   1 0 0 1 P
+ASR RD, RS          DYA      0 0 0 0 1  RD      RS   1 0 0 0 1 P
+ */
+
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 
 	{ "brk",  OP_INH, "0000000000000000", 2, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},/* opcode should be 0x0000 bum value used for debugging */
 	{ "nop",  OP_INH, "0000000100000000", 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
-	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
+	{ "adc",  OP_TRI, "00011rrrrrrrrr11", 2, 0x1803, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "asr",  OP_DYA, "00001rrrrrr10001", 2, 0x0809, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "asr", OP_IMM4,  "00001rrriiii1001", 2, 0x0211, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "test",OP_IMM4, "00011rrrrrrrrr11", 2, 0x1C03, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "com", OP_TRI,  "00010rrr000rrr11", 2, 0x1003, 1, 2, CHG_NONE, cpumc9xgate}
+//	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
+
 };
 
 //struct mc9xgate_opcode mc9xgate_opcodes[] =

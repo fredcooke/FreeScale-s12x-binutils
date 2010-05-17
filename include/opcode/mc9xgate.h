@@ -359,18 +359,21 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 /* 68HC11 operands formats as stored in the MC9XGATE_opcode table.  These
    flags do not correspond to anything in the 68HC11 or 68HC12.
    They are only used by GAS to recognize operands.  */
-#define MC9XGATE_OP_NONE         "0000000000000000"        /* No operand AKA Inherint*/
-#define MC9XGATE_OP_INH			 "0000000000000000"
+#define MC9XGATE_OP_NONE         ""        /* No operand AKA Inherint*/
+#define MC9XGATE_OP_INH			 ""
+#define MC9XGATE_OP_TRI			 "r,r,r"
+#define MC9XGATE_OP_DYA			 "r,r"
+#define MC9XGATE_OP_IMM4         "r,i4"
 #define MC9XGATE_OP_DIRECT       0x0001   /* Page 0 addressing:   *<val-8bits>  */
 #define MC9XGATE_OP_IMM3		 0x0002   /*  3 bits immediat:    #<val-8bits>  */
-#define MC9XGATE_OP_IMM4		 0x0004	  /*  4 bits immediat:    #<val-8bits>  */
+//#define MC9XGATE_OP_IMM4		 0x0004	  /*  4 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM8         0x0008   /*  8 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM16_REMOVE        0x0009   /* THERE IS NO IMM16 16 bits immediat:    #<val-16bits> */
 #define MC9XGATE_OP_IND16        0x0010   /* Indirect abs:        <val-16>      */
 #define MC9XGATE_OP_IND16_P2     0x0020   /* Second parameter indirect abs.     */
-#define MC9XGATE_OP_MON          0x0040   /* Monadic Addressing (MON) was Register operand 1                 */
-#define MC9XGATE_OP_DYA          0x0080   /* Dyadic Addressing (DYA) was Register operand 2                 */
-#define MC9XGATE_OP_TRI			 0x0100	  /* Triadic Addressing (TRI)									*/
+//#define MC9XGATE_OP_MON          0x0040   /* Monadic Addressing (MON) was Register operand 1                 */
+//#define MC9XGATE_OP_DYA          0x0080   /* Dyadic Addressing (DYA) was Register operand 2                 */
+//#define MC9XGATE_OP_TRI			 0x0100	  /* Triadic Addressing (TRI)									*/
 
 #define MC9XGATE_OP_IDO5         0x0200   /* Indirect IX:         <val-8>,x     */
 #define MC9XGATE_OP_IDR			 0x0400	  /* Index Register plus Register Offset (IDR) */
@@ -431,9 +434,9 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 
 /* The opcode table is an array of struct mc9xgate_opcode.  */
 struct mc9xgate_opcode {
-	const char*    name;     /* Op-code name */
-	const char*    constraints; /* */
-	const char*    format;   /* format string */
+	char*    name;     /* Op-code name  was const*/
+	char*    constraints; /* was const*/
+	char*    format;   /* format string was const*/
 	unsigned int   size;   /* size in bytes , was in words */
 	unsigned int   bin_opcode;  /* binary opcode with operands masked off */
 	unsigned char  cycles_min; /* minimum cpu cycles needed */
@@ -467,6 +470,7 @@ struct mc9xgate_opcode_alias
    You can't rely on the order.  */
 extern struct mc9xgate_opcode mc9xgate_opcodes[];
 extern const int mc9xgate_num_opcodes;
+//extern struct mc9xgate_opcode_desc;
 
 /* Alias table for 68HC12.  It translates some 68HC11 insn which are not
    implemented in 68HC12 but have equivalent translations.  */
