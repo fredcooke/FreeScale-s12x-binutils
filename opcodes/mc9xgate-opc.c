@@ -78,6 +78,14 @@
 #define OP_TRI			MC9XGATE_OP_TRI
 #define OP_DYA			MC9XGATE_OP_DYA
 #define OP_IMM4			MC9XGATE_OP_IMM4
+#define OP_MON			MC9XGATE_OP_MON
+#define OP_MON_R_C		MC9XGATE_OP_MON_R_C
+#define OP_MON_C_R		MC9XGATE_OP_MON_C_R
+#define OP_MON_R_P		MC9XGATE_OP_MON_R_P
+#define OP_IDR	        MC9XGATE_OP_IDR
+#define OP_IDO5		    MC9XGATE_OP_IDO5
+#define OP_REL9			MC9XGATE_OP_REL9
+
 #define BI_MODE(mode1,mode2)	"mode1 | mode2"
 
 /*
@@ -111,24 +119,28 @@ ASR RD, RS          DYA      0 0 0 0 1  RD      RS   1 0 0 0 1 P
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 
-	{ "brk",  OP_INH, "0000000000000000", 2, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},/* opcode should be 0x0000 bum value used for debugging */
-	{ "nop",  OP_INH, "0000000100000000", 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
-	{ "adc",  OP_TRI, "00011rrrrrrrrr11", 2, 0x1803, 1, 2, CHG_NZVC, cpumc9xgate},
-	{ "asr",  OP_DYA, "00001rrrrrr10001", 2, 0x0809, 1, 2, CHG_NZVC, cpumc9xgate},
-	{ "asr", OP_IMM4,  "00001rrriiii1001", 2, 0x0211, 1, 2, CHG_NZVC, cpumc9xgate},
-	{ "test",OP_IMM4, "00011rrrrrrrrr11", 2, 0x1C03, 1, 2, CHG_NZVC, cpumc9xgate},
-	{ "com", OP_TRI,  "00010rrr000rrr11", 2, 0x1003, 1, 2, CHG_NONE, cpumc9xgate}
+	{ "brk",      OP_INH, "0000000000000000",   MC9XGATE_INH, 2, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},
+	{ "nop",      OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
+	{ "adc",      OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 2, CHG_NZVC, cpumc9xgate},
+
+	{ "bcc",     OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I,   2, 0x2000, 1, 2, CHG_NZVC, cpumc9xgate},
+
+	{ "asr",      OP_DYA, "00001rrrrrr10001",   MC9XGATE_R_R, 2, 0x0811, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "asr",     OP_IMM4, "00001rrriiii1001",   MC9XGATE_R_I, 2, 0x0809, 1, 2, CHG_NZVC, cpumc9xgate},
+
+	{ "test",    OP_IMM4, "0000011rrrrrrr11",   MC9XGATE_R_I, 2, 0x0603, 1, 2, CHG_NZVC, cpumc9xgate},
+
+	{ "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 2, CHG_NONE, cpumc9xgate},
+	{ "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 2, CHG_NONE, cpumc9xgate},
+	{ "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 2, CHG_NONE, cpumc9xgate},
+
+	{ "ldw",     OP_IDO5, "01001rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4800, 1, 2, CHG_NONE, cpumc9xgate},
+	{ "ldw",      OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 1, 2, CHG_NONE, cpumc9xgate},
+
+	{ "com",      OP_DYA, "00010rrr000rrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 2, CHG_NONE, cpumc9xgate}
 //	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
 
 };
 
-//struct mc9xgate_opcode mc9xgate_opcodes[] =
-//{
-//		{"brk", "", 1,cpumc9xgate,0x0000},
-//		{"csem","",1,cpumc9xgate,0x100},
-//		{NULL,NULL, 0, 0, 0}
-//};
-
 const int mc9xgate_num_opcodes = TABLE_SIZE (mc9xgate_opcodes);
 
-//const int mc9xgate_num_alias = TABLE_SIZE (mc9xgate_alias);

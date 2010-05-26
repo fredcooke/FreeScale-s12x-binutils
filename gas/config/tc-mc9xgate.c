@@ -2,11 +2,7 @@
    Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
    Free Software Foundation, Inc.
    Written by Sean Keys (info@powerefi.com)
-   Based on existing avr and hc12 ports.
-*/
-/*
-Fatal error: selected target format
-find length of asr
+   Much is based on existing avr and hc12 ports.
 */
 
 #include "as.h"
@@ -44,6 +40,18 @@ const char FLT_CHARS[] = "dD";
 
 #define REGISTER_P(ptr)		(ptr == 'r')
 
+#define INCREMENT			01
+#define DECREMENT			02
+
+#define MAXREGISTER			07
+#define MINREGISTER			00
+
+
+//struct mc9xgate_parsed_op{
+//	unsigned short bin_operand_mask;
+//	unsigned int  shorthand_format; /* prime values used as flags */
+//	char	num_modes;
+//};
 
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
@@ -65,12 +73,15 @@ unsigned short mc9xgate_apply_operand(unsigned short new_mask, unsigned short *o
 
 static unsigned int mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line);
 
-static unsigned int mc9xgate_operand (struct mc9xgate_opcode *opcode, int where, char **op_con, char **line);
+static unsigned int mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, char **op_con, char **line);
 
 unsigned short mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
 static unsigned int mc9xgate_get_constant(char *input, int max);
 void append_str(char *in, char c);
 static int cmp_opcode(struct mc9xgate_opcode *, struct mc9xgate_opcode *);
+
+unsigned int
+mc9xgate_detect_format(char *line_in);
 
 //char get_address_mode(char *);
 /* Mark the symbols with STO_M68HC12_FAR to indicate the functions
@@ -81,12 +92,11 @@ static int cmp_opcode(struct mc9xgate_opcode *, struct mc9xgate_opcode *);
 
 /* LOCAL DATA */
 static struct hash_control *mc9xgate_hash;
-static char parse_error;
-static char error_message[ sizeof( char) ];
+static unsigned int prev = 0;  /* Previous opcode.  */
+//static char parse_error;
+//static char error_message[ sizeof( char) ];
 static char oper_check;
-static int oper1_bit_length = 0;
-static int oper2_bit_length = 0;
-static int oper3_bit_length = 0;
+
 //static struct mc9xgate_opcode *mc9xgate_op_table = 0;
 
 
@@ -120,6 +130,8 @@ typedef struct mc9xgate_operand{
 // unsigned char  chg_flags_mask; /* CCR flags changed */
 //  unsigned char  arch; /* cpu type, may always be mc9s12 only */
 //};
+
+
 
 /* This table describes how you change sizes for the various types of variable
    size expressions.  This version only supports two kinds.  */
@@ -340,8 +352,6 @@ get_default_target (void)
     }
 }
 
-/* end baggage */
-
 void md_begin(void){
 	struct mc9xgate_opcode *mc9xgate_opcode_ptr;
 	struct mc9xgate_opcode *mc9xgate_op_table ;
@@ -379,23 +389,24 @@ void md_begin(void){
 	mc9xgate_hash = hash_new(); /* create a new has control table */
 	for(mc9xgate_opcode_ptr = mc9xgate_op_table, i = 0, j = -1 ; i < mc9xgate_num_opcodes; i++, mc9xgate_opcode_ptr++){
 		if(strcmp(prev_op_name,mc9xgate_opcode_ptr->name)){
-			handle_enum = 0;
+			handle_enum = 1;
 			j++;
 			op_handles[j].name = mc9xgate_opcode_ptr->name;
 			op_handles[j].opc0 = mc9xgate_opcode_ptr;
 			mc9xgate_op_handle_ptr = op_handles[j].opc0;
+			op_handles[j].number_of_modes = handle_enum;
 		}else{
 			handle_enum++;
 			switch (handle_enum) {
-			case 1:
+			case 2:
 				op_handles[j].opc1 = mc9xgate_opcode_ptr;
 				break;
-			case 2:
+			case 3:
 				op_handles[j].opc2 = mc9xgate_opcode_ptr;
 				break;
-			case 3:
-				op_handles[j].opc3 = mc9xgate_opcode_ptr;
 			case 4:
+				op_handles[j].opc3 = mc9xgate_opcode_ptr;
+			case 5:
 				op_handles[j].opc4 = mc9xgate_opcode_ptr;
 			default:
 				as_bad(_(":error adding operand handle"));
@@ -502,19 +513,15 @@ md_assemble (char *input_line)
 {
 
 // char io_buffer[20]; /* general purpose buffer */
- struct mc9xgate_opcode *opcode;
+ struct mc9xgate_opcode *opcode = 0;
  struct mc9xgate_opcode_handle *opcode_handle;
+// struct mc9xgate_parsed_op	*parsed_operand;
  char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
  char *f; /* instruction fragment pointer */
- unsigned short operand_mask = 0;
+ unsigned short opcode_bin = 0;
  char op_name[9];
  char handle_enum_alias = 0;
- char parse_complete = 0;
-// operand operands[3]; /* seems theres always 3 opers max */
-
- //unsigned int number_of_operands = 0;
-
- //unsigned short oper_bits_availiable = 0;
+ unsigned int sh_format = 0;
 
  numberOfCalls++; // for testing
 
@@ -526,56 +533,46 @@ md_assemble (char *input_line)
 //	 return;
  }
 
- printf("\n found code %s\n", op_name);
-
- // use hash find to find a match
-
- // calculate min and max ops for a paticular opcode
- // size operand array to max
- // gather operands from input line
- // try to apply opers to opcode if error try the next entry with matching name if non work fail
- // write opcode to ouput
-
- //strcpy(op_name, io_buffer);
-
- while(!parse_complete){
+ printf("\n read code %s\n", op_name);
 
 	 if(!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name) )){
-		 printf("\n %s\n",op_name);
+	//	 printf("\n %s\n",op_name);
 		 as_bad(_("opcode not found in hash"));
 	  }
+
+	 /* detect operand format so we can pull the proper opcode bin */
 	 handle_enum_alias = opcode_handle->number_of_modes;
-	 printf("\n this opcode has %d possobile addressing modes", handle_enum_alias);
-	 opcode = opcode_handle->opc0;
+	 printf("\n about to detect operands, %d combinations found", handle_enum_alias);
+	 sh_format = mc9xgate_detect_format(input_line);
+	 printf("\n detected shorthand %d",sh_format);
 
-		 //unsigned short test = mc9xgate_get_constant(input_line, 0xFFF);
-	 operand_mask = mc9xgate_operands(opcode, &input_line);
+	 /* TODO if not match is found we segfault */
+	 if(opcode_handle->opc0->sh_format == sh_format && handle_enum_alias--){
+		 opcode = opcode_handle->opc0;
+	 }else if(opcode_handle->opc1->sh_format == sh_format && handle_enum_alias--){
+		 opcode = opcode_handle->opc1;
+	 }else if(opcode_handle->opc2->sh_format == sh_format && handle_enum_alias--){
+		 opcode = opcode_handle->opc2;
+	 }else if(opcode_handle->opc3->sh_format == sh_format && handle_enum_alias--){
+		 opcode = opcode_handle->opc3;
+	 }else if(opcode_handle->opc4->sh_format == sh_format && handle_enum_alias--){
+		 opcode = opcode_handle->opc4;
+	 }
 
-	 printf("\n operand mask is  %d", operand_mask);
-//	 operand_mask = mc9xgate_get_operands(input_line, opcode);
-//	 printf("\n need to check op against mask %d\n",operand_mask);
-	 printf("\n oper_check status %d", oper_check);
-//	 if(oper_check){
-//		 parse_complete = 1;
-//	 }else {
+	 if(!opcode)
+		 as_bad(_(":error matching operand format"));
 
-//		 append_str(op_name, 'a' + '0');
-//		 input_line = saved_input_line; /* rewind */
-//		 printf("\n new name is %s", op_name);
-		 /* find next opcode and repeat */
-// 	 }
+	 printf("\n matched code %s and format %s",opcode->name, opcode->format);
 
-	 parse_complete = 1;
- }
+	 opcode_bin = mc9xgate_operands(opcode, &input_line);
+	 printf("\n parsed bin_opcode is  %d", opcode_bin);
 
-// if(!parse_error){
 	 f = mc9xgate_new_instruction(opcode->size);
-// 	 number_to_chars_bigendian (f, opcode->bin_opcode | operand_mask, opcode->size);
+ 	 number_to_chars_bigendian (f, opcode_bin, opcode->size);
 // 	 printf("\n wrote op %x\n", opcode->bin_opcode | operand_mask );
 // }
 
  input_line = saved_input_line;
-
 }
 
 static void
@@ -752,13 +749,13 @@ mc9xgate_elf_final_processing (void)
 
 static inline char *
 skip_whitespace(char *s){
-	while (*s == ' ' || *s == '\t'){
+	while (*s == ' ' || *s == '\t' || *s == '(' || *s == ')'){
 		s++;
 	}
 	return s;
 }
 
-/* extract a word (continuous chars) from the input line */
+/* extract a word (continuous alpha-numeric chars) from the input line */
 static char *
 extract_word (char *from, char *to, int limit)
 {
@@ -794,30 +791,26 @@ mc9xgate_new_instruction(int size)
 
 	return f;
 }
-/*
-unsigned char get_address_mode(int opcode){
-	char number = 0;
 
-
-}
-*/
 
 unsigned short
 mc9xgate_apply_operand(unsigned short new_mask, unsigned short *availiable_mask_bits,
 						unsigned short mask, unsigned char n_bits){
+	printf("\n need to apply %d to %d with %d left", new_mask, mask, *availiable_mask_bits);
 	unsigned short n_shifts;
 	unsigned int n_drop_bits;
 
+	/* shift until you find an availiable operand bit "1" and record the number of shifts */
 	for(n_shifts = 0; !(*availiable_mask_bits & SIXTEENTH_BIT) && n_shifts < 16; n_shifts++){
 		*availiable_mask_bits <<= 1;
     }
-
+	/* shift for the number of bits your operand requires while bits are avaibiable */
 	for(n_drop_bits = n_bits; n_drop_bits && (*availiable_mask_bits & SIXTEENTH_BIT); --n_drop_bits ){
 		*availiable_mask_bits <<= 1;
 
 	}
 	if(n_drop_bits)
-		//	as_bad(_(":operand has too many bits"));
+ as_bad(_(":operand has too many bits"));
 
 	*availiable_mask_bits >>= n_shifts + n_bits;
 
@@ -829,88 +822,6 @@ mc9xgate_apply_operand(unsigned short new_mask, unsigned short *availiable_mask_
 	new_mask <<=  N_BITS_IN_WORD - ( n_shifts + n_bits);
 	mask |= new_mask ;
 	return mask;
-}
-
-unsigned short
-mc9xgate_get_operands_old(char *input_string, struct mc9xgate_opcode *opcode){
-	char buffer[30];
-	unsigned short op_mask = 0;
-//	unsigned short op = 0;
-	unsigned char oper_bits_remaining = 0;
-	unsigned char number_of_constraints = 1; /* if we got here there is at least 1 constraint */
-	char *c;
-	char reg_number = 0; /* TODO maybe change this so it defaults to error code or "r" could be the same as "r0" */
-	unsigned short oper_bits_availiable = 0;
-	char *buffer_ptr = &buffer[0];
-	char seperator_expected = 0;
-	unsigned short constant = 0;
-
-	/* build operand mask */
-    for(c = (char*) &opcode->format[0]; *c; c++){
-		 if(*c == '0' || *c == '1'){
-			 oper_bits_availiable <<= 1;
-		 } else{
-			 oper_bits_availiable <<= 1;
-			 oper_bits_availiable += 1;
-			 oper_bits_remaining++;
-		 }
-	 }
-
-    if(!oper_bits_remaining){ /* no operands to apply return */
-    	oper_check = 1; /* good to go */
-    	return op_mask;
-    }
-
-	/* get number of constraints */
-	for(c = (char *) &opcode->constraints[0]; *c; c++){
-		if (*c == ',')
-			number_of_constraints++;
-	}
-
-
-	for ( c = (char*) &opcode->constraints[0]; *c; c++){
-	//	unsigned char oper_size; /* in bits */
-	//	printf("\n read constraint %c \n",*c);
-		unsigned short oper_constant_bit_length = 0xFFFF;
-		switch (*c){
-		case 'r': /* expecting register operand */
-			/* TODO RI mode always uses 5 bits */
-			input_string = extract_word(input_string, buffer, sizeof(buffer));
-			if(*buffer_ptr == 'r'){
-				reg_number = buffer[1] - '0';
-				if (reg_number >= 0 && reg_number <= 7){
-					constant = (unsigned short) reg_number;
-					op_mask = mc9xgate_apply_operand(constant, &oper_bits_availiable, op_mask, 3); /* regs always use 3 bits */
-					number_of_constraints--;
-					if(number_of_constraints)
-						seperator_expected = 1;
-				} else{
-				//	as_bad(_(":expected register operand r0-r7"));
-					strcpy(error_message, ":expected register operand r0-r7");
-					parse_error = 1;
-				}
-			}
-			break;
-		case 'i':/* expecting immediate operand */
-			if(!ISDIGIT (++*c))
-				strcpy(error_message,":expected number of immediate bits in operand constraint");
-			oper_constant_bit_length = ~ (oper_constant_bit_length << ( (*c - '0') + 1) ); /* TODO macro this */
-			printf("\n number of bits read in ASCII %c max int is %d",*c, oper_constant_bit_length);
-			constant = mc9xgate_get_constant(buffer_ptr, oper_constant_bit_length);
-			printf("\n constant is %d\n",constant);
-			op_mask = mc9xgate_apply_operand(constant, &oper_bits_availiable, op_mask, oper_constant_bit_length);
-
-			if(number_of_constraints)
-				seperator_expected = 1;
-			break;
-		case ',':
-		//	if(!(*buffer_ptr == ',' && seperator_expected))
-		//		as_bad(_(":constraint seperator not expected"));
-			break;
-			}
-	}
-    printf("\n number of constraints left %d \n",number_of_constraints);
-	return op_mask;
 }
 
 static unsigned int
@@ -946,53 +857,50 @@ cmp_opcode (struct mc9xgate_opcode *op1, struct mc9xgate_opcode *op2)
 	 return strcmp (op1->name, op2->name);
 }
 
-
-/* Parse ordinary expression.  */
-
-//static char *
-//parse_exp (char *s, expressionS *op)
-//{
-//  input_line_pointer = s;
-//  expression (op);
-//  if (op->X_op == O_absent)
-//    as_bad (_("missing operand"));
-//  return input_line_pointer;
-//}
-
 /* Parse instruction operands.
    Return binary opcode.  */
-
 static unsigned int
 mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 {
   char *op = opcode->constraints;
-  unsigned int bin = opcode->bin_opcode;
-  char *frag = frag_more (opcode->size * 2); /* all opcodes are at lest 2 bytes in size */
+ // unsigned int bin = opcode->bin_opcode;
+  unsigned int bin = (int) opcode->bin_opcode;
+//  char *frag = frag_more (opcode->size * 2); /* all opcodes are at lest 2 bytes in size */
   char *str = *line;
-  int where = frag - frag_now->fr_literal;
-  static unsigned int prev = 0;  /* Previous opcode.  */
+//  int where = frag - frag_now->fr_literal;
 
+  unsigned short oper_mask = 0;
   unsigned int oper1 = 0;
   unsigned int oper2 = 0;
   unsigned int oper3 = 0;
   int oper1_present = 0;
- //      int oper1_bit_length = 0;
+  int oper1_bit_length = 0;
   int oper2_present = 0;
- //      int oper2_bit_length = 0;
+  int oper2_bit_length = 0;
   int oper3_present = 0;
- //      int oper3_bit_length = 0;
+  int oper3_bit_length = 0;
+  char n_operand_bits = 0;
+  int i = 0;
+  char c = 0;
 
+  /* generate availible operand bits mask */
+  for(i = 0; (c = opcode->format[i]); i++  ){
+	  if(ISDIGIT(c)){
+		  oper_mask <<= 1;
+	  }else{
+		  oper_mask <<= 1;
+		  oper_mask += 1;
+		  n_operand_bits++;
+	  }
+  }
+  printf("\n available operbit mask is %d with %d bits", oper_mask, n_operand_bits);
   /* Opcode have operands.  */
+  /* Parse first operand.  */
   if (*op)
     {
-
-      /* Parse first operand.  */
-//      if (REGISTER_P (*op))
-//    oper1_length = 3;
-//      if (*op)
       oper1_present = 1;
       printf("\n getting operand 1 , %c", *op);
-      oper1 = mc9xgate_operand (opcode, where, &op, &str);
+      oper1 = mc9xgate_operand (opcode, &oper1_bit_length, &op, &str);
       ++op;
 
       /* Parse second operand.  */
@@ -1008,9 +916,7 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 	    }
 	  else
 	    {
-//	      if (REGISTER_P (*op))
 		oper2_present = 1;
-
 //	      ++*op
 	      str = skip_whitespace (str);
 	      printf("\n string is now %c", *str);
@@ -1018,22 +924,13 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 		as_bad (_("`,' required"));
 	      str = skip_whitespace (str);
 	      printf("\n operand before call to get_operand %c", *op);
-	      oper2 = mc9xgate_operand (opcode, where, &op, &str);
+	      oper2 = mc9xgate_operand (opcode, &oper2_bit_length, &op, &str);
 	      printf("\n operand after call to get_operand %c", *op);
 	      ++op;
 	    }
 
-/* TODO something like this may work
-	  if (reg1_present && reg2_present)
-	    reg2 = (reg2 & 0xf) | ((reg2 << 5) & 0x200);
-	  else if (reg2_present)
-	    reg2 <<= 4;
-	}
-      if (reg1_present)
-	reg1 <<= 4;
-      bin |= reg1 | reg2;
- */
     }
+      /* parse the third register */
          if (*op)
     	{
     	  if (*op == ',')
@@ -1054,75 +951,100 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
     		as_bad (_("`,' required"));
     	      str = skip_whitespace (str);
     	     printf("\n getting operand 3 typs is, %c input string is %s", *op, str);
-    	     oper3 = mc9xgate_operand (opcode, where, &op, &str);
+    	     oper3 = mc9xgate_operand (opcode, &oper3_bit_length, &op, &str);
     	    }
     	}
-
-
-  /* Detect undefined combinations (like ld r31,Z+).  */
-//  if (!avr_opt.all_opcodes && AVR_UNDEF_P (bin))
- //   as_warn (_("undefined combination of operands"));
-
-//  if (opcode->insn_size == 2)
-//    {
-      /* Warn if the previous opcode was cpse/sbic/sbis/sbrc/sbrs
-         (AVR core bug, fixed in the newer devices).  */
-//      if (!(avr_opt.no_skip_bug ||
-//            (avr_mcu->isa & (AVR_ISA_MUL | AVR_ISA_MOVW)))
-//	  && AVR_SKIP_P (prev))
-//	as_warn (_("skipping two-word instruction"));
-
-//      bfd_putl32 ((bfd_vma) bin, frag);
-//    }
-//  else
 
    // bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
     }
 
+  if(oper1_present)
+	  bin = mc9xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
+  if(oper2_present)
+	  bin = mc9xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
+  if(oper3_present)
+  	  bin = mc9xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
 
+//  printf("\n firt length is %d with operand %d second length is %d with operand %d third length is %d with operand %d",
+//		  oper1_bit_length, oper1, oper2_bit_length, oper2, oper3_bit_length, oper3);
+  printf("\n final bin is now %d",bin);
 
-  bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
+ // bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
 
   prev = bin;
   *line = str;
   return bin;
  }
-/* Parse one instruction operand.
-   Return operand bitmask.  Also fixups can be generated.  */
 
 static unsigned int
-mc9xgate_operand (struct mc9xgate_opcode *opcode, int where, char **op_con, char **line){
+mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, char **op_con, char **line){
 /* dummy code */
 //  expressionS op_expr;
-	where ++;
-	opcode = opcode;
+//	where ++;
+  opcode = opcode;
   char *op_constraint = *op_con;
   unsigned int op_mask = 0;
   char *str = skip_whitespace (*line);
   char r_name[20];
+  unsigned int pp_fix = 0;
+  unsigned short max_size = 0;
+  char reg_expected = 0;
+  int i;
+  *bit_width = 0;
+
 
   /* reset */
-  oper1_bit_length = 0;
-  oper2_bit_length = 0;
-  oper3_bit_length = 0;
 
   switch (*op_constraint)
     {
-      /* Any register operand.  */
-//    case 'w':
-//    case 'd':
-//    case 'r':
-//    case 'a':
-    case 'r':
+    case '+': /* indexed register operand +/- or plain r  */
+    	pp_fix = 0b00; /* default to no inc or dec */
+    	//TODO maybe use a loop so the order is not important
+    	*bit_width = 5;
+    	printf("\n found +/- line reads %s", str);
+    	//str = extract_word (str, r_name, sizeof (r_name));
+    	str = skip_whitespace(str);
+    	printf("\n found +/- extracted %s", r_name);
 
+    	while(*str != ' ' && *str != '\t' ){
+			if(*str == '-')
+				pp_fix = DECREMENT;
+			else if(*str == '+')
+				pp_fix = INCREMENT;
+			else if(*str == 'r' || *str == 'R'){
+				reg_expected = 1;
+				str = extract_word (str, r_name, sizeof (r_name));
+				str--; /* rewind */
+				if (ISDIGIT (r_name[1]))
+					    {
+					      if (r_name[2] == '\0')
+						op_mask = r_name[1] - '0';
+					      else if (r_name[1] != '0'
+						       && ISDIGIT (r_name[2])
+						       && r_name[3] == '\0')
+						op_mask = (r_name[1] - '0') * 10 + r_name[2] - '0';
+					      /* TODO fix so it checks for range 0-7 */
+					    }else{
+					    	as_bad(_(": expected register name r0-r7 read %s "), r_name );
+					    }
+
+					}
+					{
+
+					}
+			str++;
+				}
+    	op_mask <<= 2;
+    	op_mask |= pp_fix;
+    	printf("\n built code %d from prefix %d",op_mask,pp_fix);
+    	break;
+    case 'r': /* register operand.  */
     	if (*str == 'r' || *str == 'R')
 	{
-
-    	/* TODO detect +- code here always last register that is - or + and always last two bits of opcode */
-      oper1_bit_length = 3; /* 111 */
-      // if next is + or - length should be 5
+    	*bit_width = 3;
 
 	  str = extract_word (str, r_name, sizeof (r_name));
+	//  printf("\n in case r extracted %s", r_name);
 	  op_mask = 0xff;
 	  if (ISDIGIT (r_name[1]))
 	    {
@@ -1132,26 +1054,70 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int where, char **op_con, char
 		       && ISDIGIT (r_name[2])
 		       && r_name[3] == '\0')
 		op_mask = (r_name[1] - '0') * 10 + r_name[2] - '0';
-	      /* TODO fix so it checks for range 0-7 */
+	    if(op_mask > MAXREGISTER)
+	    	as_bad(_(": expected register name r0-r7 read %s "), r_name );
 	    }
-	}
-      else
+	} else
 	{
 	 as_bad(_(": expected register name r0-r7 read %s "), r_name );
 
 	}
     break;
 
-    case 'i':
-    	(*op_con)++; /* advance the origional pointer */
+    case 'i': /* immediate value expected */
+    	(*op_con)++; /* advance the origional format pointer */
     	op_constraint++;
-    	oper1_bit_length = *op_constraint;
+
     	if(!ISDIGIT(*op_constraint))
-      as_bad(_(":expected bit length with constraint type i(immediate) read %c"), *op_constraint);
-    	//printf("\n input string is %s",str);
+      as_bad(_(":expected numerical value after i constraint"));
+    	*bit_width = (int) *op_constraint - '0';
+       	if(*str == '#') /* go past # character */
+      str++;
+    	if(!ISDIGIT(*op_constraint))
+      as_bad(_(":expected bit length with constraint type i(# immediate) read %c"), *op_constraint);
+    	printf("\n case is i input string is %s",str);
     	op_mask = mc9xgate_get_constant (str, 0xFFFF);
-    	printf("\n length is %c and read %d from get_constant", *op_constraint, op_mask);
+		/* make sure it fits */
+    	for(i = *bit_width; i; i--){
+				max_size <<= 1;
+				max_size += 1;
+    	}
+    	if(op_mask > max_size)
+    	as_bad(_(":operand too big for constraint"));
+
+    	//printf("\n length is %c and read %d from get_constant", *op_constraint, op_mask);
     break;
+    case 'c': /* CCR register expected */
+    	if (*str == 'c' || *str == 'C')
+    		{
+    	    	*bit_width = 0;
+
+    		  str = extract_word (str, r_name, sizeof (r_name));
+    		  printf("\n in case c extracted %s", r_name);
+
+    		  if(strcmp(r_name,"ccr"))
+    		 as_bad(_(": expected register name ccr read %s "), r_name );
+
+    		}else {
+    		as_bad(_(": expected register name ccr read %s "), r_name );
+    	}
+    	break;
+
+    case 'p': /* PC register expected */
+    	if (*str == 'p' || *str == 'P')
+    	    		{
+    	    	   	*bit_width = 0;
+
+    	    		  str = extract_word (str, r_name, sizeof (r_name));
+    	    		  printf("\n in case c extracted %s", r_name);
+
+    	    		  if(strcmp(r_name,"pc"))
+    	    		 as_bad(_(": expected register name ccr read %s "), r_name );
+
+    	    		}else {
+    	    		as_bad(_(": expected register name ccr read %s "), r_name );
+    	    	}
+    	break;
 
     case '?':
       break;
@@ -1164,7 +1130,98 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int where, char **op_con, char
   return op_mask;
 }
 
-//void mc9xgate_operand_params(char *constraints, int bit_size){
-//
-//	return;
-//}
+unsigned int
+mc9xgate_detect_format(char *line_in){
+	char c;
+	char sh_format[10]; /* shorthand format */
+	char num_operands = 0;
+	int i = 0;
+	char *str = skip_whitespace(line_in);
+	char previous_char = 0;
+	char first_char = 0; /* next character is first of an operand */
+
+	/* strings TODO maybe structure this*/
+	char* i_string = {"i"};
+	char *r_string = {"r"};
+	char *r_r_string = {"r,r"};
+	char *r_r_r_string = {"r,r,r"};
+	char *r_i_string = {"r,i"};
+	char *r_c_string = {"r,c"};
+	char *c_r_string = {"c,r"};
+	char *r_p_string = {"r,p"};
+	char *r_r_i_string = {"r,r,i"};
+
+	for(i = 0, first_char = 1 ; (c = TOLOWER(*str)) && num_operands < 3; str++ ){
+		//printf("\n char read %c",c);
+
+		if (ISDIGIT(c) && first_char){
+			c = '#';
+			first_char = 0;
+		}
+
+		switch (c){
+		case 'r':
+			if(previous_char == 'c'){
+				sh_format[i++] = 'c'; /* special registers allowed */
+			}else{
+				sh_format[i++] = 'r';
+			}
+			break;
+		case ',':
+			sh_format[i++] = ',';
+			num_operands++;
+			break;
+		case '#':
+			sh_format[i++] = 'i'; /* immediate address */
+			break;
+		case 'c': /* TODO make expected var work with r case */
+			if(previous_char == 'p'){
+				sh_format[i++] = 'p'; /* special registers allowed */
+			}else{
+				// possobile error message
+			}
+			break;
+		default:
+			break;
+			}
+
+		if(c == ',')
+			first_char = 1;
+		else
+			first_char = 0;
+
+		previous_char = c;
+	}
+	sh_format[i] = 0; /* null terminate */
+
+	/* if there are chars there is at least 1 operand */
+	if(i)
+		num_operands++;
+
+	printf("\n detected format %s and counted %d operands", sh_format, num_operands);
+	/* TODO MACRO THIS */
+	if(!strcmp(i_string, sh_format) && num_operands == 1)
+		return MC9XGATE_I;
+	if(!strcmp(r_i_string, sh_format) && num_operands == 2)
+		return MC9XGATE_R_I;
+	if(!strcmp(r_r_r_string, sh_format) && num_operands == 3)
+		return MC9XGATE_R_R_R;
+	if(!strcmp(r_r_string, sh_format) && num_operands == 2)
+		return MC9XGATE_R_R;
+	if(!strcmp(r_string, sh_format) && num_operands == 2)
+		return MC9XGATE_R;
+	if(!strcmp(r_c_string, sh_format) && num_operands == 2)
+		return MC9XGATE_R_C;
+	if(!strcmp(c_r_string, sh_format) && num_operands == 2)
+		return MC9XGATE_C_R;
+	if(!strcmp(r_p_string, sh_format) && num_operands == 2)
+		return MC9XGATE_R_P;
+	if(!strcmp(r_r_i_string, sh_format) && num_operands == 3)
+		return MC9XGATE_R_R_I;
+	if(!num_operands)
+		return MC9XGATE_INH;
+
+	return 0;
+}
+
+

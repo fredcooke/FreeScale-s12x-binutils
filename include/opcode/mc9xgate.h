@@ -64,6 +64,22 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_CYCLE_A	0x40
 #define MC9XGATE_CYCLE_f	0x80
 
+
+/* Opcode format abbrivations */
+#define MC9XGATE_INH		0x0001  /* inherent */
+#define MC9XGATE_I			0x0002  /* 3-bit immediate address */
+#define MC9XGATE_R_I		0x0004  /* register followed by 4/8-bit immediate address */
+#define MC9XGATE_R_R		0x0008  /* register followed by a register */
+#define MC9XGATE_R_R_R		0x0010  /* register followed by two registers */
+#define MC9XGATE_R			0x0020  /* single register */
+#define MC9XGATE_PC			0x0040  /* pc relative 10 or 11 bit */
+#define MC9XGATE_R_C		0x0080
+#define MC9XGATE_C_R		0x0100
+#define MC9XGATE_R_P		0x0200
+#define MC9XGATE_R_R_O		0x0400
+#define MC9XGATE_R_R_I		0x0800
+
+
 /* 68HC11 register address offsets (range 0..0x3F or 0..64).
    The absolute address of the I/O register depends on the setting
    of the MC9XGATE_INIT register.  At init time, the I/O registers are
@@ -364,8 +380,19 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_TRI			 "r,r,r"
 #define MC9XGATE_OP_DYA			 "r,r"
 #define MC9XGATE_OP_IMM4         "r,i4"
+#define MC9XGATE_OP_IMM3		 "i3"
+#define MC9XGATE_OP_MON			 "r"
+#define MC9XGATE_OP_MON_R_C		 "r,c"
+#define MC9XGATE_OP_MON_C_R		 "c,r"
+#define MC9XGATE_OP_MON_R_P		 "r,p"
+#define MC9XGATE_OP_IDR			 "r,r,+"
+#define MC9XGATE_OP_IDO5		 "r,r,i5"
+#define MC9XGATE_OP_REL9		 "i9"
+#define MC9XGATE_OP_REL10		 "r,i10"
+
+
 #define MC9XGATE_OP_DIRECT       0x0001   /* Page 0 addressing:   *<val-8bits>  */
-#define MC9XGATE_OP_IMM3		 0x0002   /*  3 bits immediat:    #<val-8bits>  */
+//#define MC9XGATE_OP_IMM3		 0x0002   /*  3 bits immediat:    #<val-8bits>  */
 //#define MC9XGATE_OP_IMM4		 0x0004	  /*  4 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM8         0x0008   /*  8 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM16_REMOVE        0x0009   /* THERE IS NO IMM16 16 bits immediat:    #<val-16bits> */
@@ -375,8 +402,8 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 //#define MC9XGATE_OP_DYA          0x0080   /* Dyadic Addressing (DYA) was Register operand 2                 */
 //#define MC9XGATE_OP_TRI			 0x0100	  /* Triadic Addressing (TRI)									*/
 
-#define MC9XGATE_OP_IDO5         0x0200   /* Indirect IX:         <val-8>,x     */
-#define MC9XGATE_OP_IDR			 0x0400	  /* Index Register plus Register Offset (IDR) */
+//#define MC9XGATE_OP_IDO5         0x0200   /* Indirect IX:         <val-8>,x     */
+//#define MC9XGATE_OP_IDR			 0x0400	  /* Index Register plus Register Offset (IDR) */
 //#define MC9XGATE_OP_IY           0x0100   /* Indirect IY:         <val-8>,y     */
 #define MC9XGATE_OP_IDX          0x0200   /* Indirect: N,r N,[+-]r[+-] N:5-bits */  //was SAVE
 #define MC9XGATE_OP_IDX_1        0x0400   /* N,r N:9-bits  */
@@ -437,6 +464,7 @@ struct mc9xgate_opcode {
 	char*    name;     /* Op-code name  was const*/
 	char*    constraints; /* was const*/
 	char*    format;   /* format string was const*/
+	unsigned int sh_format; /* shorthand format */
 	unsigned int   size;   /* size in bytes , was in words */
 	unsigned int   bin_opcode;  /* binary opcode with operands masked off */
 	unsigned char  cycles_min; /* minimum cpu cycles needed */
