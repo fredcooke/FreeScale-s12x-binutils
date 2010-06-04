@@ -78,6 +78,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_R_P		0x0200
 #define MC9XGATE_R_R_O		0x0400
 #define MC9XGATE_R_R_I		0x0800
+#define MC9XGATE_PCREL		0x1000  /* Instruction is a PC relative instruction */
 
 
 /* 68HC11 register address offsets (range 0..0x3F or 0..64).
@@ -387,7 +388,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_MON_R_P		 "r,p"
 #define MC9XGATE_OP_IDR			 "r,r,+"
 #define MC9XGATE_OP_IDO5		 "r,r,i5"
-#define MC9XGATE_OP_REL9		 "ib"
+#define MC9XGATE_OP_REL9		 "b9"
 #define MC9XGATE_OP_REL10		 "r,b9"
 
 

@@ -555,13 +555,13 @@ md_assemble (char *input_line)
 	 /* TODO if not match is found we segfault */
 	 if(opcode_handle->opc0->sh_format == sh_format && handle_enum_alias--){
 		 opcode = opcode_handle->opc0;
-	 }else if(opcode_handle->opc1->sh_format == sh_format && handle_enum_alias--){
+	 }else if(opcode_handle->opc1->sh_format & sh_format && handle_enum_alias--){
 		 opcode = opcode_handle->opc1;
-	 }else if(opcode_handle->opc2->sh_format == sh_format && handle_enum_alias--){
+	 }else if(opcode_handle->opc2->sh_format & sh_format && handle_enum_alias--){
 		 opcode = opcode_handle->opc2;
-	 }else if(opcode_handle->opc3->sh_format == sh_format && handle_enum_alias--){
+	 }else if(opcode_handle->opc3->sh_format & sh_format && handle_enum_alias--){
 		 opcode = opcode_handle->opc3;
-	 }else if(opcode_handle->opc4->sh_format == sh_format && handle_enum_alias--){
+	 }else if(opcode_handle->opc4->sh_format & sh_format && handle_enum_alias--){
 		 opcode = opcode_handle->opc4;
 	 }
 	 }else{
@@ -977,21 +977,31 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
     	    }
     	}
 
-   // bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
     }
 
+ if(opcode->sh_format & MC9XGATE_PCREL){ /* resolve the fixup and write the output */
+	 printf("\n PCREL instruction");
+	 number_to_chars_bigendian (frag, 0, 1);
+	 //	 number_to_chars_bigendian (f, bin, 1); /* high byte */
+//	 fixup8_xg (&operands[0].exp, format, M68XG_OP_REL9);
+
+  }else{ /* apply operand mask(s)to bin opcode and write the output */
   if(oper1_present)
 	  bin = mc9xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
   if(oper2_present)
 	  bin = mc9xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
   if(oper3_present)
   	  bin = mc9xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
-
+  printf("\n writing final bin to object %d",bin);
+  number_to_chars_bigendian (frag, bin, opcode->size);
+  }
 //  printf("\n firt length is %d with operand %d second length is %d with operand %d third length is %d with operand %d",
 //		  oper1_bit_length, oper1, oper2_bit_length, oper2, oper3_bit_length, oper3);
-  printf("\n final bin is now %d",bin);
 
- // bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
+	// bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
+
+
+
 
   prev = bin;
   *line = str;
@@ -1141,13 +1151,32 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     	    	}
     	break;
     case 'b': /* branch expected */
-    	printf("\n wrote branch expresson");
+    	printf("\n getting branch expresson");
     	str = mc9xgate_parse_exp (str, &op_expr);
         (*op_con)++;
  //   	if ((j = op_expr->X_add_number) > 9)
    //     		as_bad(_(":branch longer than max bits"));
-    	fix_new_exp (frag_now, where, opcode->size * 1,
-    			   &op_expr, FALSE, BFD_RELOC_AVR_CALL);
+        if (op_expr.X_op != O_register) {
+
+					if (1 == 1) { /* mode == M68XG_OP_REL9 */
+						printf("\n not 0_register parsing reloc 9");
+						fixS *fixp;
+       	 	            fixp = fix_new_exp (frag_now, where -1, 2,
+       	 	            	&op_expr, TRUE, R_MC9XGATE_PCREL_8); /* forced type into bfd-in-2 around line 2367 */
+       	 	            fixp->fx_pcrel_adjust = 1;
+       	             } else if (1 == 2) {
+       	 	            fixS *fixp;
+       	 	            fixp = fix_new_exp (frag_now, where -1, 2,
+       	 	            	&op_expr, TRUE, BFD_RELOC_24_PCREL); /* forced type into bfd-in-2 around line 2367 */
+       	 	            fixp->fx_pcrel_adjust = 1;
+       	 	        }
+       	         //    number_to_chars_bigendian (f, 0, 1);
+       	         } else {
+       	             as_fatal (_("Operand `%x' not recognized in fixup8."), op_expr.X_op);
+       	         }
+
+        // 	fix_new_exp (frag_now, where, opcode->size * 1,
+    		//	   &op_expr, TRUE, BFD_RELOC_16);
 
     case '?':
       break;
