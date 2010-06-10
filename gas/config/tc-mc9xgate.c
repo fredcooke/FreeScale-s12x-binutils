@@ -46,6 +46,8 @@ const char FLT_CHARS[] = "dD";
 
 #define MAXREGISTER			07
 #define MINREGISTER			00
+#define NINE_BITS			511
+#define TEN_BITS			1023
 
 
 //struct mc9xgate_parsed_op{
@@ -118,23 +120,6 @@ typedef struct mc9xgate_operand{
 	expressionS exp1;
 	unsigned char reg;
 }operand;
-
-/* */
-//struct mc9xgate_opcode_s {
- // const char*    name;     /* Op-code name */
-//  const char*    constraints; /* */
-//  const char*    format;   /* format string */
-//  unsigned int   size;   /* size in words */
-//  unsigned int   bin_opcode;  /* binary opcode with operands masked off */
-//  unsigned char  cycles_min; /* minimum cpu cycles needed */
-//  unsigned char  cycles_max; /* maximum cpu cycles needed */
-//  unsigned char  set_flags_mask; /* CCR flags set */
-//  unsigned char  clr_flags_mask; /* CCR flags cleared */
-// unsigned char  chg_flags_mask; /* CCR flags changed */
-//  unsigned char  arch; /* cpu type, may always be mc9s12 only */
-//};
-
-
 
 /* This table describes how you change sizes for the various types of variable
    size expressions.  This version only supports two kinds.  */
@@ -586,6 +571,7 @@ md_assemble (char *input_line)
 static void
 s_mc9xgate_relax (int ignore ATTRIBUTE_UNUSED)
 {
+	printf("\n in s_mc8xgate_relax");
   expressionS ex;
 
   expression (&ex);
@@ -631,7 +617,8 @@ long
 mc9xgate_relax_frag (segT seg ATTRIBUTE_UNUSED, fragS *fragP,
                     long stretch ATTRIBUTE_UNUSED)
 {
-  int temp = fragP->fr_var;
+  printf("\n in relax_frag");
+	int temp = fragP->fr_var;
   int temp2;
   temp2 = temp;
 
@@ -646,7 +633,8 @@ mc9xgate_relax_frag (segT seg ATTRIBUTE_UNUSED, fragS *fragP,
 long
 md_pcrel_from (fixS *fixP)
 {
-  if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
+	printf("\n in perel_from");
+	if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
     return 0;
 
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
@@ -658,6 +646,7 @@ md_pcrel_from (fixS *fixP)
 arelent *
 tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
 {
+  printf("\n in tc_gen_reloc");
   arelent *reloc;
 
   reloc = (arelent *) xmalloc (sizeof (arelent));
@@ -685,19 +674,76 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
   return reloc;
 }
 
+
 void
 md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 {
-	int temp1 = fixP->fx_addnumber;
-	temp1++;
-	int temp2 =(int) valP;
-	temp2++;
+  //printf("\n in md_apply_fix");
+
+  char *where;
+  long value = * valP;
+  int op_type;
+  int opcode = 0;
+
+  printf("\n fix value is %ld", value);
+
+  if (fixP->fx_addsy == (symbolS *) NULL)
+    fixP->fx_done = 1;
+
+  /* We don't actually support subtracting a symbol.  */
+  if (fixP->fx_subsy != (symbolS *) NULL)
+    as_bad_where (fixP->fx_file, fixP->fx_line, _("Expression too complex."));
+
+  op_type = fixP->fx_r_type;
+
+  /* Patch the instruction with the resolved operand.  Elf relocation
+     info will also be generated to take care of linker/loader fixups.
+     The 68HC11 addresses only 64Kb, we are only concerned by 8 and 16-bit
+     relocs.  BFD_RELOC_8 is basically used for .page0 access (the linker
+     will warn for overflows).  BFD_RELOC_8_PCREL should not be generated
+     because it's either resolved or turned out into non-relative insns (see
+     relax table, bcc, bra, bsr transformations)
+
+     The BFD_RELOC_32 is necessary for the support of --gstabs.  */
+  where = fixP->fx_frag->fr_literal + fixP->fx_where ;
+
+  opcode = bfd_getl16(where);
+
+  printf("\n read opcode %d from frag", opcode);
+
+  switch (fixP->fx_r_type)
+    {
+
+//   case BFD_RELOC_MC9XGATE_PCREL_9:
+   case R_MC9XGATE_PCREL_9:
+	   printf("\n write us a PCREL 9 ");
+	   number_to_chars_bigendian(where, opcode | value, 2);
+       if (value < -255 || value > 254)
+	as_bad_where (fixP->fx_file, fixP->fx_line,
+		      _("Value %ld too large for 9-bit PC-relative branch."),
+		      value);
+      break;
+   case R_MC9XGATE_PCREL_10:
+	  printf("\n write us a PCREL 9 ");
+	  number_to_chars_bigendian(where, opcode | value, 2);
+      if (value < -512 || value > 511)
+	as_bad_where (fixP->fx_file, fixP->fx_line,
+		      _("Value %ld too large for 10-bit PC-relative branch."),
+		      value);
+      break;
+   case 0x5: /* seems to be the default value for no fixup TODO figure out how to remove*/
+	   break;
+    default:
+      as_fatal (_("Line %d: unknown relocation type: 0x%x."),
+		fixP->fx_line, fixP->fx_r_type);
+    }
 }
 
 /* See whether we need to force a relocation into the output file.  */
 int
 tc_mc9xgate_force_relocation (fixS *fixP)
 {
+	printf("\n in force_relocation");
   if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_GROUP)
     return 1;
 
@@ -712,6 +758,8 @@ tc_mc9xgate_force_relocation (fixS *fixP)
 int
 tc_mc9xgate_fix_adjustable (fixS *fixP)
 {
+	printf("\n in fix_adjustable");
+
   switch (fixP->fx_r_type)
     {
       /* For the linker relaxation to work correctly, these relocs
@@ -739,6 +787,8 @@ void
 md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED, asection *sec ATTRIBUTE_UNUSED,
                  fragS *fragP)
 {
+  printf("\n in convert_frag");
+
   int temp = fragP->fr_address;
   temp++;
   return;
@@ -748,6 +798,7 @@ md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED, asection *sec ATTRIBUTE_UNUSED,
 void
 mc9xgate_elf_final_processing (void)
 {
+	printf("\n in elf_final processing");
 	/* TODO make this always true */
   if (current_architecture & cpumc9xgate)
     elf_flags |= EF_MC9XGATE_MACH;
@@ -881,7 +932,7 @@ cmp_opcode (struct mc9xgate_opcode *op1, struct mc9xgate_opcode *op2)
 static unsigned int
 mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 {
-	char *frag = mc9xgate_new_instruction(opcode->size);
+	char *frag = mc9xgate_new_instruction(opcode->size );
 	int where = frag - frag_now->fr_literal;
 //number_to_chars_bigendian (f, opcode_bin, opcode->size);
   char *op = opcode->constraints;
@@ -979,10 +1030,9 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 
     }
 
- if(opcode->sh_format & MC9XGATE_PCREL){ /* resolve the fixup and write the output */
+ if(opcode->sh_format & MC9XGATE_PCREL){
 	 printf("\n PCREL instruction");
-	 number_to_chars_bigendian (frag, 0, 1);
-	 //	 number_to_chars_bigendian (f, bin, 1); /* high byte */
+	 bfd_putl16(opcode->bin_opcode, frag); /* write our data to a frag for further processing */
 //	 fixup8_xg (&operands[0].exp, format, M68XG_OP_REL9);
 
   }else{ /* apply operand mask(s)to bin opcode and write the output */
@@ -993,15 +1043,10 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
   if(oper3_present)
   	  bin = mc9xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
   printf("\n writing final bin to object %d",bin);
-  number_to_chars_bigendian (frag, bin, opcode->size);
+  number_to_chars_bigendian (frag, bin, opcode->size); /* since we are done write this frag in xgate BE format */
   }
 //  printf("\n firt length is %d with operand %d second length is %d with operand %d third length is %d with operand %d",
 //		  oper1_bit_length, oper1, oper2_bit_length, oper2, oper3_bit_length, oper3);
-
-	// bfd_putl16 ((bfd_vma) bin, frag); /* TODO dont think we can write yet must check first*/
-
-
-
 
   prev = bin;
   *line = str;
@@ -1154,23 +1199,26 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     	printf("\n getting branch expresson");
     	str = mc9xgate_parse_exp (str, &op_expr);
         (*op_con)++;
+        op_constraint++;
  //   	if ((j = op_expr->X_add_number) > 9)
    //     		as_bad(_(":branch longer than max bits"));
+        printf("\n reloc number is %d and %d constraint is %c", R_MC9XGATE_PCREL_9, BFD_RELOC_MC9XGATE_PCREL_9, *op_constraint);
+
         if (op_expr.X_op != O_register) {
 
-					if (1 == 1) { /* mode == M68XG_OP_REL9 */
+					if (*op_constraint == '9') { /* mode == M68XG_OP_REL9 */
 						printf("\n not 0_register parsing reloc 9");
 						fixS *fixp;
-       	 	            fixp = fix_new_exp (frag_now, where -1, 2,
-       	 	            	&op_expr, TRUE, R_MC9XGATE_PCREL_8); /* forced type into bfd-in-2 around line 2367 */
+       	 	            fixp = fix_new_exp (frag_now, where , 2,
+       	 	            	&op_expr, TRUE, R_MC9XGATE_PCREL_9); /* forced type into bfd-in-2 around line 2367 */
        	 	            fixp->fx_pcrel_adjust = 1;
-       	             } else if (1 == 2) {
+       	             } else if (*op_constraint == 'a') { /* mode == M68XG_OP_REL10 */
        	 	            fixS *fixp;
        	 	            fixp = fix_new_exp (frag_now, where -1, 2,
-       	 	            	&op_expr, TRUE, BFD_RELOC_24_PCREL); /* forced type into bfd-in-2 around line 2367 */
+       	 	            	&op_expr, TRUE, R_MC9XGATE_PCREL_10); /* forced type into bfd-in-2 around line 2367 */
        	 	            fixp->fx_pcrel_adjust = 1;
        	 	        }
-       	         //    number_to_chars_bigendian (f, 0, 1);
+       	          //   number_to_chars_bigendian (where, opcode->bin_opcode, opcode->size);
        	         } else {
        	             as_fatal (_("Operand `%x' not recognized in fixup8."), op_expr.X_op);
        	         }

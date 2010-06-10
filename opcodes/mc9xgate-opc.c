@@ -123,7 +123,7 @@ struct mc9xgate_opcode mc9xgate_opcodes[] = {
 	{ "nop",      OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
 	{ "adc",      OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 2, CHG_NZVC, cpumc9xgate},
 
-	{ "bcc",     OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2000, 1, 2, CHG_NZVC, cpumc9xgate},
+	{ "bcc",     OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2000, 1, 2, CHG_NZVC, cpumc9xgate}, //bin should be 0x2000
 
 	{ "asr",      OP_DYA, "00001rrrrrr10001",   MC9XGATE_R_R, 2, 0x0811, 1, 2, CHG_NZVC, cpumc9xgate},
 	{ "asr",     OP_IMM4, "00001rrriiii1001",   MC9XGATE_R_I, 2, 0x0809, 1, 2, CHG_NZVC, cpumc9xgate},

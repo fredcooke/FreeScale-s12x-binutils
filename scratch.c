@@ -19,7 +19,30 @@
    You should have received a copy of the GNU General Public License
    along with GAS; see the file COPYING.  If not, write to
    the Free Software Foundation, 51 Franklin Street - Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   Boston, MA 02110-1301, USA.
+
+ not 0_register parsing reloc 9
+ PCREL instruction
+ parsed bin_opcode is  8192
+ fix value is 1
+ read opcode 8281 from frag
+ write us a PCREL 9
+ fix value is -15
+ read opcode 8211 from frag
+ write us a PCREL 9
+ read opcode 4185 from frag
+ write us a PCREL 9
+ fix value is -15
+ read opcode 4115 from frag
+ write us a PCREL 9
+
+bfd_get
+
+
+
+
+
+    */
 
 #include "as.h"
 #include "safe-ctype.h"

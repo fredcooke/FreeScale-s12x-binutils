@@ -4604,15 +4604,15 @@ ENUMDOC
   This is the 5 bits of a value.
 
   ENUM
-  BFD_RELOC_MC9XGATE_HI8
+  BFD_RELOC_MC9XGATE_PCREL_9
 ENUMDOC
   Motorola MC9XGATE reloc.
-  This is the 8 bit high part of an absolute address.
+  This is the 9 bit PC relative address.
 ENUM
-  BFD_RELOC_MC9XGATE_LO8
+  BFD_RELOC_MC9XGATE_PCREL_10
 ENUMDOC
   Motorola MC9XGATE reloc.
-  This is the 8 bit low part of an absolute address.
+  This is the 10 bit PC relative address.
 ENUM
   BFD_RELOC_MC9XGATE_3B
 ENUMDOC

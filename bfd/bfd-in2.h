@@ -4216,12 +4216,12 @@ This is the 5 bits of a value.  */
   BFD_RELOC_MC9S12X_5B,
 
 /* Motorola MC9XGATE reloc.
-This is the 8 bit high part of an absolute address.  */
-  BFD_RELOC_MC9XGATE_HI8,
+This is the 9 bit PC relative address.  */
+  BFD_RELOC_MC9XGATE_PCREL_9,
 
 /* Motorola MC9XGATE reloc.
-This is the 8 bit low part of an absolute address.  */
-  BFD_RELOC_MC9XGATE_LO8,
+This is the 10 bit PC relative address.  */
+  BFD_RELOC_MC9XGATE_PCREL_10,
 
 /* Motorola MC9XGATE reloc.
 This is the 3 bit of a value.  */

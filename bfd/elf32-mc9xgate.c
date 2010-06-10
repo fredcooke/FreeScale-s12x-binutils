@@ -152,35 +152,35 @@ static reloc_howto_type elf_mc9xgate_howto_table[] = {
 	 0x00ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
 
-  /* A 8 bit absolute relocation (upper address) */
-  HOWTO (R_MC9XGATE_HI8,		/* type */
-	 8,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
+  /* A 9 bit absolute relocation  */
+  HOWTO (R_MC9XGATE_PCREL_9,		/* type */
+	 0,			/* rightshift */
+	 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 9,			/* bitsize */
+	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_bitfield,	/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9XGATEi_HI8",	/* name */
+	 "R_MC9XGATE_PCREL_9",	/* name */
 	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+	 0xffff,		/* src_mask */
+	 0xffff,		/* dst_mask */
+	 TRUE),		/* pcrel_offset */
 
   /* A 8 bit absolute relocation (upper address) */
-  HOWTO (R_MC9XGATE_LO8,		/* type */
-	 0,			/* rightshift */
+  HOWTO (R_MC9XGATE_PCREL_10,		/* type */
+	 8,			/* rightshift */
 	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
+	 10,			/* bitsize */
+	 TRUE,			/* pc_relative */
 	 0,			/* bitpos */
 	 complain_overflow_dont,	/* complain_on_overflow */
 	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9XGATE_LO8",	/* name */
+	 "R_MC9XGATE_PCREL_10",	/* name */
 	 FALSE,			/* partial_inplace */
 	 0x00ff,		/* src_mask */
 	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+	 TRUE),		/* pcrel_offset */
 
   /* A 8 bit PC-rel relocation */
   HOWTO (R_MC9XGATE_PCREL_8,	/* type */
@@ -382,8 +382,8 @@ struct mc9xgate_reloc_map
 static const struct mc9xgate_reloc_map mc9xgate_reloc_map[] = {
   {BFD_RELOC_NONE, R_MC9XGATE_NONE,},
   {BFD_RELOC_8, R_MC9XGATE_8},
-  {BFD_RELOC_MC9XGATE_HI8, R_MC9XGATE_HI8},
-  {BFD_RELOC_MC9XGATE_LO8, R_MC9XGATE_LO8},
+  {BFD_RELOC_MC9XGATE_PCREL_9, R_MC9XGATE_PCREL_9},
+  {BFD_RELOC_MC9XGATE_PCREL_10,  R_MC9XGATE_PCREL_10},
   {BFD_RELOC_8_PCREL, R_MC9XGATE_PCREL_8},
   {BFD_RELOC_16_PCREL, R_MC9XGATE_PCREL_16},
   {BFD_RELOC_16, R_MC9XGATE_16},
@@ -405,7 +405,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
                                  bfd_reloc_code_real_type code)
 {
-  //printf("\n in bfd_elf32_bfd_reloc_type_lookup--line 398\n");
+  printf("\n in bfd_elf32_bfd_reloc_type_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -423,7 +423,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 				 const char *r_name)
 {
-  //printf("\n in bfd_elf32_bfd_reloc_name_lookup--line 416\n");
+  printf("\n in bfd_elf32_bfd_reloc_name_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -443,6 +443,7 @@ static void
 mc9xgate_info_to_howto_rel (bfd *abfd ATTRIBUTE_UNUSED,
                            arelent *cache_ptr, Elf_Internal_Rela *dst)
 {
+  printf("\n in info_to_howto_rel");
   unsigned int r_type;
 
   r_type = ELF32_R_TYPE (dst->r_info);
@@ -457,6 +458,7 @@ mc9xgate_info_to_howto_rel (bfd *abfd ATTRIBUTE_UNUSED,
 static bfd_boolean
 mc9xgate_elf_build_one_stub (struct bfd_hash_entry *gen_entry, void *in_arg)
 {
+  printf("\n in elf_build_one_stub");
   struct elf32_mc9xgate_stub_hash_entry *stub_entry;
   struct bfd_link_info *info;
   struct mc9xgate_elf_link_hash_table *htab;
@@ -512,6 +514,7 @@ static bfd_boolean
 mc9xgate_elf_size_one_stub (struct bfd_hash_entry *gen_entry,
                            void *in_arg ATTRIBUTE_UNUSED)
 {
+	printf("\n in elf_size_one_stub");
   struct elf32_mc9xgate_stub_hash_entry *stub_entry;
 
   /* Massage our args to the form they really have.  */
@@ -526,6 +529,7 @@ mc9xgate_elf_size_one_stub (struct bfd_hash_entry *gen_entry,
 static struct bfd_link_hash_table *
 mc9xgate_elf_bfd_link_hash_table_create (bfd *abfd)
 {
+	printf("\n in elf_bfd_link_hash_table_create");
   struct mc9xgate_elf_link_hash_table *ret;
 
   ret = mc9xgate_elf_hash_table_create (abfd);
@@ -541,6 +545,7 @@ mc9xgate_elf_bfd_link_hash_table_create (bfd *abfd)
 static bfd_boolean
 mc9xgate_elf_set_mach_from_flags (bfd *abfd)
 {
+	printf("\n in elf_set_mach_from_flags");
   flagword flags = elf_elfheader (abfd)->e_flags;
 
   switch (flags & EF_MC9XGATE_MACH_MASK)
@@ -673,6 +678,7 @@ struct mc9xgate_scan_param
 struct mc9xgate_elf_link_hash_table*
 mc9xgate_elf_hash_table_create (bfd *abfd)
 {
+	printf("\n in elf_hash_table_create");
   struct mc9xgate_elf_link_hash_table *ret;
   bfd_size_type amt = sizeof (struct mc9xgate_elf_link_hash_table);
 
@@ -714,6 +720,7 @@ mc9xgate_elf_hash_table_create (bfd *abfd)
 void
 mc9xgate_elf_bfd_link_hash_table_free (struct bfd_link_hash_table *hash)
 {
+	printf("\n in elf_bfd_link_hash_table_free");
   struct mc9xgate_elf_link_hash_table *ret
     = (struct mc9xgate_elf_link_hash_table *) hash;
 
@@ -730,6 +737,7 @@ static struct bfd_hash_entry *
 stub_hash_newfunc (struct bfd_hash_entry *entry, struct bfd_hash_table *table,
                    const char *string)
 {
+	printf("\n in stub_has_newfunc");
   /* Allocate the structure if it has not already been allocated by a
      subclass.  */
   if (entry == NULL)
@@ -764,6 +772,7 @@ static struct elf32_mc9xgate_stub_hash_entry *
 mc9xgate_add_stub (const char *stub_name, asection *section,
                   struct mc9xgate_elf_link_hash_table *htab)
 {
+	printf("\n in add_stub");
   struct elf32_mc9xgate_stub_hash_entry *stub_entry;
 
   /* Enter this entry into the linker stub hash table.  */
@@ -799,6 +808,7 @@ elf32_mc9xgate_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
                                asection **secp ATTRIBUTE_UNUSED,
                                bfd_vma *valp ATTRIBUTE_UNUSED)
 {
+	printf("\n in mc9xgate_add_symbol_hook");
   if (sym->st_other & STO_MC9XGATE_FAR)
     {
       struct elf_link_hash_entry *h;
@@ -831,6 +841,7 @@ elf32_mc9xgate_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
 int
 elf32_mc9xgate_setup_section_lists (bfd *output_bfd, struct bfd_link_info *info)
 {
+	printf("\n in setup_section_lists");
   bfd *input_bfd;
   unsigned int bfd_count;
   int top_id, top_index;
@@ -923,6 +934,7 @@ elf32_mc9xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
                           struct bfd_link_info *info,
                           asection * (*add_stub_section) (const char*, asection*))
 {
+	printf("\n in size stubs");
   bfd *input_bfd;
   asection *section;
   Elf_Internal_Sym *local_syms, **all_local_syms;
@@ -1169,6 +1181,7 @@ elf32_mc9xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
 static bfd_boolean
 mc9xgate_elf_export_one_stub (struct bfd_hash_entry *gen_entry, void *in_arg)
 {
+	printf("\n in export_one_stub");
   struct bfd_link_info *info;
   struct mc9xgate_elf_link_hash_table *htab;
   struct elf32_mc9xgate_stub_hash_entry *stub_entry;
@@ -1200,6 +1213,7 @@ static void
 mc9xgate_elf_set_symbol (bfd *abfd, struct bfd_link_info *info,
                         const char *name, bfd_vma value, asection *sec)
 {
+	printf("\n in set_symbol");
   struct elf_link_hash_entry *h;
 
   h = (struct elf_link_hash_entry *)
@@ -1231,6 +1245,7 @@ mc9xgate_elf_set_symbol (bfd *abfd, struct bfd_link_info *info,
 bfd_boolean
 elf32_mc9xgate_build_stubs (bfd *abfd, struct bfd_link_info *info)
 {
+	printf("\n in build_stubs");
   asection *stub_sec;
   struct bfd_hash_table *table;
   struct mc9xgate_elf_link_hash_table *htab;
@@ -1284,6 +1299,7 @@ elf32_mc9xgate_build_stubs (bfd *abfd, struct bfd_link_info *info)
 void
 mc9xgate_elf_get_bank_parameters (struct bfd_link_info *info)
 {
+	printf("\n in get bank parameters");
   unsigned i;
   struct mc9xgate_page_info *pinfo;
   struct bfd_link_hash_entry *h;
@@ -1344,6 +1360,7 @@ mc9xgate_elf_get_bank_parameters (struct bfd_link_info *info)
 int
 mc9xgate_addr_is_banked (struct mc9xgate_page_info *pinfo, bfd_vma addr)
 {
+	printf("\n in addr_is_banked");
   if (addr >= pinfo->bank_virtual)
     return 1;
 
@@ -1358,6 +1375,7 @@ mc9xgate_addr_is_banked (struct mc9xgate_page_info *pinfo, bfd_vma addr)
 bfd_vma
 mc9xgate_phys_addr (struct mc9xgate_page_info *pinfo, bfd_vma addr)
 {
+	printf("\n in phys addr");
   if (addr < pinfo->bank_virtual)
     return addr;
 
@@ -1372,6 +1390,7 @@ mc9xgate_phys_addr (struct mc9xgate_page_info *pinfo, bfd_vma addr)
 bfd_vma
 mc9xgate_phys_page (struct mc9xgate_page_info *pinfo, bfd_vma addr)
 {
+	printf("\n in phys_page");
   if (addr < pinfo->bank_virtual)
     return 0;
 
@@ -1394,6 +1413,7 @@ mc9xgate_elf_ignore_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                           bfd *output_bfd,
                           char **error_message ATTRIBUTE_UNUSED)
 {
+	printf("\n in elf ignore reloc");
   if (output_bfd != NULL)
     reloc_entry->address += input_section->output_offset;
   return bfd_reloc_ok;
@@ -1408,6 +1428,7 @@ mc9xgate_elf_special_reloc (bfd *abfd ATTRIBUTE_UNUSED,
                            bfd *output_bfd,
                            char **error_message ATTRIBUTE_UNUSED)
 {
+	printf("\n in elf special reloc");
   if (output_bfd != (bfd *) NULL
       && (symbol->flags & BSF_SECTION_SYM) == 0
       && (! reloc_entry->howto->partial_inplace
@@ -1434,6 +1455,8 @@ bfd_boolean
 elf32_mc9xgate_check_relocs (bfd *abfd, struct bfd_link_info *info,
                             asection *sec, const Elf_Internal_Rela *relocs)
 {
+	printf("\n in mc9xgate check relocs");
+
   Elf_Internal_Shdr *           symtab_hdr;
   struct elf_link_hash_entry ** sym_hashes;
   const Elf_Internal_Rela *     rel;
@@ -1495,6 +1518,7 @@ elf32_mc9xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
                                 Elf_Internal_Sym *local_syms,
                                 asection **local_sections)
 {
+	printf("\n in mc9xgate_relocate_section");
   Elf_Internal_Shdr *symtab_hdr;
   struct elf_link_hash_entry **sym_hashes;
   Elf_Internal_Rela *rel, *relend;
@@ -1778,6 +1802,7 @@ elf32_mc9xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 bfd_boolean
 _bfd_mc9xgate_elf_set_private_flags (bfd *abfd, flagword flags)
 {
+	printf("\n in elf_set_private_flags");
   BFD_ASSERT (!elf_flags_init (abfd)
 	      || elf_elfheader (abfd)->e_flags == flags);
 
@@ -1792,6 +1817,7 @@ _bfd_mc9xgate_elf_set_private_flags (bfd *abfd, flagword flags)
 bfd_boolean
 _bfd_mc9xgate_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 {
+	printf("\n in elf_merge_private_bfd_data");
   flagword old_flags;
   flagword new_flags;
   bfd_boolean ok = TRUE;
@@ -1916,6 +1942,7 @@ _bfd_mc9xgate_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 bfd_boolean
 _bfd_mc9xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
 {
+	printf("\n in elf_print_private_bfd_data");
   FILE *file = (FILE *) ptr;
 
   BFD_ASSERT (abfd != NULL && ptr != NULL);
@@ -1956,6 +1983,7 @@ _bfd_mc9xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
 static void scan_sections_for_abi (bfd *abfd ATTRIBUTE_UNUSED,
                                    asection *asect, void *arg)
 {
+	printf("\n in scan_sections_for_abi");
   struct mc9xgate_scan_param* p = (struct mc9xgate_scan_param*) arg;
 
   if (asect->vma >= p->pinfo->bank_virtual)
@@ -1967,6 +1995,7 @@ static void scan_sections_for_abi (bfd *abfd ATTRIBUTE_UNUSED,
 void
 elf32_mc9xgate_post_process_headers (bfd *abfd, struct bfd_link_info *link_info)
 {
+	printf("\n in mc9xgate_post_process_headers");
   struct mc9xgate_scan_param param;
 
   if (link_info == 0)
