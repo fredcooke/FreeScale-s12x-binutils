@@ -970,7 +970,7 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 
   /* generate availible operand bits mask */
   for(i = 0; (c = opcode->format[i]); i++  ){
-	  if(ISDIGIT(c)){
+	  if(ISDIGIT(c) || (c == 's')){
 		  oper_mask <<= 1;
 	  }else{
 		  oper_mask <<= 1;

@@ -1,6 +1,6 @@
-/* m68hc11-opc.c -- Motorola 68HC11 & 68HC12 opcode list
+/* mc9xgate-opc.c -- Motorola XGATE opcode list
    Copyright 1999, 2000, 2002, 2005, 2007 Free Software Foundation, Inc.
-   Written by Stephane Carrez (stcarrez@nerim.fr)
+   Written by Sean Keys (info@powerefi.com)
 
    This file is part of the GNU opcodes library.
 
@@ -89,37 +89,18 @@
 
 #define BI_MODE(mode1,mode2)	"mode1 | mode2"
 
-/*
-                            Table 4-1 Access Detail Notation
-V — Vector fetch: always an aligned word read, lasts for at least one RISC core cycle
-P — Program word fetch: always an aligned word read, lasts for at least one RISC core cycle
-r — 8-bit data read: lasts for at least one RISC core cycle
-R — 16-bit data read: lasts for at least one RISC core cycle
-w — 8-bit data write: lasts for at least one RISC core cycle
-W — 16-bit data write: lasts for at least one RISC core cycle
-A — Alignment cycle: no read or write, lasts for zero or one RISC core cycles
-f — Free cycle: no read or write, lasts for one RISC core cycles
 
- */
 
-/*
-   { "test", OP_NONE,          1, 0x00,  5, _M,  CHG_NONE,  cpu6811 },
-                                                            +-- cpu
-  Name -+                                        +------- Insn CCR changes
-  Format  ------+                            +----------- Max # cycles
-  Size     --------------------+         +--------------- Min # cycles
-                                   +--------------------- Opcode
-*/
-
-/* it seems each insns mode will need its own entry based on this example
-                      Mode
-ASR RD, #IMM4       IMM4     0 0 0 0 1  RD      IMM4   1 0 0 1 P
-ASR RD, RS          DYA      0 0 0 0 1  RD      RS   1 0 0 0 1 P
- */
 
 /* TODO reinstate const */
-struct mc9xgate_opcode mc9xgate_opcodes[] = {
-
+const struct mc9xgate_opcode mc9xgate_opcodes[] = {
+/*
+      Name -+                                                                                 +-- cpu
+Constraints --------+                                                              +------- Insn CCR changes
+  Format ------------------+                                               +----------- Max # cycles
+Format Bin -------------------------------------+                       +--------------- Min # cycles
+Size --------------------------------------------------------+   +--------------------- Opcode
+*/
 	{   "adc",   OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "add",   OP_TRI, "00011rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1802, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "addh",  OP_IMM8, "11101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE800, 1, 1, CHG_NZVC, cpumc9xgate},
@@ -154,31 +135,60 @@ struct mc9xgate_opcode mc9xgate_opcodes[] = {
 	{   "brk",   OP_INH, "0000000000000000",   MC9XGATE_INH, 2, 0x0000, 4, 4, CHG_NONE, cpumc9xgate},
 	{   "bvc",  OP_REL9, "0010110iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2C00, 1, 2, CHG_NONE, cpumc9xgate},
 	{   "bvs",  OP_REL9, "0010111iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2E00, 1, 2, CHG_NONE, cpumc9xgate},
-	{   "cmp",   OP_TRI, "00011sssrrrrrr00", MC9XGATE_R_R_R, 2, 0x1800, 1, 1,   CHG_NZVC, cpumc9xgate},
-	{  "cmpl",  OP_IMM8, "11010rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD000, 1, 1,   CHG_NZVC, cpumc9xgate},
-	{   "com",   OP_TRI, "00010rrrsssrrr11", MC9XGATE_R_R_R, 2, 0x1003, 1, 1,    CHG_NZV, cpumc9xgate},
-
-
-	{ "nop",      OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
-
-
-
-	 //bin should be 0x2000
-
-
-
-	{ "test",    OP_IMM4, "0000011rrrrrrr11",   MC9XGATE_R_I, 2, 0x0603, 1, 2, CHG_NZVC, cpumc9xgate},
-
-	{ "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 2, CHG_NONE, cpumc9xgate},
-	{ "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 2, CHG_NONE, cpumc9xgate},
-	{ "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 2, CHG_NONE, cpumc9xgate},
-
-	{ "ldw",     OP_IDO5, "01001rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4800, 1, 2, CHG_NONE, cpumc9xgate},
-	{ "ldw",      OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 1, 2, CHG_NONE, cpumc9xgate},
-
-	{ "com",      OP_DYA, "00010rrr000rrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 2, CHG_NONE, cpumc9xgate}
-//	{  NULL,    NULL,             NULL  , 0,      0, 0, 0,	0,0,0, 0}  /* NULL termination makes for less book keepign code */
-
+	{   "cmp",   OP_DYA, "00011sssrrrrrr00",   MC9XGATE_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "cmpl",  OP_IMM8, "11010rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD000, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "com",   OP_DYA, "00010rrrsssrrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "cpc",   OP_DYA, "00011sssrrrrrr01",   MC9XGATE_R_R, 2, 0x1801, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "cpch",  OP_IMM8, "11011rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "csem",  OP_IMM3, "00000iii11110000",     MC9XGATE_I, 2, 0x00F0, 1, 1, CHG_NONE, cpumc9xgate},
+	{  "csem",   OP_MON, "00000rrr11110001",     MC9XGATE_R, 2, 0x00F1, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "csl",  OP_IMM4, "00001rrriiii1010",   MC9XGATE_R_I, 2, 0x080A, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "csl",   OP_DYA, "00001rrrrrr10010",   MC9XGATE_R_R, 2, 0x0812, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "csr",  OP_IMM4, "00001rrriiii1011",   MC9XGATE_R_I, 2, 0x080B, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "csr",   OP_DYA, "00001rrrrrr10011",   MC9XGATE_R_R, 2, 0x0813, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "jal",   OP_MON, "00000rrr11110110",     MC9XGATE_R, 2, 0x00F6, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "ldb",  OP_IDO5, "01000rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4000, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "ldb",   OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "ldh",  OP_IMM8, "11111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF800, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "ldl",  OP_IMM8, "11110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF000, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "ldw",  OP_IDO5, "01001rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "ldw",   OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "lsl",  OP_IMM4, "00001rrriiii1100",   MC9XGATE_R_I, 2, 0x080C, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "lsl",   OP_DYA, "00001rrrrrr10100",   MC9XGATE_R_R, 2, 0x0824, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "lsr",  OP_IMM4, "00001rrriiii1101",   MC9XGATE_R_I, 2, 0x080D, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "lsr",   OP_DYA, "00001rrrrrr10101",   MC9XGATE_R_R, 2, 0x0815, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "mov",   OP_DYA, "00010rrrsssrrr10",   MC9XGATE_R_R, 2, 0x1002, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "neg",   OP_DYA, "00011rrrsssrrr00",   MC9XGATE_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "nop",   OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 1, CHG_NONE, cpumc9xgate},
+	{    "or",   OP_TRI, "00010rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1002, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "orh",  OP_IMM8, "10101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xA800, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "orl",  OP_IMM8, "10100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xA000, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "mon",   OP_MON, "00000rrr11110101",     MC9XGATE_R, 2, 0x00F5, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "rol",  OP_IMM4, "00001rrriiii1110",   MC9XGATE_R_I, 2, 0x080E, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "rol",   OP_DYA, "00001rrrrrr10110",   MC9XGATE_R_R, 2, 0x0816, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "ror",  OP_IMM4, "00001rrriiii1111",   MC9XGATE_R_I, 2, 0x080F, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "ror",   OP_DYA, "00001rrrrrr10111",   MC9XGATE_R_R, 2, 0x0817, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "rts",   OP_INH, "0000001000000000",   MC9XGATE_INH, 2, 0x0200, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "sbc",   OP_TRI, "00011rrrrrrrrr01", MC9XGATE_R_R_R, 2, 0x1801, 1, 1,  CHG_NZV, cpumc9xgate},
+	{  "ssem",  OP_IMM3, "00000iii11110010",     MC9XGATE_I, 2, 0x0002, 2, 2,    CHG_C, cpumc9xgate},
+	{  "ssem",   OP_MON, "00000rrr11110011",     MC9XGATE_R, 2, 0x00F3, 2, 2,    CHG_C, cpumc9xgate},
+	{   "sex",   OP_MON, "00000rrr11110100",     MC9XGATE_R, 2, 0x00F4, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "sif",   OP_INH, "0000001100000000",   MC9XGATE_INH, 2, 0x0300, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "sif",   OP_MON, "00000rrr11110111",     MC9XGATE_R, 2, 0x00F7, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "stb",  OP_IDO5, "01010rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x5000, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "stb",   OP_IDR, "01110rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x7000, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "stw",  OP_IDO5, "01011rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x5800, 2, 2, CHG_NONE, cpumc9xgate},
+    {   "stw",   OP_IDR, "01111rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x7800, 2, 2, CHG_NONE, cpumc9xgate},
+    {   "sub",   OP_TRI, "00011rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
+    {  "subh",  OP_IMM8, "11001rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC800, 1, 1, CHG_NZVC, cpumc9xgate},
+    {  "subl",  OP_IMM8, "11000rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC000, 1, 1, CHG_NZVC, cpumc9xgate},
+    {   "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 1, CHG_NONE, cpumc9xgate},
+    {   "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 1, CHG_NONE, cpumc9xgate},
+    {   "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 1, CHG_NONE, cpumc9xgate},
+    {   "tst",      OP_DYA, "00011sssrrrsss00",   MC9XGATE_R_R, 2, 0x1800, 1, 1,  CHG_NZV, cpumc9xgate},
+    {  "xnor",   OP_TRI, "00010rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZV, cpumc9xgate},
+    { "xnorh",  OP_IMM8, "10111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB800, 1, 1, CHG_NZV, cpumc9xgate},
+    { "xnorl",  OP_IMM8, "10110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB000, 1, 1, CHG_NZV, cpumc9xgate},
 };
 
 const int mc9xgate_num_opcodes = TABLE_SIZE (mc9xgate_opcodes);
