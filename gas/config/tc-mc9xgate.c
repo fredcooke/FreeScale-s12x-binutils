@@ -681,11 +681,12 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
   //printf("\n in md_apply_fix");
 
   char *where;
-  long value = * valP;
+  long value = *valP;
   int op_type;
   int opcode = 0;
+  ldiv_t result;
 
-  printf("\n fix value is %ld", value);
+  printf("\n fix value is %d", (unsigned )value);
 
   if (fixP->fx_addsy == (symbolS *) NULL)
     fixP->fx_done = 1;
@@ -708,6 +709,7 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
   where = fixP->fx_frag->fr_literal + fixP->fx_where ;
 
   opcode = bfd_getl16(where);
+  int mask = 0;
 
   printf("\n read opcode %d from frag", opcode);
 
@@ -716,21 +718,31 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 
 //   case BFD_RELOC_MC9XGATE_PCREL_9:
    case R_MC9XGATE_PCREL_9:
-	   printf("\n write us a PCREL 9 ");
-	   number_to_chars_bigendian(where, opcode | value, 2);
+
        if (value < -255 || value > 254)
 	as_bad_where (fixP->fx_file, fixP->fx_line,
 		      _("Value %ld too large for 9-bit PC-relative branch."),
 		      value);
+       result = ldiv(value, 2); /* from bytes to words */
+       value = result.quot;
+       mask = 0x1FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
+       value &= mask;
+       number_to_chars_bigendian(where, (opcode | value), 2);
       break;
    case R_MC9XGATE_PCREL_10:
-	  printf("\n write us a PCREL 9 ");
-	  number_to_chars_bigendian(where, opcode | value, 2);
-      if (value < -512 || value > 511)
+
+       if (value < -512 || value > 511)
 	as_bad_where (fixP->fx_file, fixP->fx_line,
 		      _("Value %ld too large for 10-bit PC-relative branch."),
 		      value);
-      break;
+       result = ldiv(value, 2); /* from bytes to words */
+       value = result.quot;
+       mask = 0x3FF; /* Clip into 10-bit field FIXME I'm sure there is a more proper place for this */
+       value &= mask;
+
+       printf("\n write us a PCREL 10 %ld", value & mask);
+       number_to_chars_bigendian(where, (opcode | value), 2);
+       break;
    case 0x5: /* seems to be the default value for no fixup TODO figure out how to remove*/
 	   break;
     default:

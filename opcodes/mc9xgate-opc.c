@@ -85,6 +85,7 @@
 #define OP_IDR	        MC9XGATE_OP_IDR
 #define OP_IDO5		    MC9XGATE_OP_IDO5
 #define OP_REL9			MC9XGATE_OP_REL9
+#define OP_REL10    	MC9XGATE_OP_REL10
 
 #define BI_MODE(mode1,mode2)	"mode1 | mode2"
 
@@ -119,14 +120,52 @@ ASR RD, RS          DYA      0 0 0 0 1  RD      RS   1 0 0 0 1 P
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 
-	{ "brk",      OP_INH, "0000000000000000",   MC9XGATE_INH, 2, 0x0000, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "adc",   OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "add",   OP_TRI, "00011rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1802, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "addh",  OP_IMM8, "11101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "addl",  OP_IMM8, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "add",   OP_TRI, "00010rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1000, 1, 1,  CHG_NZV, cpumc9xgate},
+	{  "addh",  OP_IMM8, "10001rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8800, 1, 1,  CHG_NZV, cpumc9xgate},
+	{  "addh",  OP_IMM8, "10000rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8000, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "asr",  OP_IMM4, "00001rrriiii1001",   MC9XGATE_R_I, 2, 0x0809, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "asr",   OP_DYA, "00001rrrrrr10001",   MC9XGATE_R_R, 2, 0x0811, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "bcc",  OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2000, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bcs",  OP_REL9, "0010001iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2200, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "beq",  OP_REL9, "0010011iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2600, 1, 2, CHG_NONE, cpumc9xgate},
+	{ "bfext",   OP_TRI, "01100rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x6003, 1, 1,   CHG_NZV, cpumc9xgate},
+	{  "bffo",   OP_DYA, "00001rrrrrr10000",   MC9XGATE_R_R, 2, 0x0810, 1, 1,  CHG_NZVC, cpumc9xgate},
+	{ "bfins",   OP_TRI, "01101rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x6803, 1, 1,   CHG_NZV, cpumc9xgate},
+	{"bfinsi",   OP_TRI, "01110rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x7003, 1, 1,   CHG_NZV, cpumc9xgate},
+	{"bfinsx",   OP_TRI, "01111rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x7803, 1, 1,   CHG_NZV, cpumc9xgate},
+	{   "bge",  OP_REL9, "0011010iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3400, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bgt",  OP_REL9, "0011100iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3800, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bhi",  OP_REL9, "0011000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3000, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bhs",  OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2000, 1, 2, CHG_NONE, cpumc9xgate},
+	{  "bith",  OP_IMM8, "10011rrriiiiiiii",   MC9XGATE_R_I, 2, 0x9800, 1, 1,  CHG_NZV, cpumc9xgate},
+	{  "bitl",  OP_IMM8, "10010rrriiiiiiii",   MC9XGATE_R_I, 2, 0x9000, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "ble",  OP_REL9, "0011101iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3A00, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "blo",  OP_REL9, "0010001iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2200, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bls",  OP_REL9, "0011001iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3200, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "blt",  OP_REL9, "0011011iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3600, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bmi",  OP_REL9, "0010101iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2A00, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bne",  OP_REL9, "0010010iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2400, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bpl",  OP_REL9, "0010100iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2800, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bra", OP_REL10, "001111iiiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "brk",   OP_INH, "0000000000000000",   MC9XGATE_INH, 2, 0x0000, 4, 4, CHG_NONE, cpumc9xgate},
+	{   "bvc",  OP_REL9, "0010110iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2C00, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "bvs",  OP_REL9, "0010111iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2E00, 1, 2, CHG_NONE, cpumc9xgate},
+	{   "cmp",   OP_TRI, "00011sssrrrrrr00", MC9XGATE_R_R_R, 2, 0x1800, 1, 1,   CHG_NZVC, cpumc9xgate},
+	{  "cmpl",  OP_IMM8, "11010rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD000, 1, 1,   CHG_NZVC, cpumc9xgate},
+	{   "com",   OP_TRI, "00010rrrsssrrr11", MC9XGATE_R_R_R, 2, 0x1003, 1, 1,    CHG_NZV, cpumc9xgate},
+
+
 	{ "nop",      OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 2, CHG_NONE, cpumc9xgate},
-	{ "adc",      OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 2, CHG_NZVC, cpumc9xgate},
 
-	{ "bcc",     OP_REL9, "0010000iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2000, 1, 2, CHG_NZVC, cpumc9xgate}, //bin should be 0x2000
 
-	{ "asr",      OP_DYA, "00001rrrrrr10001",   MC9XGATE_R_R, 2, 0x0811, 1, 2, CHG_NZVC, cpumc9xgate},
-	{ "asr",     OP_IMM4, "00001rrriiii1001",   MC9XGATE_R_I, 2, 0x0809, 1, 2, CHG_NZVC, cpumc9xgate},
+
+	 //bin should be 0x2000
+
+
 
 	{ "test",    OP_IMM4, "0000011rrrrrrr11",   MC9XGATE_R_I, 2, 0x0603, 1, 2, CHG_NZVC, cpumc9xgate},
 
