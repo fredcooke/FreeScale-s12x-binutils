@@ -343,6 +343,7 @@ get_default_target (void)
 void md_begin(void){
 	struct mc9xgate_opcode *mc9xgate_opcode_ptr;
 	struct mc9xgate_opcode *mc9xgate_op_table ;
+//	struct mc9xgate_opcode *mc9xgate_opcode_ptr_save ;
 	struct mc9xgate_opcode_handle *op_handles = 0;
 	struct mc9xgate_opcode *mc9xgate_op_handle_ptr;
 	char prev_op_name[9];
@@ -350,8 +351,16 @@ void md_begin(void){
 	unsigned int number_of_handle_rows = 0;
 	int i, j = 0;
 
-	/* create a local copy of our opcode table including and extral line for NULL termination*/
+	/* create a local copy of our opcode table including and an extra line for NULL termination*/
 	mc9xgate_op_table = (struct mc9xgate_opcode *) xmalloc( (mc9xgate_num_opcodes + 1) * sizeof(struct mc9xgate_opcode));
+	memset(mc9xgate_op_table, 0, sizeof(struct mc9xgate_opcode) * (mc9xgate_num_opcodes + 1));
+
+	for(i = (mc9xgate_num_opcodes + 1); i; i--){
+
+		mc9xgate_opcode_ptr = NULL;
+	}
+
+
 	for(mc9xgate_opcode_ptr = mc9xgate_opcodes, i = 0; i < mc9xgate_num_opcodes; i++){
 		mc9xgate_op_table[i] =  mc9xgate_opcode_ptr[i];
 	}
@@ -360,8 +369,8 @@ void md_begin(void){
 			(int (*) (const void*, const void*)) cmp_opcode);
 
 	/* mark the end of the table with a NULL entry */
-	mc9xgate_opcode_ptr += sizeof(struct mc9xgate_opcode) * (mc9xgate_num_opcodes + 1);
-	mc9xgate_opcode_ptr->name = NULL;
+//	mc9xgate_op_table += sizeof(struct mc9xgate_opcode) * (mc9xgate_num_opcodes + 1);
+//	mc9xgate_op_table->name = NULL;
 
 	/* calcuate number of handles since this will be smaller than the raw number of opcodes in the table */
 	for(mc9xgate_opcode_ptr = mc9xgate_op_table; mc9xgate_opcode_ptr->name; mc9xgate_opcode_ptr++){

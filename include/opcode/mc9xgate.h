@@ -380,6 +380,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_INH			 ""
 #define MC9XGATE_OP_TRI			 "r,r,r"
 #define MC9XGATE_OP_DYA			 "r,r"
+#define MC9XGATE_OP_IMM8		 "r,i8"
 #define MC9XGATE_OP_IMM4         "r,i4"
 #define MC9XGATE_OP_IMM3		 "i3"
 #define MC9XGATE_OP_MON			 "r"
@@ -393,9 +394,6 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 
 
 #define MC9XGATE_OP_DIRECT       0x0001   /* Page 0 addressing:   *<val-8bits>  */
-//#define MC9XGATE_OP_IMM3		 0x0002   /*  3 bits immediat:    #<val-8bits>  */
-//#define MC9XGATE_OP_IMM4		 0x0004	  /*  4 bits immediat:    #<val-8bits>  */
-#define MC9XGATE_OP_IMM8         0x0008   /*  8 bits immediat:    #<val-8bits>  */
 #define MC9XGATE_OP_IMM16_REMOVE        0x0009   /* THERE IS NO IMM16 16 bits immediat:    #<val-16bits> */
 #define MC9XGATE_OP_IND16        0x0010   /* Indirect abs:        <val-16>      */
 #define MC9XGATE_OP_IND16_P2     0x0020   /* Second parameter indirect abs.     */
