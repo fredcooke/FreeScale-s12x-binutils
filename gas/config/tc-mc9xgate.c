@@ -371,7 +371,6 @@ void md_begin(void){
 	/* mark the end of the table with a NULL entry */
 //	mc9xgate_op_table += sizeof(struct mc9xgate_opcode) * (mc9xgate_num_opcodes + 1);
 //	mc9xgate_op_table->name = NULL;
-
 	/* calcuate number of handles since this will be smaller than the raw number of opcodes in the table */
 	for(mc9xgate_opcode_ptr = mc9xgate_op_table; mc9xgate_opcode_ptr->name; mc9xgate_opcode_ptr++){
 		if(strcmp(prev_op_name,mc9xgate_opcode_ptr->name)){
