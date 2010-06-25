@@ -541,8 +541,7 @@ md_assemble (char *input_line)
 	 printf("\n about to detect operands, %d combinations found", handle_enum_alias);
 	 printf("\n inline reads %s", input_line);
 	 sh_format = mc9xgate_detect_format(input_line);
-	 printf("\n detected shorthand %d",sh_format);
-
+	 printf("\n detected shorthand %d of %d alias",sh_format, handle_enum_alias);
 
 	 if(handle_enum_alias > 1){
 	 /* TODO if not match is found we segfault */
@@ -831,6 +830,7 @@ skip_whitespace(char *s){
 	while (*s == ' ' || *s == '\t' || *s == '(' || *s == ')'){
 		s++;
 	}
+	printf("\n debug white space %c", *s);
 	return s;
 }
 
@@ -1277,10 +1277,11 @@ mc9xgate_detect_format(char *line_in){
 	char *c_r_string = {"c,r"};
 	char *r_p_string = {"r,p"};
 	char *r_r_i_string = {"r,r,i"};
-	char *r_test_string = {"r,"};
+	char *r_bug_string = {"r,rr,i"}; /* TODO seems there is a bug with the parsing code*/
+	char *r_bug2_string = {"r,rr,r"}; /* TODO seems there is a bug with the parsing code*/
 
-	for(i = 0, process_first_char = 1 ; (c = TOLOWER(*skip_whitespace(str))) && num_operands < 3; str++ ){
-		//printf("\n char read %c",c);
+	for(i = 0, process_first_char = 1 ; (c = TOLOWER(*skip_whitespace(str))) && num_operands < 3; ++str ){
+		printf("\n debug detect char read %c",c);
 
 		/* mark immediate values incase they are not marked */
 		if (ISDIGIT(c) && process_first_char){
@@ -1351,7 +1352,7 @@ mc9xgate_detect_format(char *line_in){
 		return MC9XGATE_R_R_R;
 	if(!strcmp(r_r_string, sh_format) && num_operands == 2)
 		return MC9XGATE_R_R;
-	if(!strcmp(r_string, sh_format) && num_operands == 2)
+	if(!strcmp(r_string, sh_format) && num_operands == 1)
 		return MC9XGATE_R;
 	if(!strcmp(r_c_string, sh_format) && num_operands == 2)
 		return MC9XGATE_R_C;
@@ -1361,8 +1362,10 @@ mc9xgate_detect_format(char *line_in){
 		return MC9XGATE_R_P;
 	if(!strcmp(r_r_i_string, sh_format) && num_operands == 3)
 		return MC9XGATE_R_R_I;
-	if(!strcmp(r_test_string, sh_format) && num_operands == 2) /* FOR TESTING TODO */
-			return MC9XGATE_R_I;
+	if(!strcmp(r_bug_string, sh_format) && num_operands == 3) /* FOR TESTING TODO */
+			return MC9XGATE_R_R_I;
+	if(!strcmp(r_bug2_string, sh_format) && num_operands == 3) /* FOR TESTING TODO */
+				return MC9XGATE_R_R_R;
 	if(!num_operands)
 		return MC9XGATE_INH;
 

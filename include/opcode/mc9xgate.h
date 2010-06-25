@@ -387,7 +387,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_MON_R_C		 "r,c"
 #define MC9XGATE_OP_MON_C_R		 "c,r"
 #define MC9XGATE_OP_MON_R_P		 "r,p"
-#define MC9XGATE_OP_IDR			 "r,r,+"
+#define MC9XGATE_OP_IDR			 "r,r,r"
 #define MC9XGATE_OP_IDO5		 "r,r,i5"
 #define MC9XGATE_OP_REL9		 "b9"
 #define MC9XGATE_OP_REL10		 "b10"
