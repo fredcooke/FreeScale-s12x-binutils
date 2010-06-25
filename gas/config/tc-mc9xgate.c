@@ -566,7 +566,7 @@ md_assemble (char *input_line)
 	 printf("\n matched code %s and format %s",opcode->name, opcode->format);
 
 	 opcode_bin = mc9xgate_operands(opcode, &input_line);
-	 printf("\n parsed bin_opcode is  %d", opcode_bin);
+	 printf("\n parsed bin_opcode is  %x", opcode_bin);
 
 
 // 	 printf("\n wrote op %x\n", opcode->bin_opcode | operand_mask );
@@ -735,20 +735,20 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
        mask = 0x1FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
        value &= mask;
        number_to_chars_bigendian(where, (opcode | value), 2);
+       printf("\n fixup with operand is %ld",(opcode | value));
       break;
    case R_MC9XGATE_PCREL_10:
-
-       if (value < -512 || value > 511)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value %ld too large for 10-bit PC-relative branch."),
-		      value);
-       result = ldiv(value, 2); /* from bytes to words */
-       value = result.quot;
-       mask = 0x3FF; /* Clip into 10-bit field FIXME I'm sure there is a more proper place for this */
-       value &= mask;
-
-       printf("\n write us a PCREL 10 %ld", value & mask);
-       number_to_chars_bigendian(where, (opcode | value), 2);
+	   if (value < -512 || value > 511)
+	   	as_bad_where (fixP->fx_file, fixP->fx_line,
+	   		      _("Value %ld too large for 10-bit PC-relative branch."),
+	   		      value);
+	          result = ldiv(value, 2); /* from bytes to words */
+	          value = result.quot;
+	          mask = 0x3FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
+	          value &= mask;
+	          number_to_chars_bigendian(where, (opcode | value), 2);
+	          printf("\n fixup with operand is %ld",(opcode | value));
+	         break;
        break;
    case 0x5: /* seems to be the default value for no fixup TODO figure out how to remove*/
 	   break;
@@ -1122,7 +1122,7 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
 						op_mask = (r_name[1] - '0') * 10 + r_name[2] - '0';
 					      /* TODO fix so it checks for range 0-7 */
 					    }else{
-					    	as_bad(_(": expected register name r0-r7 read %s "), r_name );
+					    	as_bad(_(": expected register name r0-r7 read %s or %c and %c"), r_name,r_name[0], r_name[1] );
 					    }
 
 					}
@@ -1165,10 +1165,15 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     	(*op_con)++; /* advance the origional format pointer */
     	op_constraint++;
 
-    	if(!ISDIGIT(*op_constraint))
-      as_bad(_(":expected numerical value after i constraint"));
-    	*bit_width = (int) *op_constraint - '0';
-       	if(*str == '#') /* go past # character */
+    	if(ISDIGIT(*op_constraint)){
+    		*bit_width = (int) *op_constraint - '0';
+    	} else if(*op_constraint == 'a'){
+    		*bit_width = 0xA;
+    	}
+      //as_bad(_(":expected numerical value after i constraint"));
+
+
+    	if(*str == '#') /* go past # character */
       str++;
     	if(!ISDIGIT(*op_constraint))
       as_bad(_(":expected bit length with constraint type i(# immediate) read %c"), *op_constraint);
@@ -1192,11 +1197,11 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     		  str = extract_word (str, r_name, sizeof (r_name));
     		  printf("\n in case c extracted %s", r_name);
 
-    		  if(strcmp(r_name,"ccr"))
+    		  if(!(strcmp(r_name,"ccr") || strcmp(r_name,"CCR") ))
     		 as_bad(_(": expected register name ccr read %s "), r_name );
 
     		}else {
-    		as_bad(_(": expected register name ccr read %s "), r_name );
+    		as_bad(_(": expected character c or C  read %c"), *str );
     	}
     	break;
 
@@ -1208,11 +1213,11 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     	    		  str = extract_word (str, r_name, sizeof (r_name));
     	    		  printf("\n in case c extracted %s", r_name);
 
-    	    		  if(strcmp(r_name,"pc"))
-    	    		 as_bad(_(": expected register name ccr read %s "), r_name );
+    	    		  if(!(strcmp(r_name,"pc") || strcmp(r_name, "PC") ))
+    	    		 as_bad(_(": expected register name pc read %s "), r_name );
 
     	    		}else {
-    	    		as_bad(_(": expected register name ccr read %s "), r_name );
+    	    		as_bad(_(": expected character p or P read %c "), *str );
     	    	}
     	break;
     case 'b': /* branch expected */
@@ -1234,7 +1239,7 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
        	 	            fixp->fx_pcrel_adjust = 1;
        	             } else if (*op_constraint == 'a') { /* mode == M68XG_OP_REL10 */
        	 	            fixS *fixp;
-       	 	            fixp = fix_new_exp (frag_now, where -1, 2,
+       	 	            fixp = fix_new_exp (frag_now, where , 2,
        	 	            	&op_expr, TRUE, R_MC9XGATE_PCREL_10); /* forced type into bfd-in-2 around line 2367 */
        	 	            fixp->fx_pcrel_adjust = 1;
        	 	        }

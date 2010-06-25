@@ -130,7 +130,7 @@ Size --------------------------------------------------------+   +--------------
 	{   "bmi",  OP_REL9, "0010101iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2A00, 1, 2, CHG_NONE, cpumc9xgate},
 	{   "bne",  OP_REL9, "0010010iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2400, 1, 2, CHG_NONE, cpumc9xgate},
 	{   "bpl",  OP_REL9, "0010100iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2800, 1, 2, CHG_NONE, cpumc9xgate},
-	{   "bra", OP_REL10, "001111iiiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "bra", OP_REL10, "001111iiiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x3C00, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "brk",   OP_INH, "0000000000000000",   MC9XGATE_INH, 2, 0x0000, 4, 4, CHG_NONE, cpumc9xgate},
 	{   "bvc",  OP_REL9, "0010110iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2C00, 1, 2, CHG_NONE, cpumc9xgate},
 	{   "bvs",  OP_REL9, "0010111iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2E00, 1, 2, CHG_NONE, cpumc9xgate},
@@ -185,7 +185,7 @@ Size --------------------------------------------------------+   +--------------
     {   "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 1, CHG_NONE, cpumc9xgate},
     {   "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 1, CHG_NONE, cpumc9xgate},
     {   "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 1, CHG_NONE, cpumc9xgate},
-    {   "tst",      OP_DYA, "00011sssrrrsss00",   MC9XGATE_R_R, 2, 0x1800, 1, 1,  CHG_NZV, cpumc9xgate},
+    {   "tst",   OP_DYA, "00011sssrrrsss00",   MC9XGATE_R_R, 2, 0x1800, 1, 1,  CHG_NZV, cpumc9xgate},
     {  "xnor",   OP_TRI, "00010rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZV, cpumc9xgate},
     { "xnorh",  OP_IMM8, "10111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB800, 1, 1, CHG_NZV, cpumc9xgate},
     { "xnorl",  OP_IMM8, "10110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB000, 1, 1, CHG_NZV, cpumc9xgate}
