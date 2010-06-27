@@ -830,7 +830,7 @@ skip_whitespace(char *s){
 	while (*s == ' ' || *s == '\t' || *s == '(' || *s == ')'){
 		s++;
 	}
-	printf("\n debug white space %c", *s);
+	//printf("\n debug white space %c", *s);
 	return s;
 }
 
@@ -954,13 +954,9 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 {
 	char *frag = mc9xgate_new_instruction(opcode->size );
 	int where = frag - frag_now->fr_literal;
-//number_to_chars_bigendian (f, opcode_bin, opcode->size);
   char *op = opcode->constraints;
- // unsigned int bin = opcode->bin_opcode;
   unsigned int bin = (int) opcode->bin_opcode;
-//  char *frag = frag_more (opcode->size * 2); /* all opcodes are at lest 2 bytes in size */
   char *str = *line;
-//  int where = frag - frag_now->fr_literal;
 
   unsigned short oper_mask = 0;
   unsigned int oper1 = 0;
@@ -973,8 +969,10 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
   int oper3_present = 0;
   int oper3_bit_length = 0;
   char n_operand_bits = 0;
+  char first_can_equal_second = 0;
   int i = 0;
   char c = 0;
+
 
   /* generate availible operand bits mask */
   for(i = 0; (c = opcode->format[i]); i++  ){
@@ -991,6 +989,11 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
   /* Parse first operand.  */
   if (*op)
     {
+	  printf("\n first char of op is %c",*op);
+	  if(*op == '='){
+		  first_can_equal_second = 1;
+		  ++op;
+	  }
       oper1_present = 1;
       printf("\n getting operand 1 , %c", *op);
       oper1 = mc9xgate_operand (opcode, &oper1_bit_length, where, &op, &str);
@@ -1002,50 +1005,43 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 	  if (*op == ',')
 	    ++op;
 
-	  if (*op == '=') /* TODO not sure if we want this */
-	    {
-		  oper2 = oper1;
-		  oper2_present = 1;
-	    }
-	  else
-	    {
 		oper2_present = 1;
-//	      ++*op
 	      str = skip_whitespace (str);
-	      printf("\n string is now %c", *str);
-	      if (*str++ != ',')
-		as_bad (_("`,' required"));
-	      str = skip_whitespace (str);
-	      printf("\n operand before call to get_operand %c", *op);
-	      oper2 = mc9xgate_operand (opcode, &oper2_bit_length, where, &op, &str);
-	      printf("\n operand after call to get_operand %c", *op);
-	      ++op;
-	    }
+	      printf("\n string is now %c first_can_second is %c", *str, first_can_equal_second);
+	      if (*str++ != ','){
+	    	  if(first_can_equal_second){
+	    		  oper2 = oper1;
+	    		  ++op;
+	    		  //op++;
+	    		  //op++;
+	    		  printf("\n op string is now %c",*op);
+	    	  }else{
+	    		  as_bad (_("`,' required before second operand"));
+	    	  }
+	      }else{
+	    	  str = skip_whitespace (str);
+	    	  printf("\n operand before call to get_operand %c", *op);
+	    	  oper2 = mc9xgate_operand (opcode, &oper2_bit_length, where, &op, &str);
+	    	  printf("\n operand after call to get_operand %c", *op);
+	    	  ++op;
+	      }
 
-    }
+	    }
       /* parse the third register */
          if (*op)
     	{
     	  if (*op == ',')
     	    ++op;
 
-    	  if (*op == '=') /* TODO not sure if we want this */
-    	    {
-    	      oper3 = oper1;
-    	      oper3_present = 1;
-    	    }
-    	  else
-    	    {
- //   	      if (REGISTER_P (*op))
     		oper3_present = 1;
 
     	      str = skip_whitespace (str);
     	      if (*str++ != ',')
-    		as_bad (_("`,' required"));
+    		as_bad (_("`,' required before third operand"));
     	      str = skip_whitespace (str);
     	     printf("\n getting operand 3 typs is, %c input string is %s", *op, str);
     	     oper3 = mc9xgate_operand (opcode, &oper3_bit_length, where, &op, &str);
-    	    }
+
     	}
 
     }
@@ -1062,7 +1058,7 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
 	  bin = mc9xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
   if(oper3_present)
   	  bin = mc9xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
-  printf("\n writing final bin to object %d",bin);
+  printf("\n no fixup required writing final bin to object %d",bin);
   number_to_chars_bigendian (frag, bin, opcode->size); /* since we are done write this frag in xgate BE format */
   }
 //  printf("\n firt length is %d with operand %d second length is %d with operand %d third length is %d with operand %d",
@@ -1172,7 +1168,6 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
     	}
       //as_bad(_(":expected numerical value after i constraint"));
 
-
     	if(*str == '#') /* go past # character */
       str++;
     	if(!ISDIGIT(*op_constraint))
@@ -1247,10 +1242,6 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where, cha
        	         } else {
        	             as_fatal (_("Operand `%x' not recognized in fixup8."), op_expr.X_op);
        	         }
-
-        // 	fix_new_exp (frag_now, where, opcode->size * 1,
-    		//	   &op_expr, TRUE, BFD_RELOC_16);
-
     case '?':
       break;
 
@@ -1286,7 +1277,7 @@ mc9xgate_detect_format(char *line_in){
 	char *r_bug2_string = {"r,rr,r"}; /* TODO seems there is a bug with the parsing code*/
 
 	for(i = 0, process_first_char = 1 ; (c = TOLOWER(*skip_whitespace(str))) && num_operands < 3; ++str ){
-		printf("\n debug detect char read %c",c);
+	//	printf("\n debug detect char read %c",c);
 
 		/* mark immediate values incase they are not marked */
 		if (ISDIGIT(c) && process_first_char){
@@ -1347,7 +1338,7 @@ mc9xgate_detect_format(char *line_in){
 	if(i)
 		num_operands++;
 
-	printf("\n detected format %s and counted %d operands", sh_format, num_operands);
+	//printf("\n detected format %s and counted %d operands", sh_format, num_operands);
 	/* TODO MACRO THIS */
 	if(!strcmp(i_string, sh_format) && num_operands == 1)
 		return MC9XGATE_I;

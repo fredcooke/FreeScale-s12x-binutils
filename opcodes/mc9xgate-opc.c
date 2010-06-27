@@ -74,6 +74,7 @@
 #define OP_INH			MC9XGATE_OP_INH
 #define OP_TRI			MC9XGATE_OP_TRI
 #define OP_DYA			MC9XGATE_OP_DYA
+#define OP_DYA_MON		MC9XGATE_OP_DYA_MON
 #define OP_IMM3			MC9XGATE_OP_IMM3
 #define OP_IMM4			MC9XGATE_OP_IMM4
 #define OP_IMM8			MC9XGATE_OP_IMM8
@@ -136,8 +137,7 @@ Size --------------------------------------------------------+   +--------------
 	{   "bvs",  OP_REL9, "0010111iiiiiiiii",   MC9XGATE_I | MC9XGATE_PCREL,   2, 0x2E00, 1, 2, CHG_NONE, cpumc9xgate},
 	{   "cmp",   OP_DYA, "00011sssrrrrrr00",   MC9XGATE_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "cmpl",  OP_IMM8, "11010rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD000, 1, 1, CHG_NZVC, cpumc9xgate},
-	{   "com",   OP_DYA, "00010rrrsssrrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 1,  CHG_NZV, cpumc9xgate},
-//	{   "com",   OP_DYA, "00010rrrsssrrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 1,  CHG_NZV, cpumc9xgate}, /* fix with = constraint */
+	{   "com",   OP_DYA_MON, "00010rrrsssrrr11",   MC9XGATE_R_R, 2, 0x1003, 1, 1,  CHG_NZV, cpumc9xgate},
 	{   "cpc",   OP_DYA, "00011sssrrrrrr01",   MC9XGATE_R_R, 2, 0x1801, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "cpch",  OP_IMM8, "11011rrriiiiiiii",   MC9XGATE_R_I, 2, 0xD800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "csem",  OP_IMM3, "00000iii11110000",     MC9XGATE_I, 2, 0x00F0, 1, 1, CHG_NONE, cpumc9xgate},
