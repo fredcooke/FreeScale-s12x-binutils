@@ -380,6 +380,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_INH			 ""
 #define MC9XGATE_OP_TRI			 "r,r,r"
 #define MC9XGATE_OP_DYA			 "r,r"
+#define MC9XGATE_OP_IMM16        "er,eADDH,eADDL"
 #define MC9XGATE_OP_IMM8		 "r,i8"
 #define MC9XGATE_OP_IMM4         "r,i4"
 #define MC9XGATE_OP_IMM3		 "i3"
@@ -475,14 +476,6 @@ struct mc9xgate_opcode {
 	unsigned char  arch; /* cpu type, may always be mc9s12 only */
 };
 
-//struct mc9xgate_opcode
-//{
-//  char *        name;
-//  char *        constraints;
-//  int           insn_size;		/* In words.  */
-//  int           isa;
-//  unsigned int  bin_opcode;
-//};
 
 /* Alias definition for 68HC12.  */
 struct mc9xgate_opcode_alias

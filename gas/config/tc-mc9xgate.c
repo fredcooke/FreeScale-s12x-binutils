@@ -510,7 +510,7 @@ md_assemble (char *input_line)
 
 // char io_buffer[20]; /* general purpose buffer */
  struct mc9xgate_opcode *opcode = 0;
- struct mc9xgate_opcode_handle *opcode_handle;
+ struct mc9xgate_opcode_handle *opcode_handle = 0;
 // struct mc9xgate_parsed_op	*parsed_operand;
  char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
  //char *f; /* instruction fragment pointer */
@@ -518,6 +518,7 @@ md_assemble (char *input_line)
  char op_name[9];
  char handle_enum_alias = 0;
  unsigned int sh_format = 0;
+ //char f;
 
  numberOfCalls++; // for testing
 
@@ -531,10 +532,10 @@ md_assemble (char *input_line)
 
  printf("\n read code %s\n", op_name);
 
-	 if(!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name) )){
+ if(!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name) )){
 	//	 printf("\n %s\n",op_name);
 		 as_bad(_("opcode not found in hash"));
-	  }
+	  } else{
 
 	 /* detect operand format so we can pull the proper opcode bin */
 	 handle_enum_alias = opcode_handle->number_of_modes;
@@ -543,34 +544,44 @@ md_assemble (char *input_line)
 	 sh_format = mc9xgate_detect_format(input_line);
 	 printf("\n detected shorthand %d of %d alias",sh_format, handle_enum_alias);
 
-	 if(handle_enum_alias > 1){
-	 /* TODO if not match is found we segfault */
-	 if(opcode_handle->opc0->sh_format == sh_format && handle_enum_alias--){
-		 opcode = opcode_handle->opc0;
-	 }else if(opcode_handle->opc1->sh_format & sh_format && handle_enum_alias--){
-		 opcode = opcode_handle->opc1;
-	 }else if(opcode_handle->opc2->sh_format & sh_format && handle_enum_alias--){
-		 opcode = opcode_handle->opc2;
-	 }else if(opcode_handle->opc3->sh_format & sh_format && handle_enum_alias--){
-		 opcode = opcode_handle->opc3;
-	 }else if(opcode_handle->opc4->sh_format & sh_format && handle_enum_alias--){
-		 opcode = opcode_handle->opc4;
-	 }
-	 }else{
-		 opcode = opcode_handle->opc0;
+	 while(handle_enum_alias){
+		 switch (handle_enum_alias){
+		 case 1:
+			 if(opcode_handle->opc0->sh_format & sh_format)
+				 opcode = opcode_handle->opc0;
+			 break;
+		 case 2:
+			 if(opcode_handle->opc1->sh_format & sh_format)
+				 opcode = opcode_handle->opc1;
+			 break;
+		 case 3:
+		 	 if(opcode_handle->opc2->sh_format & sh_format)
+		 		 opcode = opcode_handle->opc2;
+		 	 break;
+		 case 4:
+		 	 if(opcode_handle->opc3->sh_format & sh_format)
+		 		 opcode = opcode_handle->opc3;
+		 case 5:
+		 	 if(opcode_handle->opc2->sh_format & sh_format)
+		 		 opcode = opcode_handle->opc2;
+		 	 break;
+		 default:
+			 as_bad((":Error too many operand to opcode combinations"));
+		 }
+		 handle_enum_alias--;
 	 }
 
-	 if(!opcode)
+	 if(!opcode){
 		 as_bad(_(":error matching operand format"));
-
+		 //TODO print list of possibilities
+	 }else if(opcode->size){
 	 printf("\n matched code %s and format %s",opcode->name, opcode->format);
-
 	 opcode_bin = mc9xgate_operands(opcode, &input_line);
 	 printf("\n parsed bin_opcode is  %x", opcode_bin);
-
-
-// 	 printf("\n wrote op %x\n", opcode->bin_opcode | operand_mask );
-// }
+	 }else{
+		 printf("\nMacro needs to be expanded");
+	 }
+ }
 
  input_line = saved_input_line;
 }

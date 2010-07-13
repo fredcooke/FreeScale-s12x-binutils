@@ -78,6 +78,7 @@
 #define OP_IMM3			MC9XGATE_OP_IMM3
 #define OP_IMM4			MC9XGATE_OP_IMM4
 #define OP_IMM8			MC9XGATE_OP_IMM8
+#define OP_IMM16		MC9XGATE_OP_IMM16
 #define OP_MON			MC9XGATE_OP_MON
 #define OP_MON_R_C		MC9XGATE_OP_MON_R_C
 #define OP_MON_C_R		MC9XGATE_OP_MON_C_R
@@ -103,6 +104,7 @@ Size --------------------------------------------------------+   +--------------
 */
 	{   "adc",   OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "add",   OP_TRI, "00011rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1802, 1, 1, CHG_NZVC, cpumc9xgate},
+	{	"add", OP_IMM16, "----------------",   MC9XGATE_R_I, 0,      0, 0, 0, CHG_NONE, cpumc9xgate},
 	{  "addh",  OP_IMM8, "11101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "addl",  OP_IMM8, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "and",   OP_TRI, "00010rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1000, 1, 1,  CHG_NZV, cpumc9xgate},
