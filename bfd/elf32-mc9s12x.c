@@ -19,7 +19,10 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+   MA 02110-1301, USA.
+   mc9s12xelf
+   Can't disassemble for architecture
+    */
 
 #include "sysdep.h"
 #include "bfd.h"
@@ -322,13 +325,101 @@ static reloc_howto_type elf_mc9s12x_howto_table[] = {
 	 0x00ff,		/* src_mask */
 	 0x00ff,		/* dst_mask */
 	 FALSE),		/* pcrel_offset */
+	 /* A 9 bit absolute relocation  */
+	 		  HOWTO (R_MC9XGATE_PCREL_9,		/* type */
+	 			 0,			/* rightshift */
+	 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 9,			/* bitsize */
+	 			 TRUE,			/* pc_relative */
+	 			 0,			/* bitpos */
+	 			 complain_overflow_bitfield,	/* complain_on_overflow */
+	 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 "R_MC9XGATE_PCREL_9",	/* name */
+	 			 FALSE,			/* partial_inplace */
+	 			 0xffff,		/* src_mask */
+	 			 0xffff,		/* dst_mask */
+	 			 TRUE),		/* pcrel_offset */
 
-  EMPTY_HOWTO (14),
-  EMPTY_HOWTO (15),
-  EMPTY_HOWTO (16),
-  EMPTY_HOWTO (17),
-  EMPTY_HOWTO (18),
-  EMPTY_HOWTO (19),
+	 		  /* A 8 bit absolute relocation (upper address) */
+	 		  HOWTO (R_MC9XGATE_PCREL_10,		/* type */
+	 			 8,			/* rightshift */
+	 			 0,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 10,			/* bitsize */
+	 			 TRUE,			/* pc_relative */
+	 			 0,			/* bitpos */
+	 			 complain_overflow_dont,	/* complain_on_overflow */
+	 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 "R_MC9XGATE_PCREL_10",	/* name */
+	 			 FALSE,			/* partial_inplace */
+	 			 0x00ff,		/* src_mask */
+	 			 0x00ff,		/* dst_mask */
+	 			 TRUE),		/* pcrel_offset */
+
+
+	 			 /* A 8 bit absolute relocation  */
+	 			 		  HOWTO (R_MC9XGATE_IMM8_LO,		/* type */
+	 			 			 0,			/* rightshift */
+	 			 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 			 16,			/* bitsize */
+	 			 			 FALSE,			/* pc_relative */
+	 			 			 0,			/* bitpos */
+	 			 			 complain_overflow_bitfield,	/* complain_on_overflow */
+	 			 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 			 "R_MC9XGATE_IMM8_LO",	/* name */
+	 			 			 FALSE,			/* partial_inplace */
+	 			 			 0x00ff,		/* src_mask */
+	 			 			 0x00ff,		/* dst_mask */
+	 			 			 FALSE),		/* pcrel_offset */
+
+	 			 		  /* A 16 bit absolute relocation (upper address) */
+	 			 		  HOWTO (R_MC9XGATE_IMM8_HI,		/* type */
+	 			 			 8,			/* rightshift */
+	 			 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 			 16,			/* bitsize */
+	 			 			 FALSE,			/* pc_relative */
+	 			 			 0,			/* bitpos */
+	 			 			 complain_overflow_dont,	/* complain_on_overflow */
+	 			 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 			 "R_MC9XGATE_IMM8_HI",	/* name */
+	 			 			 FALSE,			/* partial_inplace */
+	 			 			 0x00ff,		/* src_mask */
+	 			 			 0x00ff,		/* dst_mask */
+	 			 			 FALSE),		/* pcrel_offset */
+	 			 	 		  /* A 3 bit absolute relocation */
+	 			 				 		  HOWTO (R_MC9XGATE_IMM3,		/* type */
+	 			 				 			 8,			/* rightshift */
+	 			 				 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 				 			 16,			/* bitsize */
+	 			 				 			 FALSE,			/* pc_relative */
+	 			 				 			 0,			/* bitpos */
+	 			 				 			 complain_overflow_dont,	/* complain_on_overflow */
+	 			 				 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 				 			 "R_MC9XGATE_IMM3",	/* name */
+	 			 				 			 FALSE,			/* partial_inplace */
+	 			 				 			 0x00ff,		/* src_mask */
+	 			 				 			 0x00ff,		/* dst_mask */
+	 			 				 			 FALSE),		/* pcrel_offset */
+	 			 				 	 		  /* A 4 bit absolute relocation  */
+	 			 				 				 		  HOWTO (R_MC9XGATE_IMM4,		/* type */
+	 			 				 				 			 8,			/* rightshift */
+	 			 				 				 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
+	 			 				 				 			 16,			/* bitsize */
+	 			 				 				 			 FALSE,			/* pc_relative */
+	 			 				 				 			 0,			/* bitpos */
+	 			 				 				 			 complain_overflow_dont,	/* complain_on_overflow */
+	 			 				 				 			 bfd_elf_generic_reloc,	/* special_function */
+	 			 				 				 			 "R_MC9XGATE_IMM4",	/* name */
+	 			 				 				 			 FALSE,			/* partial_inplace */
+	 			 				 				 			 0x00ff,		/* src_mask */
+	 			 				 				 			 0x00ff,		/* dst_mask */
+	 			 				 				 			 FALSE),		/* pcrel_offset */
+
+  //EMPTY_HOWTO (14),
+  //EMPTY_HOWTO (15),
+  //EMPTY_HOWTO (16),
+  //EMPTY_HOWTO (17),
+  //EMPTY_HOWTO (18),
+  //EMPTY_HOWTO (19),
 
   /* Mark beginning of a jump instruction (any form).  */
   HOWTO (R_MC9S12X_RL_JUMP,	/* type */
@@ -386,6 +477,12 @@ static const struct mc9s12x_reloc_map mc9s12x_reloc_map[] = {
   {BFD_RELOC_MC9S12X_LO16, R_MC9S12X_LO16},
   {BFD_RELOC_MC9S12X_PAGE, R_MC9S12X_PAGE},
   {BFD_RELOC_MC9S12X_24, R_MC9S12X_24},
+  {BFD_RELOC_MC9XGATE_PCREL_9, R_MC9XGATE_PCREL_9},
+  {BFD_RELOC_MC9XGATE_PCREL_10,  R_MC9XGATE_PCREL_10},
+  {BFD_RELOC_MC9XGATE_IMM8_LO, R_MC9XGATE_IMM8_LO},
+  {BFD_RELOC_MC9XGATE_IMM8_HI, R_MC9XGATE_IMM8_HI},
+  {BFD_RELOC_MC9XGATE_IMM3, R_MC9XGATE_IMM3},
+  {BFD_RELOC_MC9XGATE_IMM4, R_MC9XGATE_IMM4},
 
   {BFD_RELOC_MC9S12X_RL_JUMP, R_MC9S12X_RL_JUMP},
   {BFD_RELOC_MC9S12X_RL_GROUP, R_MC9S12X_RL_GROUP},
@@ -402,8 +499,10 @@ bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
        i < sizeof (mc9s12x_reloc_map) / sizeof (struct mc9s12x_reloc_map);
        i++)
     {
-      if (mc9s12x_reloc_map[i].bfd_reloc_val == code)
+      if (mc9s12x_reloc_map[i].bfd_reloc_val == code){
+    	  //printf("\n found reloc by type %s", &elf_mc9s12x_howto_table[mc9s12x_reloc_map[i].bfd_reloc_val ]);
 	return &elf_mc9s12x_howto_table[mc9s12x_reloc_map[i].elf_reloc_val];
+      }
     }
 
   return NULL;
@@ -413,7 +512,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 				 const char *r_name)
 {
-  //printf("\n in bfd_elf32_bfd_reloc_name_lookup--line 416\n");
+  printf("\n in bfd_elf32_bfd_reloc_name_lookup--line 416\n");
   unsigned int i;
 
   for (i = 0;
@@ -1593,6 +1692,7 @@ elf32_mc9s12x_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
       if (is_far && ELF32_R_TYPE (rel->r_info) == R_MC9S12X_16)
 	{
+    	  printf("\n is far and rinfo is r_mc9s12x_16");
 	  struct elf32_mc9s12x_stub_hash_entry* stub;
 	  struct mc9s12x_elf_link_hash_table *htab;
 
@@ -1613,6 +1713,14 @@ elf32_mc9s12x_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       phys_page = mc9s12x_phys_page (pinfo, relocation + rel->r_addend);
       switch (r_type)
         {
+      case	R_MC9XGATE_IMM8_LO:
+         	  printf("\n relocation is %lu", relocation);
+         	  /* relocation is already set to physical address at this point */
+
+         	//  break;
+       case	R_MC9XGATE_IMM8_HI:
+               printf("\n case  elf32 relocate IMM16");
+               break;
         case R_MC9S12X_24:
           /* Reloc used by 68HC12 call instruction.  */
           bfd_put_16 (input_bfd, phys_addr,

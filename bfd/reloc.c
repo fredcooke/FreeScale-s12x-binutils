@@ -4603,16 +4603,44 @@ ENUMDOC
   Motorola MC9S12X reloc.
   This is the 5 bits of a value.
 
-  ENUM
-  BFD_RELOC_MC9XGATE_PCREL_9
-ENUMDOC
-  Motorola MC9XGATE reloc.
-  This is the 9 bit PC relative address.
 ENUM
-  BFD_RELOC_MC9XGATE_PCREL_10
+  BFD_RELOC_MC9S12X_PCREL_9
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9S12X_PCREL_10
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9S12X_IMM8_LO
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9S12X_IMM8_HI
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_MC9S12X_IMM3
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_MC9S12X_IMM4
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9XGATE_HI8
 ENUMDOC
   Motorola MC9XGATE reloc.
-  This is the 10 bit PC relative address.
+  This is the 8 bit high part of an absolute address.
+ENUM
+  BFD_RELOC_MC9XGATE_LO8
+ENUMDOC
+  Motorola MC9XGATE reloc.
+  This is the 8 bit low part of an absolute address.
 ENUM
   BFD_RELOC_MC9XGATE_3B
 ENUMDOC
@@ -4653,13 +4681,40 @@ ENUMDOC
   Motorola MC9XGATE reloc.
   This is a 24-bit reloc that represents the address with a 16-bit
   value and a 8-bit page number.  The symbol address is transformed
-  to follow the 16K memory bank of MC9XGATE (seen as mapped in the window).
+  to follow the 16K memory bank of MC9S12X (seen as mapped in the window).
 ENUM
   BFD_RELOC_MC9XGATE_5B
 ENUMDOC
   Motorola MC9XGATE reloc.
   This is the 5 bits of a value.
 
+ENUM
+  BFD_RELOC_MC9XGATE_PCREL_9
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9XGATE_PCREL_10
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9XGATE_IMM8_LO
+ENUMDOC
+	TEXT HERE
+
+ENUM
+  BFD_RELOC_MC9XGATE_IMM8_HI
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_MC9XGATE_IMM3
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_MC9XGATE_IMM4
+ENUMDOC
+	TEXT HERE
 ENUM
   BFD_RELOC_16C_NUM08
 ENUMX

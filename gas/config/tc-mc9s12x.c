@@ -21,6 +21,7 @@
    Boston, MA 02110-1301, USA.  */
 /*
  * scratch data
+ * R_MC9S12X_16
  * Can't disassemble for architecture
  */
 #include "as.h"
@@ -1441,7 +1442,7 @@ fixup16 (expressionS *oper, int mode, int opmode ATTRIBUTE_UNUSED)
 		  oper->X_add_number);
 	}
       number_to_chars_bigendian (f, oper->X_add_number & 0x0FFFF, 2);
-      printf("\n in fixup16 line 1444, %d",(signed int) oper->X_add_number & 0x0FFFF);
+
     }
   else if (oper->X_op != O_register)
     {
@@ -1551,6 +1552,9 @@ build_jump_insn (struct mc9s12x_opcode *opcode, operand operands[],
   unsigned long n;
   fragS *frag;
   int where;
+
+  printf("\n in build_jump_insn %s",opcode->name);
+
 
   /* The relative branch conversion is not supported for
      brclr and brset.  */
@@ -1702,6 +1706,9 @@ build_dbranch_insn (struct mc9s12x_opcode *opcode, operand operands[],
   char *f;
   unsigned long n;
 
+  printf("\n in build_dbranch_insn %s",opcode->name);
+
+
   /* The relative branch conversion is not supported for
      brclr and brset.  */
   gas_assert ((opcode->format & MC9S12X_OP_BITMASK) == 0);
@@ -1793,6 +1800,9 @@ build_indexed_byte (operand *op, int format ATTRIBUTE_UNUSED, int move_insn)
   char *f;
   int mode;
   long val;
+
+  //printf("\n in build_indexed_byte %s",opcode->name);
+
 
   val = op->exp.X_add_number;
   mode = op->mode;
@@ -2077,7 +2087,7 @@ build_insn (struct mc9s12x_opcode *opcode, operand operands[],
   char *f;
   long format;
   int move_insn = 0;
-
+  printf("\n in build_insn %s",opcode->name);
   /* Put the page code instruction if there is one.  */
   format = opcode->format;
 
@@ -2430,6 +2440,7 @@ find_opcode (struct mc9s12x_opcode_def *opc, operand operands[],
 void
 md_assemble (char *str)
 {
+
   struct mc9s12x_opcode_def *opc;
   struct mc9s12x_opcode *opcode;
 
@@ -2480,6 +2491,8 @@ md_assemble (char *str)
       if (opc)
 	branch_optimize = 1;
     }
+
+  printf("\n found %s", opc->opcode->name);
 
   /* The following test should probably be removed.  This is not conform
      to Motorola assembler specs.  */
@@ -2736,6 +2749,7 @@ tc_gen_reloc (asection *section ATTRIBUTE_UNUSED, fixS *fixp)
     reloc->address = fixp->fx_offset;
 
   reloc->addend = 0;
+  printf("\n about to return relocation-%d name-%s",(int) reloc, reloc->howto->name);
   return reloc;
 }
 
@@ -2835,6 +2849,7 @@ void
 md_convert_frag (bfd *abfd ATTRIBUTE_UNUSED, asection *sec ATTRIBUTE_UNUSED,
                  fragS *fragP)
 {
+	printf("\n in md_convert_frag");
   fixS *fixp;
   long value;
   long disp;

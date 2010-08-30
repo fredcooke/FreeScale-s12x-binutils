@@ -4215,13 +4215,31 @@ to follow the 16K memory bank of MC9S12X (seen as mapped in the window).  */
 This is the 5 bits of a value.  */
   BFD_RELOC_MC9S12X_5B,
 
-/* Motorola MC9XGATE reloc.
-This is the 9 bit PC relative address.  */
-  BFD_RELOC_MC9XGATE_PCREL_9,
+/*   */
+  BFD_RELOC_MC9S12X_PCREL_9,
+
+/*   */
+  BFD_RELOC_MC9S12X_PCREL_10,
+
+/*   */
+  BFD_RELOC_MC9S12X_IMM8_LO,
+
+/*   */
+  BFD_RELOC_MC9S12X_IMM8_HI,
+
+/*   */
+  BFD_RELOC_MC9S12X_IMM3,
+
+/*   */
+  BFD_RELOC_MC9S12X_IMM4,
 
 /* Motorola MC9XGATE reloc.
-This is the 10 bit PC relative address.  */
-  BFD_RELOC_MC9XGATE_PCREL_10,
+This is the 8 bit high part of an absolute address.  */
+  BFD_RELOC_MC9XGATE_HI8,
+
+/* Motorola MC9XGATE reloc.
+This is the 8 bit low part of an absolute address.  */
+  BFD_RELOC_MC9XGATE_LO8,
 
 /* Motorola MC9XGATE reloc.
 This is the 3 bit of a value.  */
@@ -4255,12 +4273,30 @@ the symbol.  */
 /* Motorola MC9XGATE reloc.
 This is a 24-bit reloc that represents the address with a 16-bit
 value and a 8-bit page number.  The symbol address is transformed
-to follow the 16K memory bank of MC9XGATE (seen as mapped in the window).  */
+to follow the 16K memory bank of MC9S12X (seen as mapped in the window).  */
   BFD_RELOC_MC9XGATE_24,
 
 /* Motorola MC9XGATE reloc.
 This is the 5 bits of a value.  */
   BFD_RELOC_MC9XGATE_5B,
+
+/*   */
+  BFD_RELOC_MC9XGATE_PCREL_9,
+
+/*   */
+  BFD_RELOC_MC9XGATE_PCREL_10,
+
+/*   */
+  BFD_RELOC_MC9XGATE_IMM8_LO,
+
+/*   */
+  BFD_RELOC_MC9XGATE_IMM8_HI,
+
+/*   */
+  BFD_RELOC_MC9XGATE_IMM3,
+
+/*   */
+  BFD_RELOC_MC9XGATE_IMM4,
 
 /* NS CR16C Relocations.  */
   BFD_RELOC_16C_NUM08,

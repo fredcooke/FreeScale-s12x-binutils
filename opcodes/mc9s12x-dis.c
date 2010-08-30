@@ -19,10 +19,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.  */
-/*
- * Can't disassemble for architecture UNKNOWN!
- * skipping as arch ==
- */
+
 #include <stdio.h>
 
 #include "ansidecl.h"
@@ -231,7 +228,7 @@ print_indexed_operand (bfd_vma memaddr, struct disassemble_info* info,
 static int
 print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 {
-  //printf("\n in print_insn");
+  printf("\n in print_insn");
   int status;
   bfd_byte buffer[4];
   unsigned char code;
@@ -646,6 +643,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 	      return status;
 	    }
 	  pos++;
+	  printf("\n need to diss an immediate operand");
 	  (*info->fprintf_func) (info->stream, " #$%02x%s",
 				 buffer[0] & 0x0FF,
 				 (format & MC9S12X_OP_JUMP_REL ? " " : ""));
