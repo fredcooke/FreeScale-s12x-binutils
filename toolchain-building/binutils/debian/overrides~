@@ -1,0 +1,31 @@
+# Directory usr/m68hc11 is considered as non standard by lintian, however it
+# is a standard dir for cross-compilers
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/ar
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/as
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/ld
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/nm
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/objcopy
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/objdump
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/ranlib
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/bin/strip
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elfb.x
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elfb.xbn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elfb.xn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elfb.xr
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elfb.xu
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elf.x
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elf.xbn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elf.xn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elf.xr
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc11elf.xu
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elfb.x
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elfb.xbn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elfb.xn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elfb.xr
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elfb.xu
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elf.x
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elf.xbn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elf.xn
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elf.xr
+binutils-m68hc1x: file-in-unusual-dir usr/m68hc11/lib/ldscripts/m68hc12elf.xu
+binutils-m68hc1x: non-standard-dir-in-usr usr/m68hc11/

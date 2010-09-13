@@ -1,0 +1,31 @@
+# Directory usr/mc9s12x is considered as non standard by lintian, however it
+# is a standard dir for cross-compilers
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/ar
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/as
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/ld
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/nm
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/objcopy
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/objdump
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/ranlib
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/bin/strip
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelfb.x
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelfb.xbn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelfb.xn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelfb.xr
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelfb.xu
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelf.x
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelf.xbn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelf.xn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelf.xr
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/mc9s12xelf.xu
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elfb.x
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elfb.xbn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elfb.xn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elfb.xr
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elfb.xu
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elf.x
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elf.xbn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elf.xn
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elf.xr
+binutils-mc9s12x: file-in-unusual-dir usr/mc9s12x/lib/ldscripts/m68hc12elf.xu
+binutils-mc9s12x: non-standard-dir-in-usr usr/mc9s12x/

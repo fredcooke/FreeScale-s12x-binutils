@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -n "$LD_EMULATION" ] ; then
+	/usr/bin/m68hc11-ld "$@"
+else
+	/usr/bin/m68hc11-ld -mm68hc12elf "$@"
+fi

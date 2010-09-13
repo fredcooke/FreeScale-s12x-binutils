@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BUILDDIR=/usr/src/binutils-mc9s12x
+SRCDIR=../binutils-2.20/
+
+rm -Rf $BUILDDIR
+mkdir $BUILDDIR
+tar -cjf ${BUILDDIR}/binutils-2.20.tar.bz2 $SRCDIR
+
+cp -R debian $BUILDDIR
+cp -R example $BUILDDIR
+cp -R patches $BUILDDIR

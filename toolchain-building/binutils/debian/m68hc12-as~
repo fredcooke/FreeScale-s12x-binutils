@@ -1,0 +1,2 @@
+#!/bin/sh
+/usr/bin/m68hc11-as -m68hc12 "$@"

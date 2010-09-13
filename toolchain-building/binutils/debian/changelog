@@ -1,0 +1,6 @@
+binutils-mc9s12x (1:2.20-0) unstable; urgency=low
+
+  [ Sean Keys ]
+  * Initial clone of m68hc1x rules/control files
+
+ -- Sean Keys <support@computer-ss.com> 
