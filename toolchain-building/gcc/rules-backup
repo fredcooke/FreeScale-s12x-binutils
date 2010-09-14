@@ -39,7 +39,7 @@ configure-stamp: unpack-stamp
                          --build=$(DEB_BUILD_GNU_TYPE) \
                          --host=$(DEB_HOST_GNU_TYPE) \
                          --target=m68hc11 \
-			 --without-headers \
+                         --without-headers \
 			 --program-prefix=mc9s12x-elf-
 	touch $@
 

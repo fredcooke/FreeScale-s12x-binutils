@@ -25,6 +25,7 @@
  * howto is
  * Can't disassemble for architecture
  * failed to merge target specific data of file
+ * Error 1
  * not valid
  * Indirect indexed addressing
  * architecture of input file

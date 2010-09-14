@@ -72,22 +72,17 @@ install: build
 		                mandir=$(D)/usr/share/man \
 				infodir=$(D)/usr/share/info
 
-	# Keep old gcc port happy
-	if [ -d /usr/m68hc12 ]; then \
-		echo "/usr/m68hc12 exists"; \
-	else \
-		mkdir /usr/m68hc12; \
-		mkdir /usr/m68hc12/bin; \
-	fi 
-
+	# Keep old gcc port happy by adding m68hc11 links 
+	mkdir $(D)/usr/m68hc11
+	mkdir $(D)/usr/m68hc11/bin	
 	# Change hardlinks to symlinks
 	for i in ar as ld nm objcopy objdump ranlib strip ; do \
 		rm -f $(CURDIR)/debian/binutils-mc9s12x/usr/mc9s12x/bin/$$i ; \
 		ln -s ../../bin/mc9s12x-$$i $(D)/usr/mc9s12x/bin/$$i ; \
-		ln -s ../../bin/mc9s12x-$$i /usr/m68hc12/bin/$$i ; \
+		ln -s ../../bin/mc9s12x-$$i $(D)/usr/m68hc11/bin/$$i ; \
 	done
 
-	# Also create m68hc12-*
+	# Also create mc9s12x-*
 	install -o root -g root -m 755 $(CURDIR)/debian/mc9s12x-as $(D)/usr/bin
 	ln -s mc9s12x-as.1 $(CURDIR)/debian/binutils-mc9s12x/usr/share/man/man1/mc9s12x-as.1
 	install -o root -g root -m 755 $(CURDIR)/debian/mc9s12x-ld $(D)/usr/bin
@@ -95,6 +90,7 @@ install: build
 
 	for i in ar addr2line c++filt gasp nm objdump objcopy ranlib readelf size strings strip ; do \
 		ln -s mc9s12x-$$i $(D)/usr/bin/mc9s12x-$$i ; \
+		ln -s mc9s12x-$$i $(D)/usr/bin/m68hc11-$$i ; \
 		ln -s mc9s12x-$$i.1 $(D)/usr/share/man/man1/mc9s12x-$$i.1 ; \
 	done
 
