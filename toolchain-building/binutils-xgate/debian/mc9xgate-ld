@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -n "$LD_EMULATION" ] ; then
+	/usr/bin/mc9xgate-elf-ld "$@"
+else
+	/usr/bin/mc9xgate-elf-ld  "$@"
+fi

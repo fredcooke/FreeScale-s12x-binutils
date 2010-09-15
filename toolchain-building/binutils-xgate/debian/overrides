@@ -1,0 +1,31 @@
+# Directory usr/mc9xgate is considered as non standard by lintian, however it
+# is a standard dir for cross-compilers
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/ar
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/as
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/ld
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/nm
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/objcopy
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/objdump
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/ranlib
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/bin/strip
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelfb.x
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelfb.xbn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelfb.xn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelfb.xr
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelfb.xu
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelf.x
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelf.xbn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelf.xn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelf.xr
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/mc9xgateelf.xu
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elfb.x
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elfb.xbn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elfb.xn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elfb.xr
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elfb.xu
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elf.x
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elf.xbn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elf.xn
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elf.xr
+binutils-mc9xgate: file-in-unusual-dir usr/mc9xgate/lib/ldscripts/m68hc12elf.xu
+binutils-mc9xgate: non-standard-dir-in-usr usr/mc9xgate/

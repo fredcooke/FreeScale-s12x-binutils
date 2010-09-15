@@ -20,9 +20,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.
-   mc9s12xelf
-   Can't disassemble for architecture
-    */
+   */
 
 #include "sysdep.h"
 #include "bfd.h"
@@ -1893,14 +1891,19 @@ _bfd_mc9s12x_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
   flagword old_flags;
   flagword new_flags;
   bfd_boolean ok = TRUE;
-
+  printf("\n in merge private bfd data");
   /* Check if we have the same endianess */
-  if (!_bfd_generic_verify_endian_match (ibfd, obfd))
+  if (!_bfd_generic_verify_endian_match (ibfd, obfd)){
+    printf("\n abou to return FALSE verify endian");
     return FALSE;
+  }
 
   if (bfd_get_flavour (ibfd) != bfd_target_elf_flavour
-      || bfd_get_flavour (obfd) != bfd_target_elf_flavour)
+      || bfd_get_flavour (obfd) != bfd_target_elf_flavour){
+    printf("\n about to return FALSE ");
     return TRUE;
+  }
+
 
   new_flags = elf_elfheader (ibfd)->e_flags;
   elf_elfheader (obfd)->e_flags |= new_flags & EF_MC9S12X_ABI;
@@ -1939,18 +1942,18 @@ _bfd_mc9s12x_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
            "and others for 64-bit double"), ibfd);
       ok = FALSE;
     }
-/*
- *
- *
-   Check ABI compatibility.
-  if ((new_flags & E_M68HC11_I32) != (old_flags & E_M68HC11_I32))
+
+
+
+/*   Check ABI compatibility.
+  if ((new_flags & E_MC9S12X_I32) != (old_flags & E_MC9S12X_I32))
     {
       (*_bfd_error_handler)
 	(_("%B: linking files compiled for 16-bit integers (-mshort) "
            "and others for 32-bit integers"), ibfd);
       ok = FALSE;
     }
-  if ((new_flags & E_M68HC11_F64) != (old_flags & E_M68HC11_F64))
+  if ((new_flags & E_MMC9S12X_F64) != (old_flags & E_MC9S12X_F64))
     {
       (*_bfd_error_handler)
 	(_("%B: linking files compiled for 32-bit double (-fshort-double) "
@@ -1983,7 +1986,7 @@ _bfd_mc9s12x_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 //      (*_bfd_error_handler)
 //	(_("%B: linking files compiled for HCS12 with "
 //           "others compiled for HC12"), ibfd);
-      ok = FALSE;
+//      ok = FALSE;
 //    }
 //  new_flags = ((new_flags & ~EF_MC9S12X_MACH_MASK)
 //               | (EF_MC9S12X_MERGE_MACH (new_flags, old_flags)));

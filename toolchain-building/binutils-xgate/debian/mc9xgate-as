@@ -1,0 +1,2 @@
+#!/bin/sh
+/usr/bin/mc9xgate-elf-as "$@"

@@ -2047,7 +2047,7 @@ _bfd_mc9xgate_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
   //      (*_bfd_error_handler)
   //	(_("%B: linking files compiled for HCS12 with "
   //           "others compiled for HC12"), ibfd);
-  ok = FALSE;
+  // ok = FALSE;
   //    }
   //  new_flags = ((new_flags & ~EF_MC9XGATE_MACH_MASK)
   //               | (EF_MC9XGATE_MERGE_MACH (new_flags, old_flags)));

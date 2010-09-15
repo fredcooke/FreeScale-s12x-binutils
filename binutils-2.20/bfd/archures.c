@@ -917,7 +917,7 @@ const bfd_arch_info_type *
 bfd_default_compatible (const bfd_arch_info_type *a,
 			const bfd_arch_info_type *b)
 {
-  printf("\n in bfd_default_compatible about to compare %d and %d", a->arch, b->arch);
+  //printf("\n in bfd_default_compatible about to compare %d and %d", a->arch, b->arch);
   if (a->arch != b->arch)
     return NULL;
 

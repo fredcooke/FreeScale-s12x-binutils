@@ -29,6 +29,7 @@
  * not valid
  * Indirect indexed addressing
  * architecture of input file
+ * bfd_merge_private_bfd_data
  * info_to_howto_rel
  */
 #include "as.h"

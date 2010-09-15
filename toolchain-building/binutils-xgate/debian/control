@@ -1,0 +1,20 @@
+Source: binutils-mc9xgate
+Section: devel
+Priority: extra
+Maintainer: Sean Keys <support@computer-ss.com>
+Standards-Version: 3.7.3
+Build-Depends: debhelper (>= 5.0.0), autoconf (>= 2.13), bison, flex, gettext, texinfo, bzip2
+XS-DM-Upload-Allowed: yes
+
+Package: binutils-mc9xgate
+Section: devel
+Architecture: any
+Priority: extra
+Conflicts: 
+Replaces: binutils-mc9xgate
+Depends: 
+Description: binary utilities that support FreeScales's mc9s12/xgate targets
+ The programs in this package are used to assemble, link and manipulate binary
+ and object files for the Freescale MC9S12/XGATE architecture. This package is
+ primarily for MC9S12/XGATE  developers and cross-compilers and is not needed by
+ normal users or developers.
