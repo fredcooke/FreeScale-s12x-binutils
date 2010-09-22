@@ -1918,10 +1918,8 @@ enum bfd_architecture
 #define bfd_mach_m6812_default 0
 #define bfd_mach_m6812         1
 #define bfd_mach_m6812s        2
-  bfd_arch_mc9s12x,   /* Motorola S12X and Xgate Co Processor*/
-  bfd_arch_mc9xgate,   /* Motorola S12X */
-#define bfd_mach_mc9s12x       1
-#define bfd_mach_mc9xgate      2
+  bfd_arch_mc9xgate,   /* Motorola S12XGATE */
+#define bfd_mach_mc9xgate      0
   bfd_arch_z8k,       /* Zilog Z8000 */
 #define bfd_mach_z8001         1
 #define bfd_mach_z8002         2

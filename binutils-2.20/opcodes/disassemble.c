@@ -101,6 +101,7 @@ disassembler_ftype
 disassembler (abfd)
      bfd *abfd;
 {
+  printf("\n arch is %s", abfd->arch_info->arch_name);
   enum bfd_architecture a = bfd_get_arch (abfd);
   disassembler_ftype disassemble;
 

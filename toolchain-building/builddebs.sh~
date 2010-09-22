@@ -20,6 +20,8 @@ cp -R binutils-s12x/example $BUILDDIRBIN
 cp -R binutils-s12x/patches $BUILDDIRBIN
 
 cd $BUILDDIRBIN
+#fakeroot debian/rules clean
+#fakeroot debian/rules build
 fakeroot debian/rules binary
 
 if [ -f /usr/src/binutils-mc9s12x_2.20-0_i386.deb ]; then
@@ -91,6 +93,7 @@ rm -Rf $BUILDDIRNEWLIB
 mkdir $BUILDDIRNEWLIB
 apt-get source newlib-m68hc1x
 mv newlib-* $BUILDDIRNEWLIB
+mv newlib_* $BUILDDIRNEWLIB
 
 cp newlib/rules ${BUILDDIRNEWLIB}/newlib-1.18.0/debian/rules
 cp newlib/control ${BUILDDIRNEWLIB}/newlib-1.18.0/debian/control
@@ -105,11 +108,12 @@ cd $WKDIR
 
 builds12x
 read
+buildxgate
+read
 buildgcc
 read
 buildnewlib
 read
-buildxgate
 #read
 exit 0;
 read

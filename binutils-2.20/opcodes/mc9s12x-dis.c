@@ -228,7 +228,8 @@ print_indexed_operand (bfd_vma memaddr, struct disassemble_info* info,
 static int
 print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 {
-  printf("\n in print_insn");
+  printf("\n in print_insn arch is %d", arch);
+
   int status;
   bfd_byte buffer[4];
   unsigned char code;

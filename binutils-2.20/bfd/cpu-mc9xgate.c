@@ -23,28 +23,28 @@
 #include "libbfd.h"
 
 
-const bfd_arch_info_type bfd_mc9s12x_info =
-{
-    16, /* 16 bits in a word */
-    32, /* 16 bits in an address */
-    8,  /* 8 bits in a byte */
-    bfd_arch_mc9s12x,
-    bfd_mach_mc9s12x, /* TODO figure out if this should be 0 */
-    "mc9s12x",
-    "mc9s12x:mc9xgate",
-    4, /* section alignment power */
-    TRUE,
-    bfd_default_compatible,
-    bfd_default_scan,
-    0,
-};
+//const bfd_arch_info_type bfd_mc9s12x_info =
+//{
+//    16, /* 16 bits in a word */
+//    32, /* 16 bits in an address */
+//    8,  /* 8 bits in a byte */
+//    bfd_arch_mc9s12x,
+//    bfd_mach_mc9s12x, /* TODO figure out if this should be 0 */
+//    "mc9s12x",
+//    "mc9s12x:mc9xgate",
+//    4, /* section alignment power */
+//   TRUE,
+//   bfd_default_compatible,
+//    bfd_default_scan,
+//    0,
+//};
 
 const bfd_arch_info_type bfd_mc9xgate_arch =
 {
     16, /* 16 bits in a word */
     32, /* 16 bits in an address */
     8,  /* 8 bits in a byte */
-    bfd_arch_mc9s12x, //bfd_arch_mc9xgate,
+    bfd_arch_mc9xgate, //bfd_arch_mc9xgate,
     bfd_mach_mc9xgate, /* TODO figure out if this should be 0 */
     "mc9xgate",
     "mc9xgate",
@@ -52,5 +52,5 @@ const bfd_arch_info_type bfd_mc9xgate_arch =
     TRUE,
     bfd_default_compatible,
     bfd_default_scan,
-    &bfd_mc9s12x_info,
+    0,
 };

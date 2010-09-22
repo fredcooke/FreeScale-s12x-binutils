@@ -49,8 +49,8 @@ configure-stamp: patch-stamp
 			--build=$(DEB_BUILD_GNU_TYPE) \
 			--host=$(DEB_HOST_GNU_TYPE) \
 			--target=mc9xgate \
-			--enable-targets=mc9s12x,mc9xgate,m68hc11,m68hc12 \
-			--program-prefix=mc9xgate-elf-
+			--enable-targets=mc9xgate \
+			--program-prefix=mc9xgate-
 	touch configure-stamp
 
 build: configure-stamp build-stamp
@@ -83,16 +83,16 @@ install: build
 	done
 
 	# Also create mc9s12x-*
-	install -o root -g root -m 755 $(CURDIR)/debian/mc9xgate-as $(D)/usr/bin
-	ln -s mc9xgate-as.1 $(CURDIR)/debian/binutils-mc9xgate/usr/share/man/man1/mc9xgate-as.1
-	install -o root -g root -m 755 $(CURDIR)/debian/mc9xgate-ld $(D)/usr/bin
-	ln -s mc9xgate-ld.1 $(CURDIR)/debian/binutils-mc9xgate/usr/share/man/man1/mc9xgate-ld.1
+#	install -o root -g root -m 755 $(CURDIR)/debian/mc9xgate-as $(D)/usr/bin
+#	ln -s mc9xgate-as.1 $(CURDIR)/debian/binutils-mc9xgate/usr/share/man/man1/mc9xgate-as.1
+#	install -o root -g root -m 755 $(CURDIR)/debian/mc9xgate-ld $(D)/usr/bin
+#	ln -s mc9xgate-ld.1 $(CURDIR)/debian/binutils-mc9xgate/usr/share/man/man1/mc9xgate-ld.1
 
-	for i in ar addr2line c++filt gasp nm objdump objcopy ranlib readelf size strings strip ; do \
-		ln -s mc9xgate-$$i $(D)/usr/bin/mc9xgate-$$i ; \
+#	for i in ar addr2line c++filt gasp nm objdump objcopy ranlib readelf size strings strip ; do \
+#		ln -s mc9xgate-$$i $(D)/usr/bin/mc9xgate-$$i ; \
 #		ln -s mc9s12x-$$i $(D)/usr/bin/m68hc11-$$i ; \
-		ln -s mc9xgate-$$i.1 $(D)/usr/share/man/man1/mc9xgate-$$i.1 ; \
-	done
+#		ln -s mc9xgate-$$i.1 $(D)/usr/share/man/man1/mc9xgate-$$i.1 ; \
+#	done
 
 	# Files also in main binutils pkg
 	rm -rf $(D)/usr/include

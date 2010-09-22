@@ -24,6 +24,7 @@
  * skipping as arch ==
  * MC9S12X
  * mc9s12x
+ * mc9xgate-dis
  *    Can't disassemble for architecture
  *
  */

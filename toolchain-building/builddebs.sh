@@ -20,6 +20,8 @@ cp -R binutils-s12x/example $BUILDDIRBIN
 cp -R binutils-s12x/patches $BUILDDIRBIN
 
 cd $BUILDDIRBIN
+#fakeroot debian/rules clean
+#fakeroot debian/rules build
 fakeroot debian/rules binary
 
 if [ -f /usr/src/binutils-mc9s12x_2.20-0_i386.deb ]; then
@@ -104,13 +106,14 @@ cd $WKDIR
 }
 
 
+buildxgate
+read
 builds12x
 read
 buildgcc
 read
 buildnewlib
 read
-buildxgate
 #read
 exit 0;
 read

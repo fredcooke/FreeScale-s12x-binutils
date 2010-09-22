@@ -558,9 +558,9 @@ md_begin (void)
 						       m68hc11_opcode));
   m68hc11_sorted_opcodes = opcodes;
   num_opcodes = 0;
-  printf("\n seize of root structure %d",sizeof (struct m68hc11_opcode));
-  printf("\n size of opcodes %d \n",m68hc11_num_opcodes);  //comes back as 775
-  printf("\nCurrent arch is %d\n",current_architecture);  //returns 1
+  //printf("\n seize of root structure %d",sizeof (struct m68hc11_opcode));
+  //printf("\n size of opcodes %d \n",m68hc11_num_opcodes);  //comes back as 775
+  //printf("\nCurrent arch is %d\n",current_architecture);  //returns 1
   for (i = 0; i < m68hc11_num_opcodes; i++)
     {
       if (m68hc11_opcodes[i].arch & current_architecture)
@@ -573,7 +573,7 @@ md_begin (void)
 
 	      opcodes[num_opcodes] = m68hc11_opcodes[i];
 	    }
-	//  printf("\n current arch from structure is -> %c",opcodes[num_opcodes].arch);
+	//  //printf("\n current arch from structure is -> %c",opcodes[num_opcodes].arch);
 	  num_opcodes++;
 	  for (j = 0; alias_opcodes[j].name != 0; j++)
 	    if (strcmp (m68hc11_opcodes[i].name, alias_opcodes[j].name) == 0)
@@ -587,8 +587,8 @@ md_begin (void)
     }
 
 
-  printf("\n number of OPcodes %d\n",num_opcodes);  //TODO remove this line when done!!!
-  print_opcode_list();
+  //printf("\n number of OPcodes %d\n",num_opcodes);  //TODO remove this line when done!!!
+  //print_opcode_list();
 
   qsort (opcodes, num_opcodes, sizeof (struct m68hc11_opcode),
          (int (*) (const void*, const void*)) cmp_opcode);
