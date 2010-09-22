@@ -1,2 +1,0 @@
-#!/bin/sh
-/usr/bin/mc9s12x-elf-as -mc9s12x "$@"

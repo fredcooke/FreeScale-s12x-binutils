@@ -1,0 +1,270 @@
+#!/usr/bin/make -f
+
+DEB_HOST_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE	?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_ARCH		?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+version		:= $(shell dpkg-parsechangelog | grep ^Version | sed -e 's/^Version: //')
+uversion	:= $(shell echo $(version) | cut -d '-' -f1)
+destdir 	:= $(CURDIR)
+
+MAKE		:= $(MAKE) -j1 # parallel build broken
+
+packages := # nothing
+ifneq (,$(filter $(DEB_HOST_ARCH),amd64 armel i386 ia64 powerpc sparc))
+   packages += dev
+   ifneq (,$(filter $(DEB_HOST_ARCH),i386))
+     packages += lib
+   endif
+endif
+ifneq (,$(filter $(DEB_HOST_ARCH),powerpc ppc64))
+  packages += spu
+endif
+
+cross_packages := m68hc1x
+
+all_packages := $(packages)
+all_packages += src # arch-all packages
+
+all_packages_arch  := lib dev spu
+all_packages_indep := src $(cross_packages)
+packages_arch  := $(filter $(all_packages),$(all_packages_arch))
+packages_indep := $(all_packages_indep)
+
+p_lib		:= libnewlib0
+p_dev		:= libnewlib-dev
+p_src		:= newlib-source
+
+p_spu		:= newlib-spu
+p_m68hc1x	:= newlib-m68hc1x
+
+$(foreach x,$(filter p_%,$(.VARIABLES)),$(eval \
+  d_$(patsubst p_%,%,$(x)) := $(strip debian/$($(x)))))
+
+target_lib	:= $(DEB_HOST_GNU_TYPE)
+target_spu	:= spu
+target_m68hc1x	:= m68hc11
+
+host_lib	:= $(target_lib)
+host_spu	:= powerpc-linux-gnu
+host_m68hc1x	:= $(target_m68hc1x)
+
+confargs_lib := --prefix=/usr/lib/newlib --with-newlib \
+	--build=$(DEB_BUILD_GNU_TYPE) --host=$(host_lib) \
+	--target=$(target_lib) --program-prefix=$(target_lib)- \
+	--mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info \
+	--enable-shared --disable-multilib --enable-threads --enable-nls \
+	--with-system-zlib
+
+confargs_m68hc1x := --prefix=/usr --with-newlib \
+	--build=$(DEB_BUILD_GNU_TYPE) --host=$(host_m68hc1x) \
+	--target=$(target_m68hc1x) --program-prefix=$(target_m68hc1x)- \
+	--mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info \
+	--disable-shared --disable-multilib --disable-threads --disable-nls \
+
+confargs_spu = --prefix=/usr --with-newlib \
+	--build=$(DEB_BUILD_GNU_TYPE) --host=$(host_spu) \
+	--target=$(target_spu) --program-prefix=$(target_spu)- \
+	--mandir=\${prefix}/share/man --infodir=\${prefix}/share/info \
+	--disable-shared --disable-multilib --disable-threads --disable-nls \
+	--with-system-zlib
+
+confargs_lib += \
+	CC=$(target_lib)-gcc \
+	CFLAGS='-g -O2 -fno-stack-protector -U_FORTIFY_SOURCE'
+
+confargs_m68hc1x += \
+	CC=$(target_m68hc1x)-gcc \
+	CFLAGS='-g -O2 -U_FORTIFY_SOURCE'
+
+confargs_spu += \
+	CFLAGS='-g -O2 -fno-stack-protector -U_FORTIFY_SOURCE'
+
+patch_stamp 	:= patch-stamp
+configure_stamp	:= configure-stamp
+build_stamp	:= build-stamp
+install_stamp	:= install-stamp
+binary_stamp	:= binary-stamp
+
+QUILT_STAMPFN	:= $(patch_stamp)
+include /usr/share/quilt/quilt.make
+
+configure: $(addprefix $(configure_stamp)-,$(packages))
+$(configure_stamp)-dev: $(configure_stamp)-lib
+	touch $@
+
+$(configure_stamp)-spu: $(patch_stamp)
+	dh_testdir
+	rm -rf build-spu
+	mkdir -p build-spu
+	cd build-spu && \
+	  ../configure $(confargs_spu)
+	touch $@
+
+$(configure_stamp)-%: $(patch_stamp)
+	dh_testdir
+	rm -rf build-$* && \
+	  mkdir -p build-$*/$(target_$*)
+	cd build-$* && \
+	  ../configure $(confargs_$*)
+	if ! test -d build-$*/$(target_$*)/newlib ; \
+	  then mkdir -p build-$*/$(target_$*)/newlib && \
+	  cd build-$*/$(target_$*)/newlib && \
+	  ../../../newlib/configure $(confargs_$*) ; \
+	fi
+#	mkdir build-$*/$(target_$*)/libgloss
+#	cd build-$*/$(target_$*)/libgloss && \
+	  ../../../newlib/configure $(confargs_$*)
+	touch $@
+
+build: $(addprefix $(build_stamp)-,$(packages))
+$(build_stamp)-dev: $(build_stamp)-lib
+	touch $@
+
+$(build_stamp)-spu: $(configure_stamp)-spu
+	dh_testdir
+	@echo SPU build
+	$(MAKE) -C build-spu
+	touch $@
+
+$(build_stamp)-%: $(configure_stamp)-%
+	dh_testdir
+	cd build-$* && \
+	  $(MAKE) $(NJOBS)
+	if ! test -f build-$*/$(target_$*)/newlib/libc.a ; \
+	  then cd build-$*/$(target_$*)/newlib && \
+	  $(MAKE) $(NJOBS) ; \
+	fi
+#	cd build-$*/$(target_$*)/libgloss && \
+	  $(MAKE)
+	touch $@
+
+install: $(addprefix $(install_stamp)-,$(packages))
+
+$(install_stamp)-spu: $(build_stamp)-spu
+	dh_testdir
+	dh_testroot
+	@echo SPU install
+	rm -rf $(d_spu) && mkdir $(d_spu)
+	$(MAKE) -C build-spu install DESTDIR=$(destdir)/$(d_spu)
+	find $(d_spu) -type d -empty -delete
+	[ ! -f debian/$(p_spu).overrides ] || \
+	  install -D -p -o root -g root -m 644 $(destdir)/debian/$(p_spu).overrides \
+	  $(destdir)/$(d_spu)/usr/share/lintian/overrides/$(p_spu)
+	rm -rf $(d_spu)/share/ $(d_spu)/usr/share/info/
+	touch $@
+
+$(install_stamp)-%: $(build_stamp)-%
+	dh_testdir
+	dh_testroot
+	rm -rf $(d_$*) && mkdir $(d_$*)
+	cd build-$* && \
+	  $(MAKE) install DESTDIR=$(destdir)/$(d_$*)
+	if ! test -d $(destdir)/$(d_$*)/usr/$(target_$*) ; \
+	  then cd build-$*/$(target_$*)/newlib && \
+	  $(MAKE) install DESTDIR=$(destdir)/$(d_$*) ; \
+	fi
+#	cd build-$*/$(target_$*)/libgloss && \
+	  $(MAKE) install DESTDIR=$(destdir)/$(d_$*)
+	find $(d_$*) -type d -empty -delete
+	[ ! -f debian/$(p_$*).overrides ] || \
+	  install -D -p -o root -g root -m 644 $(destdir)/debian/$(p_$*).overrides \
+	  $(destdir)/$(d_$*)/usr/share/lintian/overrides/$(p_$*)
+	rm -rf $(d_$*)/share/ $(d_$*)/usr/share/info/
+	touch $@
+
+$(install_stamp)-dev: $(install_stamp)-lib
+	touch $@
+$(install_stamp)-lib: $(build_stamp)-lib
+	dh_testdir
+	dh_testroot
+	rm -rf $(d_lib) && mkdir $(d_lib)
+	rm -rf $(d_dev) && mkdir $(d_dev)
+	cd build-lib && \
+	  $(MAKE) install DESTDIR=$(destdir)/$(d_lib)
+	cd build-lib/$(target_lib)/newlib && \
+	  $(MAKE) install DESTDIR=$(destdir)/$(d_lib)
+	mkdir -p $(d_dev)/usr/lib/newlib/$(target_lib)
+	mv $(d_lib)/usr/lib/newlib/$(target_lib)/include \
+	  $(d_dev)/usr/lib/newlib/$(target_lib)/
+	mkdir -p $(d_dev)/usr/lib/newlib/$(target_lib)/lib
+	find $(d_lib)/usr/lib/newlib/$(target_lib)/lib \
+	  ! -type d ! -name "*.so.*" -exec mv {} \
+	  $(d_dev)/usr/lib/newlib/$(target_lib)/lib/ \;
+	mkdir -p $(d_dev)/usr/lib/newlib/lib/newlib
+	if test -d $(d_lib)/usr/lib/newlib/lib/newlib ; then \
+	  find $(d_lib)/usr/lib/newlib/lib/newlib \
+	    ! -type d ! -name "*.so.*" -exec mv {} \
+	    $(d_dev)/usr/lib/newlib/lib/newlib/ \; ; \
+	fi
+	rm -rf $(d_lib)/share/ $(d_lib)/usr/share/info/
+	rm -rf $(d_dev)/share/ $(d_dev)/usr/share/info/
+	[ ! -f debian/$(p_lib).overrides ] || \
+	  install -D -p -o root -g root -m 644 $(destdir)/debian/$(p_lib).overrides \
+	  $(destdir)/$(d_lib)/usr/share/lintian/overrides/$(p_lib)
+	[ ! -f debian/$(p_dev).overrides ] || \
+	  install -D -p -o root -g root -m 644 $(destdir)/debian/$(p_dev).overrides \
+	  $(destdir)/$(d_dev)/usr/share/lintian/overrides/$(p_dev)
+	find $(d_lib) -type d -empty -delete
+	find $(d_dev) -type d -empty -delete
+	touch $@
+
+$(install_stamp)-source:
+	dh_testdir
+	dh_testroot
+	rm -rf $(d_src)
+	mkdir -p $(d_src)/usr/src/newlib
+	cp ../newlib_$(uversion).orig.tar.gz $(d_src)/usr/src/newlib/newlib-$(uversion).tar.gz
+	gunzip $(d_src)/usr/src/newlib/newlib-$(uversion).tar.gz
+	lzma $(d_src)/usr/src/newlib/newlib-$(uversion).tar
+	mkdir -p $(d_src)/usr/src/newlib/patches
+	cp debian/patches/* $(d_src)/usr/src/newlib/patches
+	touch $@
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -rf build* *-stamp*
+	rm -rf $(foreach package,$(all_packages_arch),$(d_$(package)))
+	rm -rf $(foreach package,$(all_packages_indep),$(d_$(package)))
+	dh_clean
+
+binary-arch: $(addprefix $(binary_stamp)-,$(packages_arch))
+binary-indep: $(addprefix $(binary_stamp)-,$(packages_indep))
+$(binary_stamp)-%: $(install_stamp)-%
+	@echo Building package: $(p_$*)
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs -p$(p_$*)
+	dh_installdocs -p$(p_$*)
+	dh_installexamples -p$(p_$*)
+	dh_installman -p$(p_$*)
+	dh_installmime -p$(p_$*)
+	dh_install -p$(p_$*)
+	dh_link -p$(p_$*)
+	dh_strip -p$(p_$*)
+	dh_compress -p$(p_$*)
+	dh_fixperms -p$(p_$*)
+	dh_installdeb -p$(p_$*)
+	dh_shlibdeps -p$(p_$*)
+	dh_gencontrol -p$(p_$*)
+	dh_md5sums -p$(p_$*)
+	dh_builddeb -p$(p_$*)
+	touch $@
+
+$(binary_stamp)-src: $(install_stamp)-source
+	dh_testdir -p$(p_src)
+	dh_testroot -p$(p_src)
+	dh_installchangelogs -p$(p_src)
+	dh_installdocs -p$(p_src)
+	dh_link -p$(p_src)
+	dh_compress -p$(p_src)
+	dh_fixperms -p$(p_src)
+	dh_installdeb -p$(p_src)
+	dh_gencontrol -p$(p_src)
+	dh_md5sums -p$(p_src)
+	dh_builddeb -p$(p_src)
+	touch $@
+
+binary: binary-arch binary-indep
+.PHONY: configure build install binary binary-indep binary-arch

@@ -30,13 +30,12 @@ unpack-stamp:
 patch: patch-stamp
 patch-stamp: unpack-stamp
 	dh_testdir
-
-#TODO impliment patches with van sources
+# TODO impliment patch against van sources
 #	for patch in debian/patches/*.patch; do \
 #	  patch -p0 < $$patch; \
 #	done
 
-	touch patch-stamp
+#	touch patch-stamp
 
 configure: configure-stamp
 configure-stamp: patch-stamp
@@ -48,9 +47,9 @@ configure-stamp: patch-stamp
 			--mandir=/usr/share/man \
 			--build=$(DEB_BUILD_GNU_TYPE) \
 			--host=$(DEB_HOST_GNU_TYPE) \
-			--target=mc9s12x \
-			--enable-targets=mc9s12x,mc9xgate \
-			--program-prefix=mc9s12x-elf-
+			--target=m68hc11 \
+			--enable-targets=m68hc11,m68hc12,mc9s12x,mc9xgate \
+			--program-prefix=m68hc11
 	touch configure-stamp
 
 build: configure-stamp build-stamp
@@ -72,26 +71,22 @@ install: build
 		                mandir=$(D)/usr/share/man \
 				infodir=$(D)/usr/share/info
 
-	# Keep old gcc port happy 
-	mkdir $(D)/usr/m68hc11
-	mkdir $(D)/usr/m68hc11/bin	
 	# Change hardlinks to symlinks
 	for i in ar as ld nm objcopy objdump ranlib strip ; do \
-		rm -f $(CURDIR)/debian/binutils-mc9s12x/usr/mc9s12x/bin/$$i ; \
-		ln -s ../../bin/mc9s12x-$$i $(D)/usr/mc9s12x/bin/$$i ; \
-		ln -s ../../bin/mc9s12x-$$i $(D)/usr/m68hc11/bin/$$i ; \
+		rm -f $(CURDIR)/debian/binutils-mc9s12x/usr/m68hc11/bin/$$i ; \
+		ln -s ../../bin/m68hc11-$$i $(D)/usr/m68hc11/bin/$$i ; \
 	done
 
-	# Also create mc9s12x-*
-	install -o root -g root -m 755 $(CURDIR)/debian/mc9s12x-as $(D)/usr/bin
-	ln -s mc9s12x-as.1 $(CURDIR)/debian/binutils-mc9s12x/usr/share/man/man1/mc9s12x-as.1
-	install -o root -g root -m 755 $(CURDIR)/debian/mc9s12x-ld $(D)/usr/bin
-	ln -s mc9s12x-ld.1 $(CURDIR)/debian/binutils-mc9s12x/usr/share/man/man1/mc9s12x-ld.1
+	
+	# Also create m68hc12-*
+	install -o root -g root -m 755 $(CURDIR)/debian/m68hc12-as $(D)/usr/bin
+	ln -s m68hc11-as.1 $(CURDIR)/debian/binutils-mc9s12x/usr/share/man/man1/m68hc12-as.1
+	install -o root -g root -m 755 $(CURDIR)/debian/m68hc12-ld $(D)/usr/bin
+	ln -s m68hc11-ld.1 $(CURDIR)/debian/binutils-mc9s12x/usr/share/man/man1/m68hc12-ld.1
 
 	for i in ar addr2line c++filt gasp nm objdump objcopy ranlib readelf size strings strip ; do \
-		ln -s mc9s12x-$$i $(D)/usr/bin/mc9s12x-$$i ; \
-		ln -s mc9s12x-$$i $(D)/usr/bin/m68hc11-$$i ; \
-		ln -s mc9s12x-$$i.1 $(D)/usr/share/man/man1/mc9s12x-$$i.1 ; \
+		ln -s m68hc11-$$i $(D)/usr/bin/m68hc12-$$i ; \
+		ln -s m68hc11-$$i.1 $(D)/usr/share/man/man1/m68hc12-$$i.1 ; \
 	done
 
 	# Files also in main binutils pkg

@@ -10,16 +10,14 @@ BUILDDIRGCC=/usr/src/gcc-mc9s12x
 BUILDDIRNEWLIB=/usr/src/newlib-mc9s12x
 
 
-buildxgate
-
 function builds12x(){
 rm -Rf $BUILDDIRBIN
 mkdir $BUILDDIRBIN
 tar -cjf ${BUILDDIRBIN}/binutils-2.20.tar.bz2 $SRCDIRBIN
 
-cp -R binutils/debian $BUILDDIRBIN
-cp -R binutils/example $BUILDDIRBIN
-cp -R binutils/patches $BUILDDIRBIN
+cp -R binutils-s12x/debian $BUILDDIRBIN
+cp -R binutils-s12x/example $BUILDDIRBIN
+cp -R binutils-s12x/patches $BUILDDIRBIN
 
 cd $BUILDDIRBIN
 fakeroot debian/rules binary
@@ -60,11 +58,7 @@ cd $WRKDIR
 }
 
 
-
-#read
-exit 0;
-read
-
+function buildgcc {
 # Build GCC with new binutils #
 rm -Rf $BUILDDIRGCC
 mkdir $BUILDDIRGCC
@@ -74,11 +68,12 @@ mv gcc-* $BUILDDIRGCC
 
 cp gcc/rules ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*/debian/rules
 cp gcc/control ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*/debian/control
+cp gcc/changelog ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*/debian/changelog
 
 cd ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*
 fakeroot debian/rules binary
 
-if [ -f /usr/src/gcc-mc9s12x/gcc-m68hc1x_3.3.6+3.1+dfsg-3_i386.deb ]; then
+if [ -f /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3_i386.deb ]; then
   echo "press enter to install gcc deb package"
   read $INPUT
   dpkg -i /usr/src/gcc-mc9s12x/gcc-m68hc1x_3.3.6+3.1+dfsg-3_i386.deb; 
@@ -88,13 +83,39 @@ else
 fi
 
 cd $WRKDIR
+}
 
-
+function buildnewlib {
 # Build GCC with new binutils #
 rm -Rf $BUILDDIRNEWLIB
 mkdir $BUILDDIRNEWLIB
 apt-get source newlib-m68hc1x
 mv newlib-* $BUILDDIRNEWLIB
+
+cp newlib/rules ${BUILDDIRNEWLIB}/newlib-1.18.0/debian/rules
+cp newlib/control ${BUILDDIRNEWLIB}/newlib-1.18.0/debian/control
+cp newlib/changelog ${BUILDDIRNEWLIB}/newlib-1.18.0/debian/changelog
+
+cd ${BUILDDIRNEWLIB}/newlib-1.18.0
+fakeroot debian/rules binary
+
+cd $WKDIR
+}
+
+
+builds12x
+read
+buildgcc
+read
+buildnewlib
+read
+buildxgate
+#read
+exit 0;
+read
+
+
+
 
 
 

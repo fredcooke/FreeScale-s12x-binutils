@@ -1,12 +1,12 @@
-Source: gcc-m68hc1x
+Source: gcc-mc9s12x
 Section: devel
 Priority: extra
-Maintainer: Arthur Loiret <arthur.loiret@gmail.com>
+Maintainer: Sean Keys <support@computer-ss.com>
 Standards-Version: 3.7.3
 Build-Depends: debhelper (>= 6.0), binutils-mc9s12x (>= 1:2.20), autoconf2.13, libtool, gawk | awk, bison, flex, gettext, texinfo, zlib1g-dev, bzip2
 XS-DM-Upload-Allowed: yes
 
-Package: gcc-m68hc1x
+Package: gcc-mc9s12x
 Architecture: any
 Section: devel
 Priority: extra
