@@ -8,25 +8,25 @@ binary utilities. Below is an example bash script that will build the s12x binut
 followed by an example of how to build for the xgate core.
 
 #!/bin/bash
-mkdir mc9s12x-test
-cd mc9s12x-test
+mkdir mc9s12x-build
+cd mc9s12x-build
 make distclean
 make clean
- sh ./../../binutils-2.20/configure --target=mc9s12x-elf \
-	--program-prefix=mc9s12x-elf-
-	--enable-targets=mc9s12x
+ sh ./../../binutils-2.20/configure --target=m68hc11 \
+			--enable-targets=m68hc11,m68hc12,mc9xgate \
+			--program-prefix=m68hc11-
 make
 make install
 
 
 #!/bin/bash
-mkdir mc9xgate-test
-cd mc9xgate-test
+mkdir mc9xgate-build
+cd mc9xgate-build
 make distclean
 make clean
- sh ./../../binutils-2.20/configure --target=mc9xgate-elf \
-	--program-prefix=mc9xgate-elf-
-	--enable-targets=mc9xgate
+ sh ./../../binutils-2.20/configure --target=mc9xgate \
+			--enable-targets=mc9xgate \
+			--program-prefix=mc9xgate-
 make
 make install
   
