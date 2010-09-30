@@ -12,7 +12,7 @@ mkdir mc9s12x-build
 cd mc9s12x-build
 make distclean
 make clean
- sh ./../../binutils-2.20/configure --target=m68hc11 \
+ sh ../binutils-2.20/configure --target=m68hc11 \
 			--enable-targets=m68hc11,m68hc12,mc9xgate \
 			--program-prefix=m68hc11-
 make
@@ -24,7 +24,7 @@ mkdir mc9xgate-build
 cd mc9xgate-build
 make distclean
 make clean
- sh ./../../binutils-2.20/configure --target=mc9xgate \
+ sh ../binutils-2.20/configure --target=mc9xgate \
 			--enable-targets=mc9xgate \
 			--program-prefix=mc9xgate-
 make
