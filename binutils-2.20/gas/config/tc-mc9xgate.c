@@ -1445,7 +1445,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
     {
   /* TODO should be able to combine with with case R */
   case '+': /* indexed register operand +/- or plain r  */
-    pp_fix = 0b00; /* default to no inc or dec */
+    pp_fix = 0x0b00; /* default to no inc or dec */
     //TODO maybe use a loop so the order is not important
     *bit_width = 5;
     //printf("\n found +/- line reads %s", str);
