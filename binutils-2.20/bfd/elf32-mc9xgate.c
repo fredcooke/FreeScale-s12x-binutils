@@ -24,6 +24,7 @@
    in elf_set_mach_from_flags
    */
 
+#include <malloc.h>
 #include "sysdep.h"
 #include "bfd.h"
 #include "bfdlink.h"
