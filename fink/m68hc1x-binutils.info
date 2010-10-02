@@ -1,17 +1,17 @@
-Package: m681x-binutils
+Package: m68hc1x-binutils
 Version: 2.20
 Revision: 1
 Description: For Motorola 6811/12 microcontrollers
 Maintainer: Steve Ball <hamster@snurkle.net>
 BuildDepends: libgettext3-dev, gettext-tools (>=0.14.5-1), fink (>= 0.24.12)
-Replaces: m6811-binutils, m6812-binutils
-Conflicts: m6811-binutils, m6812-binutils
+Replaces: m68hc11-binutils, m68hc12-binutils
+Conflicts: m68hc11-binutils, m68hc12-binutils
 #HomePage: http://m68hc11.serveftp.org/m68hc11_src.php
 HomePage: http://ftp.gnu.org/gnu/binutils/
 License: GPL
 Source: mirror:gnu:binutils/binutils-%v.tar.bz2
 Source-MD5: ee2d3e996e9a2d669808713360fa96f8
-PatchFile: m681x-binutils.patch
+PatchFile: m68hc1x-binutils.patch
 PatchFile-MD5: cbb03990e3d9e53dcccb4fb616a7356a
 DescPort: <<
 Avoided using /sw/m6811. Its lib & include folders have been moved to /sw/share/m6811 and the binaries are put into /sw/bin.
@@ -60,4 +60,4 @@ for i in $(/usr/bin/find -E %d -regex ".*/.*\.info(-[0-9]+)?" -print|grep --inve
 done
 <<
 DocFiles: COPYING
-InfoDocs: m6811-as.info m6811-bfd.info m6811-binutils.info m6811-configure.info m6811-ld.info m6811-standards.info m6812-as.info m6812-bfd.info m6812-binutils.info m6812-configure.info m6812-ld.info m6812-standards.info
+InfoDocs: m68hc11-as.info m68hc11-bfd.info m68hc11-binutils.info m68hc11-configure.info m68hc11-ld.info m68hc11-standards.info m68hc12-as.info m68hc12-bfd.info m68hc12-binutils.info m68hc12-configure.info m68hc12-ld.info m68hc12-standards.info

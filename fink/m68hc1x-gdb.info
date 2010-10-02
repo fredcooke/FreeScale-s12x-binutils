@@ -1,8 +1,8 @@
-Package: m681x-gdb
+Package: m68hc1x-gdb
 Version: 6.4
 Revision: 2
-Maintainer: Carl van Denzen <cvdenzen@users.sourceforge.net>
-Recommends: m681x-binutils,m681x-gcc,m681x-newlib
+Maintainer: Steve Ball <hamster@snurkle.net>
+Recommends: m68hc1x-binutils,m68hc1x-gcc,m68hc1x-newlib
 HomePage: http://m68hc11.serveftp.org/
 Source: mirror:gnu:/gdb/gdb-%v.tar.gz
 Source-MD5: 7dc98022ee96bba5331f195dc8a5491a
@@ -31,14 +31,14 @@ for x in 1 ; do
 # 681$x
 #
 MACHINE=%n;MACHINE=${MACHINE%%x-*}$x
-TARGET=${MACHINE}-elf;PROGRAM_PREFIX=$TARGET-
+TARGET=${MACHINE};PROGRAM_PREFIX=$TARGET-
 echo $TARGET $MACHINE $PROGRAM_PREFIX
 #
 cd $SOURCEDIR
 BUILDDIR=build.${MACHINE}
 mkdir ${BUILDDIR}
 cd ${BUILDDIR}
-${SOURCEDIR}/configure --target=$TARGET --prefix=%i/share/$MACHINE --bindir=%i/bin --mandir=%i/share/man --infodir=%i/share/info --enable-languages=c --program-prefix=$PROGRAM_PREFIX --with-local-prefix=%i/include/local --with-as=%p/bin/m6811-elf-as --with-ld=%p/bin/m6811-elf-ld --disable-nls
+${SOURCEDIR}/configure --target=$TARGET --prefix=%i/share/$MACHINE --bindir=%i/bin --mandir=%i/share/man --infodir=%i/share/info --enable-languages=c --program-prefix=$PROGRAM_PREFIX --with-local-prefix=%i/include/local --with-as=%p/bin/m68hc11-as --with-ld=%p/bin/m68hc11-ld --disable-nls
 make
 done
 <<
@@ -52,7 +52,7 @@ for x in 1 ; do
 # 681$x
 #
 MACHINE=%{n};MACHINE=${MACHINE%%x-*}$x
-TARGET=${MACHINE}-elf;PROGRAM_PREFIX=$TARGET-
+TARGET=${MACHINE};PROGRAM_PREFIX=$TARGET-
 cd $SOURCEDIR
 BUILDDIR=build.${MACHINE}
 cd ${BUILDDIR}
@@ -70,10 +70,8 @@ for i in $(/usr/bin/find -E %d -regex ".*/.*\.info(-[0-9]+)?" -print|grep --inve
 done
 <<
 DocFiles:
-InfoDocs: m6811-elf-annotate.info m6811-elf-gdb.info m6811-elf-gdbint.info m6811-elf-stabs.info m6811-elf-standards.info
+InfoDocs: m68hc11-annotate.info m68hc11-gdb.info m68hc11-gdbint.info m68hc11-stabs.info m68hc11-standards.info
 Description: For Motorola 68hc11/12 micro controllers
 License: GPL
 #Homepage: http://gcc.gnu.org/
-BuildDepends: m681x-binutils (>=2.16-1)
-
- 	  	 
+BuildDepends: m68hc1x-binutils (>=2.20-1)
