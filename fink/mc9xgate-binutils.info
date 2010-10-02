@@ -10,7 +10,7 @@ HomePage: http://ftp.gnu.org/gnu/binutils/
 License: GPL
 Source: mirror:gnu:binutils/binutils-%v.tar.bz2
 Source-MD5: ee2d3e996e9a2d669808713360fa96f8
-PatchFile: m681x-binutils.patch
+PatchFile: m68hc1x-binutils.patch
 PatchFile-MD5: cbb03990e3d9e53dcccb4fb616a7356a
 DescPort: <<
 Avoided using /sw/mc9xgate. Its lib & include folders have been moved to /sw/share/mc9xgate and the binaries are put into /sw/bin.
