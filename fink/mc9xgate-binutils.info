@@ -1,0 +1,50 @@
+Package: mc9xgate-binutils
+Version: 2.20
+Revision: 1
+Description: For Motorola 6811/12 microcontrollers
+Maintainer: Steve Ball <hamster@snurkle.net>
+BuildDepends: libgettext3-dev, gettext-tools (>=0.14.5-1), fink (>= 0.24.12)
+Replaces: mc9xgate-binutils
+Conflicts: mc9xgate-binutils
+HomePage: http://ftp.gnu.org/gnu/binutils/
+License: GPL
+Source: mirror:gnu:binutils/binutils-%v.tar.bz2
+Source-MD5: ee2d3e996e9a2d669808713360fa96f8
+PatchFile: m681x-binutils.patch
+PatchFile-MD5: cbb03990e3d9e53dcccb4fb616a7356a
+DescPort: <<
+Avoided using /sw/mc9xgate. Its lib & include folders have been moved to /sw/share/mc9xgate and the binaries are put into /sw/bin.
+All xxx.info and man files renamed to mc9xgate-xxx.info and mc9xgate-...1 to avoid clashes with other potential toolchains.
+<<
+DescPackaging: Disable -Werror to avoid complaints about stat64.  Suggested by Sean Mollet, nhtshot@gmail.com
+CompileScript: <<
+#!/bin/bash -ev
+# Extract TARGET and PROGRAM_PREFIX from the fink package name
+SOURCEDIR=$(pwd)
+MACHINE=%n;MACHINE=${MACHINE%%-*}$x
+TARGET=${MACHINE};PROGRAM_PREFIX=$TARGET-
+cd $SOURCEDIR
+BUILDDIR=build.${MACHINE}
+mkdir $BUILDDIR
+cd $BUILDDIR
+../configure --target=$TARGET --prefix=%p/share/$MACHINE --bindir=%p/bin --mandir=%p/share/man --infodir=%p/share/info --program-prefix=$PROGRAM_PREFIX --disable-werror
+make
+<<
+InstallScript: <<
+#!/bin/bash -ev
+# Extract TARGET and PROGRAM_PREFIX from the fink package name
+SOURCEDIR=$(pwd)
+MACHINE=%n;MACHINE=${MACHINE%%-*}$x
+TARGET=${MACHINE};PROGRAM_PREFIX=$TARGET-
+cd $SOURCEDIR
+BUILDDIR=build.${MACHINE}
+cd $BUILDDIR
+make install DESTDIR=%d
+#
+# Rename the files xxx.info into mc9xgate-xxx.info cq m6812-xx.info to avoid name clashes with other binutils packages and these two packages (mc9xgate and m6812)
+# The files of the mc9xgate should not be renamed, hence the inverted grep.
+#
+for i in $(/usr/bin/find -E %d -regex ".*/.*\.info(-[0-9]+)?" -print|grep --invert-match /${MACHINE%%%%?});do echo $i ${i%%/*} ${i##*/} ;mv $i ${i%%/*}/$PROGRAM_PREFIX${i##*/};done
+<<
+DocFiles: COPYING
+InfoDocs: mc9xgate-as.info mc9xgate-bfd.info mc9xgate-binutils.info mc9xgate-configure.info mc9xgate-ld.info mc9xgate-standards.info 
