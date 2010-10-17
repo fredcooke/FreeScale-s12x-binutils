@@ -389,6 +389,7 @@ Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, US
 #define cpu6811 0x01
 #define cpu6812 0x02
 #define cpu6812s 0x04
+#define cpu6812x 0x08
 
 /* The opcode table is an array of struct m68hc11_opcode.  */
 struct m68hc11_opcode {

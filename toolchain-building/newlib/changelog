@@ -1,3 +1,21 @@
+newlib (1.18.0-6+4) unstable; urgency=low
+
+  * Changed Deps
+  
+ -- Sean Keys <support@computer-ss.com>
+
+newlib (1.18.0-6+3) unstable; urgency=low
+
+  * Changed Deps
+  
+ -- Sean Keys <support@computer-ss.com>
+
+newlib (1.18.0-6+2) unstable; urgency=low
+
+  * Changed Deps
+  
+ -- Sean Keys <support@computer-ss.com>
+
 newlib (1.18.0-6) unstable; urgency=low
 
   * Init Clone

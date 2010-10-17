@@ -10,8 +10,10 @@ Package: gcc-mc9s12x
 Architecture: any
 Section: devel
 Priority: extra
-Depends: ${shlibs:Depends}, ${misc:Depends}, binutils-mc9s12x (>= 1:2.20)
-Suggests: task-c-devel, newlib-m68hc1x
+Depends:  binutils-mc9s12x (>= 1:2.20)
+Conflicts: gcc-m68hc1x
+Replaces: gcc-m68hc1x
+Suggests: task-c-devel, newlib-mc9s12x
 Provides: c-compiler-m68hc11, c-compiler-m68hc12
 Description: GNU C compiler for the Motorola 68HC11/12 processors
  This is the GNU C compiler, a fairly portable optimizing compiler which

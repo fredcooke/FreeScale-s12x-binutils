@@ -1,6 +1,23 @@
+binutils-mc9s12x (1:2.20-0+4) unstable; urgency=low
+
+  * Changed Deps
+
+-- Sean Keys <support@computer-ss.com> 
+
+binutils-mc9s12x (1:2.20-0+3) unstable; urgency=low
+
+  * Changed Deps
+
+-- Sean Keys <support@computer-ss.com> 
+
+binutils-mc9s12x (1:2.20-0+1) unstable; urgency=low
+
+  * Fix Versioning so old tools will be replaced
+
+-- Sean Keys <support@computer-ss.com> 
+
 binutils-mc9s12x (1:2.20-0) unstable; urgency=low
 
-  [ Sean Keys ]
   * Initial clone of m68hc1x rules/control files
 
- -- Sean Keys <support@computer-ss.com> 
+-- Sean Keys <support@computer-ss.com> 

@@ -10,11 +10,11 @@ Package: binutils-mc9s12x
 Section: devel
 Architecture: any
 Priority: extra
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: binutils-m68hc11, binutils-m68hc12, binutils-mc9s12x, binutils-m68hc1x
+Depends: binutils-mc9s12x
+Conflicts: binutils-m68hc11, binutils-m68hc12, binutils-m68hc1x, newlib-m68hc1x
 Replaces: binutils-m68hc11, binutils-m68hc12, binutils-mc9s12x
-Description: binary utilities that support FreeScales's mc9s12/xgate targets
+Description: Binary utilities that support FreeScales's mc9s12/xgate targets
  The programs in this package are used to assemble, link and manipulate binary
  and object files for the Freescale MC9S12/XGATE architecture. This package is
  primarily for MC9S12/XGATE  developers and cross-compilers and is not needed by
- normal users or developers.
+ normal users or developers. 

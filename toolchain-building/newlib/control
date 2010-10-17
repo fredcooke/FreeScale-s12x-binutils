@@ -1,8 +1,8 @@
 Source: newlib
 Section: devel
 Priority: extra
-Maintainer: Arthur Loiret <aloiret@debian.org>
-Uploaders: Matthias Klose <doko@debian.org>
+Maintainer: Sean Keys <support@computer-ss.com>
+Uploaders: Sean Keys <support@computer-ss.com>
 Build-Depends: debhelper (>= 6), quilt (>= 0.40), texinfo, binutils-spu [powerpc ppc64], gcc-spu [powerpc ppc64]
 Build-Depends-Indep: gcc-mc9s12x
 Standards-Version: 3.9.1
@@ -45,10 +45,11 @@ Description: newlib C library (Cell/BE SPU)
  .
  This package contains the newlib library compiled for spu targets.
 
-Package: newlib-m68hc1x
+Package: newlib-mc9s12x
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: binutils-mc9s12x
 Recommends: gcc-mc9s12x
+Conflicts: newlib-m68hc1x
 Description: newlib C library (Motorola 68HC11/12/S12X)
  Newlib is a C library intended for use on embedded systems. It is a
  conglomeration of several library parts, all under free software

@@ -36,7 +36,7 @@ p_dev		:= libnewlib-dev
 p_src		:= newlib-source
 
 p_spu		:= newlib-spu
-p_m68hc1x	:= newlib-m68hc1x
+p_m68hc1x	:= newlib-mc9s12x
 
 $(foreach x,$(filter p_%,$(.VARIABLES)),$(eval \
   d_$(patsubst p_%,%,$(x)) := $(strip debian/$($(x)))))

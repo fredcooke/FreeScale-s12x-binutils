@@ -1,5 +1,5 @@
 
-#line 3 "ldlex.c"
+#line 3 "<stdout>"
 
 #define  YY_INT_ALIGNED short int
 
@@ -53,7 +53,6 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
-#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -83,6 +82,8 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
+
+#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -140,7 +141,15 @@ typedef unsigned int flex_uint32_t;
 
 /* Size of default input buffer. */
 #ifndef YY_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k.
+ * Moreover, YY_BUF_SIZE is 2*YY_READ_BUF_SIZE in the general case.
+ * Ditto for the __ia64__ case accordingly.
+ */
+#define YY_BUF_SIZE 32768
+#else
 #define YY_BUF_SIZE 16384
+#endif /* __ia64__ */
 #endif
 
 /* The state buf must be large enough to hold one state per character in the main buffer.
@@ -152,12 +161,7 @@ typedef unsigned int flex_uint32_t;
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
-#endif
-
-extern yy_size_t yyleng;
+extern int yyleng;
 
 extern FILE *yyin, *yyout;
 
@@ -183,6 +187,11 @@ extern FILE *yyin, *yyout;
 
 #define unput(c) yyunput( c, (yytext_ptr)  )
 
+#ifndef YY_TYPEDEF_YY_SIZE_T
+#define YY_TYPEDEF_YY_SIZE_T
+typedef size_t yy_size_t;
+#endif
+
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
 struct yy_buffer_state
@@ -200,7 +209,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	yy_size_t yy_n_chars;
+	int yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -270,8 +279,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when yytext is formed. */
 static char yy_hold_char;
-static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
-yy_size_t yyleng;
+static int yy_n_chars;		/* number of characters read into yy_ch_buf */
+int yyleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
@@ -299,7 +308,7 @@ static void yy_init_buffer (YY_BUFFER_STATE b,FILE *file  );
 
 YY_BUFFER_STATE yy_scan_buffer (char *base,yy_size_t size  );
 YY_BUFFER_STATE yy_scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE yy_scan_bytes (yyconst char *bytes,yy_size_t len  );
+YY_BUFFER_STATE yy_scan_bytes (yyconst char *bytes,int len  );
 
 void *yyalloc (yy_size_t  );
 void *yyrealloc (void *,yy_size_t  );
@@ -1557,8 +1566,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "ldlex.l"
-#line 2 "ldlex.l"
+#line 1 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
+#line 2 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 
 /* Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
    2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
@@ -1656,7 +1665,7 @@ int yywrap (void) { return 1; }
 
 
 
-#line 1660 "ldlex.c"
+#line 1669 "<stdout>"
 
 #define INITIAL 0
 #define SCRIPT 1
@@ -1703,7 +1712,7 @@ FILE *yyget_out (void );
 
 void yyset_out  (FILE * out_str  );
 
-yy_size_t yyget_leng (void );
+int yyget_leng (void );
 
 char *yyget_text (void );
 
@@ -1745,7 +1754,12 @@ static int input (void );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k */
+#define YY_READ_BUF_SIZE 16384
+#else
 #define YY_READ_BUF_SIZE 8192
+#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -1753,7 +1767,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO fwrite( yytext, yyleng, 1, yyout )
+#define ECHO do { if (fwrite( yytext, yyleng, 1, yyout )) {} } while (0)
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -1764,7 +1778,7 @@ static int input (void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		yy_size_t n; \
+		size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -1846,7 +1860,7 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 117 "ldlex.l"
+#line 117 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 
 
   if (parser_input != input_selected)
@@ -1865,7 +1879,7 @@ YY_DECL
 	}
     }
 
-#line 1869 "ldlex.c"
+#line 1883 "<stdout>"
 
 	if ( !(yy_init) )
 		{
@@ -1950,32 +1964,32 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 135 "ldlex.l"
+#line 135 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { comment (); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 138 "ldlex.l"
+#line 138 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('-');}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 139 "ldlex.l"
+#line 139 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('+');}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 140 "ldlex.l"
+#line 140 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { yylval.name = xstrdup (yytext); return NAME; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 141 "ldlex.l"
+#line 141 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('='); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 143 "ldlex.l"
+#line 143 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
   				yylval.integer = bfd_scan_vma (yytext + 1, 0, 16);
 				yylval.bigint.str = NULL;
@@ -1984,7 +1998,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 149 "ldlex.l"
+#line 149 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				   int ibase ;
 				   switch (yytext[yyleng - 1]) {
@@ -2013,7 +2027,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 174 "ldlex.l"
+#line 174 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				  char *s = yytext;
 				  int ibase = 0;
@@ -2046,789 +2060,789 @@ YY_RULE_SETUP
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 203 "ldlex.l"
+#line 203 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(']');}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 204 "ldlex.l"
+#line 204 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('[');}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 205 "ldlex.l"
+#line 205 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LSHIFTEQ);}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 206 "ldlex.l"
+#line 206 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(RSHIFTEQ);}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 207 "ldlex.l"
+#line 207 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OROR);}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 208 "ldlex.l"
+#line 208 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(EQ);}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 209 "ldlex.l"
+#line 209 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NE);}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 210 "ldlex.l"
+#line 210 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(GE);}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 211 "ldlex.l"
+#line 211 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LE);}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 212 "ldlex.l"
+#line 212 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LSHIFT);}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 213 "ldlex.l"
+#line 213 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(RSHIFT);}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 214 "ldlex.l"
+#line 214 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(PLUSEQ);}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 215 "ldlex.l"
+#line 215 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MINUSEQ);}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 216 "ldlex.l"
+#line 216 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MULTEQ);}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 217 "ldlex.l"
+#line 217 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DIVEQ);}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 218 "ldlex.l"
+#line 218 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ANDEQ);}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 219 "ldlex.l"
+#line 219 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OREQ);}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 220 "ldlex.l"
+#line 220 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ANDAND);}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 221 "ldlex.l"
+#line 221 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('>');}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 222 "ldlex.l"
+#line 222 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(',');}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 223 "ldlex.l"
+#line 223 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('&');}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 224 "ldlex.l"
+#line 224 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('|');}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 225 "ldlex.l"
+#line 225 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('~');}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 226 "ldlex.l"
+#line 226 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('!');}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 227 "ldlex.l"
+#line 227 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('?');}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 228 "ldlex.l"
+#line 228 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('*');}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 229 "ldlex.l"
+#line 229 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('+');}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 230 "ldlex.l"
+#line 230 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('-');}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 231 "ldlex.l"
+#line 231 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('/');}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 232 "ldlex.l"
+#line 232 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('%');}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 233 "ldlex.l"
+#line 233 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('<');}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 234 "ldlex.l"
+#line 234 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('=');}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 235 "ldlex.l"
+#line 235 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('}') ; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 236 "ldlex.l"
+#line 236 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('{'); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 237 "ldlex.l"
+#line 237 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(')');}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 238 "ldlex.l"
+#line 238 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN('(');}
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 239 "ldlex.l"
+#line 239 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(':'); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 240 "ldlex.l"
+#line 240 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(';');}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 241 "ldlex.l"
+#line 241 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MEMORY);}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 242 "ldlex.l"
+#line 242 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(REGION_ALIAS);}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 243 "ldlex.l"
+#line 243 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ORIGIN);}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 244 "ldlex.l"
+#line 244 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(VERSIONK);}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 245 "ldlex.l"
+#line 245 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(BLOCK);}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 246 "ldlex.l"
+#line 246 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(BIND);}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 247 "ldlex.l"
+#line 247 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LENGTH);}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 248 "ldlex.l"
+#line 248 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGN_K);}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 249 "ldlex.l"
+#line 249 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DATA_SEGMENT_ALIGN);}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 250 "ldlex.l"
+#line 250 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DATA_SEGMENT_RELRO_END);}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 251 "ldlex.l"
+#line 251 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DATA_SEGMENT_END);}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 252 "ldlex.l"
+#line 252 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ADDR);}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 253 "ldlex.l"
+#line 253 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LOADADDR);}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 254 "ldlex.l"
+#line 254 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGNOF); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 255 "ldlex.l"
+#line 255 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MAX_K); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 256 "ldlex.l"
+#line 256 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MIN_K); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 257 "ldlex.l"
+#line 257 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ASSERT_K); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 258 "ldlex.l"
+#line 258 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ENTRY);}
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 259 "ldlex.l"
+#line 259 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(EXTERN);}
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 260 "ldlex.l"
+#line 260 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NEXT);}
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 261 "ldlex.l"
+#line 261 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SIZEOF_HEADERS);}
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 262 "ldlex.l"
+#line 262 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SIZEOF_HEADERS);}
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 263 "ldlex.l"
+#line 263 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SEGMENT_START);}
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 264 "ldlex.l"
+#line 264 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(MAP);}
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 265 "ldlex.l"
+#line 265 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SIZEOF);}
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 266 "ldlex.l"
+#line 266 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(TARGET_K);}
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 267 "ldlex.l"
+#line 267 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SEARCH_DIR);}
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 268 "ldlex.l"
+#line 268 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OUTPUT);}
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 269 "ldlex.l"
+#line 269 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(INPUT);}
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 270 "ldlex.l"
+#line 270 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(GROUP);}
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 271 "ldlex.l"
+#line 271 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(AS_NEEDED);}
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 272 "ldlex.l"
+#line 272 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DEFINED);}
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 273 "ldlex.l"
+#line 273 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CREATE_OBJECT_SYMBOLS);}
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 274 "ldlex.l"
+#line 274 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( CONSTRUCTORS);}
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 275 "ldlex.l"
+#line 275 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(FORCE_COMMON_ALLOCATION);}
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 276 "ldlex.l"
+#line 276 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(INHIBIT_COMMON_ALLOCATION);}
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 277 "ldlex.l"
+#line 277 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SECTIONS);}
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 278 "ldlex.l"
+#line 278 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(INSERT_K);}
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 279 "ldlex.l"
+#line 279 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(AFTER);}
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 280 "ldlex.l"
+#line 280 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(BEFORE);}
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 281 "ldlex.l"
+#line 281 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(FILL);}
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 282 "ldlex.l"
+#line 282 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(STARTUP);}
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 283 "ldlex.l"
+#line 283 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OUTPUT_FORMAT);}
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 284 "ldlex.l"
+#line 284 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( OUTPUT_ARCH);}
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 285 "ldlex.l"
+#line 285 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(HLL);}
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 286 "ldlex.l"
+#line 286 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SYSLIB);}
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 287 "ldlex.l"
+#line 287 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(FLOAT);}
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 288 "ldlex.l"
+#line 288 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( QUAD);}
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 289 "ldlex.l"
+#line 289 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( SQUAD);}
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 290 "ldlex.l"
+#line 290 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( LONG);}
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 291 "ldlex.l"
+#line 291 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( SHORT);}
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 292 "ldlex.l"
+#line 292 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( BYTE);}
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 293 "ldlex.l"
+#line 293 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NOFLOAT);}
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 294 "ldlex.l"
+#line 294 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NOCROSSREFS);}
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 295 "ldlex.l"
+#line 295 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OVERLAY); }
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 296 "ldlex.l"
+#line 296 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SORT_BY_NAME); }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 297 "ldlex.l"
+#line 297 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SORT_BY_ALIGNMENT); }
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 298 "ldlex.l"
+#line 298 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SORT_BY_NAME); }
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 299 "ldlex.l"
+#line 299 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NOLOAD);}
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 300 "ldlex.l"
+#line 300 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(DSECT);}
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 301 "ldlex.l"
+#line 301 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(COPY);}
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 302 "ldlex.l"
+#line 302 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(INFO);}
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
-#line 303 "ldlex.l"
+#line 303 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(OVERLAY);}
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
-#line 304 "ldlex.l"
+#line 304 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ONLY_IF_RO); }
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 305 "ldlex.l"
+#line 305 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ONLY_IF_RW); }
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
-#line 306 "ldlex.l"
+#line 306 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SPECIAL); }
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 307 "ldlex.l"
+#line 307 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ORIGIN);}
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
-#line 308 "ldlex.l"
+#line 308 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ORIGIN);}
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
-#line 309 "ldlex.l"
+#line 309 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( LENGTH);}
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
-#line 310 "ldlex.l"
+#line 310 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN( LENGTH);}
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
-#line 311 "ldlex.l"
+#line 311 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(INCLUDE);}
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
-#line 312 "ldlex.l"
+#line 312 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN (PHDRS); }
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
-#line 313 "ldlex.l"
+#line 313 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(AT);}
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
-#line 314 "ldlex.l"
+#line 314 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SUBALIGN);}
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
-#line 315 "ldlex.l"
+#line 315 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(PROVIDE); }
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
-#line 316 "ldlex.l"
+#line 316 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(PROVIDE_HIDDEN); }
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
-#line 317 "ldlex.l"
+#line 317 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(KEEP); }
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
-#line 318 "ldlex.l"
+#line 318 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(EXCLUDE_FILE); }
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
-#line 319 "ldlex.l"
+#line 319 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CONSTANT);}
 	YY_BREAK
 case 126:
 /* rule 126 can match eol */
 YY_RULE_SETUP
-#line 320 "ldlex.l"
+#line 320 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { ++ lineno; }
 	YY_BREAK
 case 127:
 /* rule 127 can match eol */
 YY_RULE_SETUP
-#line 321 "ldlex.l"
+#line 321 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { ++ lineno;  RTOKEN(NEWLINE); }
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
-#line 322 "ldlex.l"
+#line 322 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { /* Mri comment line */ }
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
-#line 323 "ldlex.l"
+#line 323 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { /* Mri comment line */ }
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
-#line 324 "ldlex.l"
+#line 324 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ENDWORD); }
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
-#line 325 "ldlex.l"
+#line 325 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGNMOD);}
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
-#line 326 "ldlex.l"
+#line 326 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGN_K);}
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
-#line 327 "ldlex.l"
+#line 327 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CHIP); }
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
-#line 328 "ldlex.l"
+#line 328 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(BASE); }
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
-#line 329 "ldlex.l"
+#line 329 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIAS); }
 	YY_BREAK
 case 136:
 YY_RULE_SETUP
-#line 330 "ldlex.l"
+#line 330 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(TRUNCATE); }
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
-#line 331 "ldlex.l"
+#line 331 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LOAD); }
 	YY_BREAK
 case 138:
 YY_RULE_SETUP
-#line 332 "ldlex.l"
+#line 332 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(PUBLIC); }
 	YY_BREAK
 case 139:
 YY_RULE_SETUP
-#line 333 "ldlex.l"
+#line 333 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ORDER); }
 	YY_BREAK
 case 140:
 YY_RULE_SETUP
-#line 334 "ldlex.l"
+#line 334 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NAMEWORD); }
 	YY_BREAK
 case 141:
 YY_RULE_SETUP
-#line 335 "ldlex.l"
+#line 335 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(FORMAT); }
 	YY_BREAK
 case 142:
 YY_RULE_SETUP
-#line 336 "ldlex.l"
+#line 336 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CASE); }
 	YY_BREAK
 case 143:
 YY_RULE_SETUP
-#line 337 "ldlex.l"
+#line 337 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(START); }
 	YY_BREAK
 case 144:
 YY_RULE_SETUP
-#line 338 "ldlex.l"
+#line 338 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LIST); /* LIST and ignore to end of line */ }
 	YY_BREAK
 case 145:
 YY_RULE_SETUP
-#line 339 "ldlex.l"
+#line 339 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SECT); }
 	YY_BREAK
 case 146:
 YY_RULE_SETUP
-#line 340 "ldlex.l"
+#line 340 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ABSOLUTE); }
 	YY_BREAK
 case 147:
 YY_RULE_SETUP
-#line 341 "ldlex.l"
+#line 341 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ENDWORD); }
 	YY_BREAK
 case 148:
 YY_RULE_SETUP
-#line 342 "ldlex.l"
+#line 342 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGNMOD);}
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
-#line 343 "ldlex.l"
+#line 343 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIGN_K);}
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
-#line 344 "ldlex.l"
+#line 344 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CHIP); }
 	YY_BREAK
 case 151:
 YY_RULE_SETUP
-#line 345 "ldlex.l"
+#line 345 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(BASE); }
 	YY_BREAK
 case 152:
 YY_RULE_SETUP
-#line 346 "ldlex.l"
+#line 346 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ALIAS); }
 	YY_BREAK
 case 153:
 YY_RULE_SETUP
-#line 347 "ldlex.l"
+#line 347 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(TRUNCATE); }
 	YY_BREAK
 case 154:
 YY_RULE_SETUP
-#line 348 "ldlex.l"
+#line 348 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LOAD); }
 	YY_BREAK
 case 155:
 YY_RULE_SETUP
-#line 349 "ldlex.l"
+#line 349 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(PUBLIC); }
 	YY_BREAK
 case 156:
 YY_RULE_SETUP
-#line 350 "ldlex.l"
+#line 350 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ORDER); }
 	YY_BREAK
 case 157:
 YY_RULE_SETUP
-#line 351 "ldlex.l"
+#line 351 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(NAMEWORD); }
 	YY_BREAK
 case 158:
 YY_RULE_SETUP
-#line 352 "ldlex.l"
+#line 352 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(FORMAT); }
 	YY_BREAK
 case 159:
 YY_RULE_SETUP
-#line 353 "ldlex.l"
+#line 353 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(CASE); }
 	YY_BREAK
 case 160:
 YY_RULE_SETUP
-#line 354 "ldlex.l"
+#line 354 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(EXTERN); }
 	YY_BREAK
 case 161:
 YY_RULE_SETUP
-#line 355 "ldlex.l"
+#line 355 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(START); }
 	YY_BREAK
 case 162:
 YY_RULE_SETUP
-#line 356 "ldlex.l"
+#line 356 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LIST); /* LIST and ignore to end of line */ }
 	YY_BREAK
 case 163:
 YY_RULE_SETUP
-#line 357 "ldlex.l"
+#line 357 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(SECT); }
 	YY_BREAK
 case 164:
 YY_RULE_SETUP
-#line 358 "ldlex.l"
+#line 358 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(ABSOLUTE); }
 	YY_BREAK
 case 165:
 YY_RULE_SETUP
-#line 360 "ldlex.l"
+#line 360 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 /* Filename without commas, needed to parse mri stuff */
 				 yylval.name = xstrdup (yytext);
@@ -2837,7 +2851,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 166:
 YY_RULE_SETUP
-#line 367 "ldlex.l"
+#line 367 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				 yylval.name = xstrdup (yytext);
 				  return NAME;
@@ -2845,7 +2859,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 167:
 YY_RULE_SETUP
-#line 371 "ldlex.l"
+#line 371 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				  yylval.name = xstrdup (yytext + 2);
 				  return LNAME;
@@ -2853,7 +2867,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 168:
 YY_RULE_SETUP
-#line 375 "ldlex.l"
+#line 375 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				 yylval.name = xstrdup (yytext);
 				  return NAME;
@@ -2861,7 +2875,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 169:
 YY_RULE_SETUP
-#line 379 "ldlex.l"
+#line 379 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 				  yylval.name = xstrdup (yytext + 2);
 				  return LNAME;
@@ -2869,7 +2883,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 170:
 YY_RULE_SETUP
-#line 383 "ldlex.l"
+#line 383 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 		/* Annoyingly, this pattern can match comments, and we have
 		   longest match issues to consider.  So if the first two
@@ -2890,7 +2904,7 @@ YY_RULE_SETUP
 case 171:
 /* rule 171 can match eol */
 YY_RULE_SETUP
-#line 400 "ldlex.l"
+#line 400 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
 					/* No matter the state, quotes
 					   give what's inside */
@@ -2902,54 +2916,54 @@ YY_RULE_SETUP
 case 172:
 /* rule 172 can match eol */
 YY_RULE_SETUP
-#line 407 "ldlex.l"
+#line 407 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { lineno++;}
 	YY_BREAK
 case 173:
 YY_RULE_SETUP
-#line 408 "ldlex.l"
+#line 408 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { }
 	YY_BREAK
 case 174:
 YY_RULE_SETUP
-#line 410 "ldlex.l"
+#line 410 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { return *yytext; }
 	YY_BREAK
 case 175:
 YY_RULE_SETUP
-#line 412 "ldlex.l"
+#line 412 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(GLOBAL); }
 	YY_BREAK
 case 176:
 YY_RULE_SETUP
-#line 414 "ldlex.l"
+#line 414 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(LOCAL); }
 	YY_BREAK
 case 177:
 YY_RULE_SETUP
-#line 416 "ldlex.l"
+#line 416 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { RTOKEN(EXTERN); }
 	YY_BREAK
 case 178:
 YY_RULE_SETUP
-#line 418 "ldlex.l"
+#line 418 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { yylval.name = xstrdup (yytext);
 				  return VERS_IDENTIFIER; }
 	YY_BREAK
 case 179:
 YY_RULE_SETUP
-#line 421 "ldlex.l"
+#line 421 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { yylval.name = xstrdup (yytext);
 				  return VERS_TAG; }
 	YY_BREAK
 case 180:
 YY_RULE_SETUP
-#line 424 "ldlex.l"
+#line 424 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { BEGIN(VERS_SCRIPT); return *yytext; }
 	YY_BREAK
 case 181:
 YY_RULE_SETUP
-#line 426 "ldlex.l"
+#line 426 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { BEGIN(VERS_NODE);
 				  vers_node_nesting = 0;
 				  return *yytext;
@@ -2957,17 +2971,17 @@ YY_RULE_SETUP
 	YY_BREAK
 case 182:
 YY_RULE_SETUP
-#line 430 "ldlex.l"
+#line 430 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { return *yytext; }
 	YY_BREAK
 case 183:
 YY_RULE_SETUP
-#line 431 "ldlex.l"
+#line 431 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { vers_node_nesting++; return *yytext; }
 	YY_BREAK
 case 184:
 YY_RULE_SETUP
-#line 432 "ldlex.l"
+#line 432 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { if (--vers_node_nesting < 0)
 				    BEGIN(VERS_SCRIPT);
 				  return *yytext;
@@ -2976,17 +2990,17 @@ YY_RULE_SETUP
 case 185:
 /* rule 185 can match eol */
 YY_RULE_SETUP
-#line 437 "ldlex.l"
+#line 437 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { lineno++; }
 	YY_BREAK
 case 186:
 YY_RULE_SETUP
-#line 439 "ldlex.l"
+#line 439 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { /* Eat up comments */ }
 	YY_BREAK
 case 187:
 YY_RULE_SETUP
-#line 441 "ldlex.l"
+#line 441 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 { /* Eat up whitespace */ }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
@@ -2998,7 +3012,7 @@ case YY_STATE_EOF(MRI):
 case YY_STATE_EOF(VERS_START):
 case YY_STATE_EOF(VERS_SCRIPT):
 case YY_STATE_EOF(VERS_NODE):
-#line 443 "ldlex.l"
+#line 443 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 {
   include_stack_ptr--;
 
@@ -3019,20 +3033,20 @@ case YY_STATE_EOF(VERS_NODE):
 	YY_BREAK
 case 188:
 YY_RULE_SETUP
-#line 461 "ldlex.l"
+#line 461 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 lex_warn_invalid (" in script", yytext);
 	YY_BREAK
 case 189:
 YY_RULE_SETUP
-#line 462 "ldlex.l"
+#line 462 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 lex_warn_invalid (" in expression", yytext);
 	YY_BREAK
 case 190:
 YY_RULE_SETUP
-#line 464 "ldlex.l"
+#line 464 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 ECHO;
 	YY_BREAK
-#line 3036 "ldlex.c"
+#line 3050 "<stdout>"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -3216,7 +3230,7 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			yy_size_t num_to_read =
+			int num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
@@ -3230,7 +3244,7 @@ static int yy_get_next_buffer (void)
 
 			if ( b->yy_is_our_buffer )
 				{
-				yy_size_t new_size = b->yy_buf_size * 2;
+				int new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -3261,7 +3275,7 @@ static int yy_get_next_buffer (void)
 
 		/* Read in more data. */
 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), num_to_read );
+			(yy_n_chars), (size_t) num_to_read );
 
 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
 		}
@@ -3371,7 +3385,7 @@ static int yy_get_next_buffer (void)
 	if ( yy_cp < YY_CURRENT_BUFFER_LVALUE->yy_ch_buf + 2 )
 		{ /* need to shift things up to make room */
 		/* +2 for EOB chars. */
-		register yy_size_t number_to_move = (yy_n_chars) + 2;
+		register int number_to_move = (yy_n_chars) + 2;
 		register char *dest = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[
 					YY_CURRENT_BUFFER_LVALUE->yy_buf_size + 2];
 		register char *source =
@@ -3420,7 +3434,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
+			int offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -3444,7 +3458,7 @@ static int yy_get_next_buffer (void)
 				case EOB_ACT_END_OF_FILE:
 					{
 					if ( yywrap( ) )
-						return 0;
+						return EOF;
 
 					if ( ! (yy_did_buffer_switch_on_eof) )
 						YY_NEW_FILE;
@@ -3696,7 +3710,7 @@ void yypop_buffer_state (void)
  */
 static void yyensure_buffer_stack (void)
 {
-	yy_size_t num_to_alloc;
+	int num_to_alloc;
     
 	if (!(yy_buffer_stack)) {
 
@@ -3788,16 +3802,17 @@ YY_BUFFER_STATE yy_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to yylex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len )
+YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
-	yy_size_t n, i;
+	yy_size_t n;
+	int i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -3879,7 +3894,7 @@ FILE *yyget_out  (void)
 /** Get the length of the current token.
  * 
  */
-yy_size_t yyget_leng  (void)
+int yyget_leng  (void)
 {
         return yyleng;
 }
@@ -4027,7 +4042,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 464 "ldlex.l"
+#line 464 "../binutils-2.20/binutils-2.20/ld/ldlex.l"
 
 
 

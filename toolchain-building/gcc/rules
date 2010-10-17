@@ -72,7 +72,9 @@ install: build
 	#  ln -s m68hc11-$$i $(CURDIR)/debian/gcc-m68hc1x/usr/bin/m68hc12-$$i ; \
 	#  ln -s m68hc11-$$i.1 $(CURDIR)/debian/gcc-m68hc1x/usr/share/man/man1/m68hc12-$$i.1 ; \
 	#done
-
+	
+	# cp to new package name dir
+	cp -R $(CURDIR)/debian/gcc-m68hc1x/* $(CURDIR)/debian/gcc-mc9s12x/
 
 	# Remove non-needed files
 	rm -rf $(CURDIR)/debian/gcc-m68hc1x/usr/bin/m68hc11-gcc-*

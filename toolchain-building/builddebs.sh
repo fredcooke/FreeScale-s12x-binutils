@@ -2,6 +2,7 @@
 INPUT=0
 WRKDIR=$(pwd)
 
+RELEASE_VER=4
 BUILDDIRBIN=/usr/src/binutils-mc9s12x
 SRCDIRBIN=../binutils-2.20/
 BUILDDIRBINXGATE=/usr/src/binutils-mc9xgate
@@ -24,12 +25,13 @@ cd $BUILDDIRBIN
 #fakeroot debian/rules build
 fakeroot debian/rules binary
 
-if [ -f /usr/src/binutils-mc9s12x_2.20-0_i386.deb ]; then
+if [ -f /usr/src/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb ]; then
   echo "press enter to install binutils deb package"
   read $INPUT
-  dpkg -i /usr/src/binutils-mc9s12x_2.20-0_i386.deb; 
+  dpkg -i /usr/src/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb; 
 else 
-  echo "error building binutils debian package, please review output"; 
+  echo "exiting please review output"; 
+  read
   exit -1; 
 fi
 cd $WRKDIR
@@ -48,13 +50,14 @@ cp -R binutils-xgate/patches $BUILDDIRBINXGATE
 cd $BUILDDIRBINXGATE
 fakeroot debian/rules binary
 
-if [ -f /usr/src/binutils-mc9xgate_2.20-0_i386.deb ]; then
+if [ -f /usr/src/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb ]; then
   echo "press enter to install binutils deb package"
   read $INPUT
-  dpkg -i /usr/src/binutils-mc9xgate_2.20-0_i386.deb; 
+  dpkg -i /usr/src/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb; 
 else 
-  echo "error building binutils debian package, please review output"; 
-  exit -1; 
+  echo "please review output"; 
+  read
+#  exit -1; 
 fi
 cd $WRKDIR
 }
@@ -73,12 +76,13 @@ cp gcc/control ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*/debian/control
 cp gcc/changelog ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*/debian/changelog
 
 cd ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*
-fakeroot debian/rules binary
+#fakeroot debian/rules binary
+fakeroot dpkg-buildpackage -b -uc 
 
-if [ -f /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3_i386.deb ]; then
+if [ -f /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb ]; then
   echo "press enter to install gcc deb package"
   read $INPUT
-  dpkg -i /usr/src/gcc-mc9s12x/gcc-m68hc1x_3.3.6+3.1+dfsg-3_i386.deb; 
+  dpkg -i /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb; 
 else 
   echo "error building gcc debian package, please review output"; 
   exit -1; 
@@ -105,7 +109,7 @@ fakeroot debian/rules binary
 cd $WKDIR
 }
 
-
+read
 buildxgate
 read
 builds12x

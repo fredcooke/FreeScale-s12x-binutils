@@ -404,8 +404,8 @@ get_default_target (void)
     {
       if (strcmp (target->name, "elf32-m68hc12") == 0)
 	{
-	  current_architecture = cpu6812;
-	  default_cpu = "m68hc12";
+	  current_architecture = cpu6812x;
+	  default_cpu = "m68hc12x";
 	}
       else if (strcmp (target->name, "elf32-m68hc11") == 0)
 	{
@@ -497,6 +497,8 @@ md_parse_option (int c, char *arg)
 	current_architecture = cpu6812;
       else if (strcasecmp (arg, "68hcs12") == 0)
 	current_architecture = cpu6812 | cpu6812s;
+      else if (strcasecmp (arg, "68hcs12x") == 0)
+        current_architecture = cpu6812 | cpu6812s | cpu6812x;
       else
 	as_bad (_("Option `%s' is not recognized."), arg);
       break;
@@ -560,7 +562,8 @@ md_begin (void)
   num_opcodes = 0;
   //printf("\n seize of root structure %d",sizeof (struct m68hc11_opcode));
   //printf("\n size of opcodes %d \n",m68hc11_num_opcodes);  //comes back as 775
-  //printf("\nCurrent arch is %d\n",current_architecture);  //returns 1
+  //printf("\nCurrent arch is %d default cpu is %s\n",current_architecture, default_cpu);  //returns 1
+
   for (i = 0; i < m68hc11_num_opcodes; i++)
     {
       if (m68hc11_opcodes[i].arch & current_architecture)
@@ -3296,7 +3299,7 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 void
 m68hc11_elf_final_processing (void)
 {
-  if (current_architecture & cpu6812s)
+  if (current_architecture & (cpu6812s | cpu6812x))
     elf_flags |= EF_M68HCS12_MACH;
   elf_elfheader (stdoutput)->e_flags &= ~EF_M68HC11_ABI;
   elf_elfheader (stdoutput)->e_flags |= elf_flags;
