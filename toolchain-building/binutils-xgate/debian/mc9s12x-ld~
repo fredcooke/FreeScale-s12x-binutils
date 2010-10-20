@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [ -n "$LD_EMULATION" ] ; then
-	/usr/bin/mc9s12x-elf-ld "$@"
-else
-	/usr/bin/mc9s12x-elf-ld -mmc9s12x "$@"
-fi
