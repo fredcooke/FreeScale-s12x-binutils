@@ -1,9 +1,9 @@
-newlib (1.18.0-6+5) unstable; urgency=low
+newlib (1.18.0-6+6) unstable; urgency=low
 
   [Sean Keys]
-  * Changed Deps
+  * Update xgate GAS
   
- -- Sean Keys <support@computer-ss.com>  Sun, 15 Oct 2010 14:38:04 +0000
+ -- Sean Keys <support@computer-ss.com>  Thu, 10 Mar 2011 14:38:04 +0000
 
 newlib (1.18.0-6+4) unstable; urgency=low
 
