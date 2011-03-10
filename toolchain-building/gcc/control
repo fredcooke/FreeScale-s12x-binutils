@@ -10,7 +10,7 @@ Package: gcc-mc9s12x
 Architecture: any
 Section: devel
 Priority: extra
-Depends:  binutils-mc9s12x (>= 1:2.20)
+Depends:  binutils-mc9s12x (>= 1:2.20), ${shlibs:Depends}
 Conflicts: gcc-m68hc1x
 Replaces: gcc-m68hc1x
 Suggests: task-c-devel, newlib-mc9s12x

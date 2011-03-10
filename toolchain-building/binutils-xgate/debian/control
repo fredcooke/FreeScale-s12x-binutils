@@ -12,7 +12,7 @@ Architecture: any
 Priority: extra
 Conflicts: 
 Replaces: binutils-mc9xgate
-Depends: binutils-mc9s12x
+Depends: binutils-mc9s12x, ${shlibs:Depends}
 Description: binary utilities that support FreeScales's mc9s12/xgate targets
  The programs in this package are used to assemble, link and manipulate binary
  and object files for the Freescale MC9S12/XGATE architecture. This package is
