@@ -112,342 +112,354 @@ static bfd_boolean mc9s12x_elf_set_mach_from_flags PARAMS ((bfd *));
    mapped at 0x8000.
 
    The 3-bit and 16-bit PC rel relocation is only used by 68HC12.  */
+printf("\n in elf-mc9s12x.c");
 static reloc_howto_type elf_mc9s12x_howto_table[] = {
-  /* This reloc does nothing.  */
-  HOWTO (R_MC9S12X_NONE,	/* type */
-	 0,			/* rightshift */
-	 2,			/* size (0 = byte, 1 = short, 2 = long) */
-	 32,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_NONE",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0,			/* src_mask */
-	 0,			/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* This reloc does nothing.  */
+HOWTO (R_MC9S12X_NONE, /* type */
+		0, /* rightshift */
+		2, /* size (0 = byte, 1 = short, 2 = long) */
+		32, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont,/* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_NONE", /* name */
+		FALSE, /* partial_inplace */
+		0, /* src_mask */
+		0, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 8 bit absolute relocation */
-  HOWTO (R_MC9S12X_8,		/* type */
-	 0,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_bitfield,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_8",		/* name */
-	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 8 bit absolute relocation */
+HOWTO (R_MC9S12X_8, /* type */
+		0, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		8, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_bitfield, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_8", /* name */
+		FALSE, /* partial_inplace */
+		0x00ff, /* src_mask */
+		0x00ff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 8 bit absolute relocation (upper address) */
-  HOWTO (R_MC9S12X_HI8,		/* type */
-	 8,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_bitfield,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12Xi_HI8",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 8 bit absolute relocation (upper address) */
+HOWTO (R_MC9S12X_HI8, /* type */
+		8, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		8, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_bitfield, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12Xi_HI8", /* name */
+		FALSE, /* partial_inplace */
+		0x00ff, /* src_mask */
+		0x00ff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 8 bit absolute relocation (upper address) */
-  HOWTO (R_MC9S12X_LO8,		/* type */
-	 0,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_LO8",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 8 bit absolute relocation (upper address) */
+HOWTO (R_MC9S12X_LO8, /* type */
+		0, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		8, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_LO8", /* name */
+		FALSE, /* partial_inplace */
+		0x00ff, /* src_mask */
+		0x00ff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 8 bit PC-rel relocation */
-  HOWTO (R_MC9S12X_PCREL_8,	/* type */
-	 0,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 TRUE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_bitfield,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_PCREL_8",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 TRUE),                 /* pcrel_offset */
+/* A 8 bit PC-rel relocation */
+HOWTO (R_MC9S12X_PCREL_8, /* type */
+		0, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		8, /* bitsize */
+		TRUE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_bitfield, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_PCREL_8", /* name */
+		FALSE, /* partial_inplace */
+		0x00ff, /* src_mask */
+		0x00ff, /* dst_mask */
+		TRUE), /* pcrel_offset */
 
-  /* A 16 bit absolute relocation */
-  HOWTO (R_MC9S12X_16,		/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 16,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont /*bitfield */ ,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_16",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
-	 0xffff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 16 bit absolute relocation */
+HOWTO (R_MC9S12X_16, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		16, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont /*bitfield */, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_16", /* name */
+		FALSE, /* partial_inplace */
+		0xffff, /* src_mask */
+		0xffff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 32 bit absolute relocation.  This one is never used for the
-     code relocation.  It's used by gas for -gstabs generation.  */
-  HOWTO (R_MC9S12X_32,		/* type */
-	 0,			/* rightshift */
-	 2,			/* size (0 = byte, 1 = short, 2 = long) */
-	 32,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_bitfield,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_32",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0xffffffff,		/* src_mask */
-	 0xffffffff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 32 bit absolute relocation.  This one is never used for the
+ code relocation.  It's used by gas for -gstabs generation.  */
+HOWTO (R_MC9S12X_32, /* type */
+		0, /* rightshift */
+		2, /* size (0 = byte, 1 = short, 2 = long) */
+		32, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_bitfield, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_32", /* name */
+		FALSE, /* partial_inplace */
+		0xffffffff, /* src_mask */
+		0xffffffff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 3 bit absolute relocation */
-  HOWTO (R_MC9S12X_3B,		/* type */
-	 0,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 3,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_bitfield,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_4B",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0x003,			/* src_mask */
-	 0x003,			/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 3 bit absolute relocation */
+HOWTO (R_MC9S12X_3B, /* type */
+		0, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		3, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_bitfield, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_4B", /* name */
+		FALSE, /* partial_inplace */
+		0x003, /* src_mask */
+		0x003, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 16 bit PC-rel relocation */
-  HOWTO (R_MC9S12X_PCREL_16,	/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 16,			/* bitsize */
-	 TRUE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 bfd_elf_generic_reloc,	/* special_function */
-	 "R_MC9S12X_PCREL_16",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
-	 0xffff,		/* dst_mask */
-	 TRUE),                 /* pcrel_offset */
+/* A 16 bit PC-rel relocation */
+HOWTO (R_MC9S12X_PCREL_16, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		16, /* bitsize */
+		TRUE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		bfd_elf_generic_reloc, /* special_function */
+		"R_MC9S12X_PCREL_16", /* name */
+		FALSE, /* partial_inplace */
+		0xffff, /* src_mask */
+		0xffff, /* dst_mask */
+		TRUE), /* pcrel_offset */
 
-  /* GNU extension to record C++ vtable hierarchy */
-  HOWTO (R_MC9S12X_GNU_VTINHERIT,	/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 0,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 NULL,			/* special_function */
-	 "R_MC9S12X_GNU_VTINHERIT",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0,			/* src_mask */
-	 0,			/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* GNU extension to record C++ vtable hierarchy */
+HOWTO (R_MC9S12X_GNU_VTINHERIT, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		0, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		NULL, /* special_function */
+		"R_MC9S12X_GNU_VTINHERIT", /* name */
+		FALSE, /* partial_inplace */
+		0, /* src_mask */
+		0, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* GNU extension to record C++ vtable member usage */
-  HOWTO (R_MC9S12X_GNU_VTENTRY,	/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 0,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 _bfd_elf_rel_vtable_reloc_fn,	/* special_function */
-	 "R_MC9S12X_GNU_VTENTRY",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0,			/* src_mask */
-	 0,			/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* GNU extension to record C++ vtable member usage */
+HOWTO (R_MC9S12X_GNU_VTENTRY, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		0, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		_bfd_elf_rel_vtable_reloc_fn, /* special_function */
+		"R_MC9S12X_GNU_VTENTRY", /* name */
+		FALSE, /* partial_inplace */
+		0, /* src_mask */
+		0, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 24 bit relocation */
-  HOWTO (R_MC9S12X_24,	        /* type */
-	 0,			/* rightshift */
-	 2,			/* size (0 = byte, 1 = short, 2 = long) */
-	 24,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 mc9s12x_elf_special_reloc,	/* special_function */
-	 "R_MC9S12X_24",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0xffffff,		/* src_mask */
-	 0xffffff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 24 bit relocation */
+HOWTO (R_MC9S12X_24, /* type */
+		0, /* rightshift */
+		2, /* size (0 = byte, 1 = short, 2 = long) */
+		24, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		mc9s12x_elf_special_reloc, /* special_function */
+		"R_MC9S12X_24", /* name */
+		FALSE, /* partial_inplace */
+		0xffffff, /* src_mask */
+		0xffffff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A 16-bit low relocation */
-  HOWTO (R_MC9S12X_LO16,        /* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 16,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 mc9s12x_elf_special_reloc,/* special_function */
-	 "R_MC9S12X_LO16",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0xffff,		/* src_mask */
-	 0xffff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
+/* A 16-bit low relocation */
+HOWTO (R_MC9S12X_LO16, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		16, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		mc9s12x_elf_special_reloc,/* special_function */
+		"R_MC9S12X_LO16", /* name */
+		FALSE, /* partial_inplace */
+		0xffff, /* src_mask */
+		0xffff, /* dst_mask */
+		FALSE), /* pcrel_offset */
 
-  /* A page relocation */
-  HOWTO (R_MC9S12X_PAGE,        /* type */
-	 0,			/* rightshift */
-	 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 8,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 mc9s12x_elf_special_reloc,/* special_function */
-	 "R_MC9S12X_PAGE",	/* name */
-	 FALSE,			/* partial_inplace */
-	 0x00ff,		/* src_mask */
-	 0x00ff,		/* dst_mask */
-	 FALSE),		/* pcrel_offset */
-	 /* A 9 bit absolute relocation  */
-	 		  HOWTO (R_MC9XGATE_PCREL_9,		/* type */
-	 			 0,			/* rightshift */
-	 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 9,			/* bitsize */
-	 			 TRUE,			/* pc_relative */
-	 			 0,			/* bitpos */
-	 			 complain_overflow_bitfield,	/* complain_on_overflow */
-	 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 "R_MC9XGATE_PCREL_9",	/* name */
-	 			 FALSE,			/* partial_inplace */
-	 			 0xffff,		/* src_mask */
-	 			 0xffff,		/* dst_mask */
-	 			 TRUE),		/* pcrel_offset */
+/* A page relocation */
+HOWTO (R_MC9S12X_PAGE, /* type */
+		0, /* rightshift */
+		0, /* size (0 = byte, 1 = short, 2 = long) */
+		8, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		mc9s12x_elf_special_reloc,/* special_function */
+		"R_MC9S12X_PAGE", /* name */
+		FALSE, /* partial_inplace */
+		0x00ff, /* src_mask */
+		0x00ff, /* dst_mask */
+		FALSE), /* pcrel_offset */
+/* A 9 bit absolute relocation  */
+//HOWTO (R_MC9XGATE_PCREL_9, /* type */
+//		0, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		9, /* bitsize */
+//		TRUE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_bitfield, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_PCREL_9", /* name */
+//		FALSE, /* partial_inplace */
+//		0xffff, /* src_mask */
+//		0xffff, /* dst_mask */
+//		TRUE), /* pcrel_offset */
 
-	 		  /* A 8 bit absolute relocation (upper address) */
-	 		  HOWTO (R_MC9XGATE_PCREL_10,		/* type */
-	 			 8,			/* rightshift */
-	 			 0,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 10,			/* bitsize */
-	 			 TRUE,			/* pc_relative */
-	 			 0,			/* bitpos */
-	 			 complain_overflow_dont,	/* complain_on_overflow */
-	 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 "R_MC9XGATE_PCREL_10",	/* name */
-	 			 FALSE,			/* partial_inplace */
-	 			 0x00ff,		/* src_mask */
-	 			 0x00ff,		/* dst_mask */
-	 			 TRUE),		/* pcrel_offset */
+/* A 8 bit absolute relocation (upper address) */
+//HOWTO (R_MC9XGATE_PCREL_10, /* type */
+//		8, /* rightshift */
+//		0, /* size (0 = byte, 1 = short, 2 = long) */
+//		10, /* bitsize */
+//		TRUE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_PCREL_10", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		TRUE), /* pcrel_offset */
 
+/* A 8 bit absolute relocation  */
+//HOWTO (R_MC9XGATE_IMM8_LO, /* type */
+//		0, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		16, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_IMM8_LO", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
 
-	 			 /* A 8 bit absolute relocation  */
-	 			 		  HOWTO (R_MC9XGATE_IMM8_LO,		/* type */
-	 			 			 0,			/* rightshift */
-	 			 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 			 16,			/* bitsize */
-	 			 			 FALSE,			/* pc_relative */
-	 			 			 0,			/* bitpos */
-	 			 			 complain_overflow_bitfield,	/* complain_on_overflow */
-	 			 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 			 "R_MC9XGATE_IMM8_LO",	/* name */
-	 			 			 FALSE,			/* partial_inplace */
-	 			 			 0x00ff,		/* src_mask */
-	 			 			 0x00ff,		/* dst_mask */
-	 			 			 FALSE),		/* pcrel_offset */
+/* A 16 bit absolute relocation (upper address) */
+//HOWTO (R_MC9XGATE_IMM8_HI, /* type */
+//		8, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		16, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_IMM8_HI", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
+/* A 3 bit absolute relocation */
+//HOWTO (R_MC9XGATE_IMM3, /* type */
+//		8, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		16, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_IMM3", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
+/* A 4 bit absolute relocation  */
+//HOWTO (R_MC9XGATE_IMM4, /* type */
+//		8, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		16, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_IMM4", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
+/* A 5 bit absolute relocation  */
+//HOWTO (R_MC9XGATE_IMM5, /* type */
+//		8, /* rightshift */
+//		1, /* size (0 = byte, 1 = short, 2 = long) */
+//		16, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_MC9XGATE_IMM5", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
+		//EMPTY_HOWTO (14),
+		//EMPTY_HOWTO (15),
+		//EMPTY_HOWTO (16),
+		//EMPTY_HOWTO (17),
+		//EMPTY_HOWTO (18),
+		//EMPTY_HOWTO (19),
 
-	 			 		  /* A 16 bit absolute relocation (upper address) */
-	 			 		  HOWTO (R_MC9XGATE_IMM8_HI,		/* type */
-	 			 			 8,			/* rightshift */
-	 			 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 			 16,			/* bitsize */
-	 			 			 FALSE,			/* pc_relative */
-	 			 			 0,			/* bitpos */
-	 			 			 complain_overflow_dont,	/* complain_on_overflow */
-	 			 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 			 "R_MC9XGATE_IMM8_HI",	/* name */
-	 			 			 FALSE,			/* partial_inplace */
-	 			 			 0x00ff,		/* src_mask */
-	 			 			 0x00ff,		/* dst_mask */
-	 			 			 FALSE),		/* pcrel_offset */
-	 			 	 		  /* A 3 bit absolute relocation */
-	 			 				 		  HOWTO (R_MC9XGATE_IMM3,		/* type */
-	 			 				 			 8,			/* rightshift */
-	 			 				 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 				 			 16,			/* bitsize */
-	 			 				 			 FALSE,			/* pc_relative */
-	 			 				 			 0,			/* bitpos */
-	 			 				 			 complain_overflow_dont,	/* complain_on_overflow */
-	 			 				 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 				 			 "R_MC9XGATE_IMM3",	/* name */
-	 			 				 			 FALSE,			/* partial_inplace */
-	 			 				 			 0x00ff,		/* src_mask */
-	 			 				 			 0x00ff,		/* dst_mask */
-	 			 				 			 FALSE),		/* pcrel_offset */
-	 			 				 	 		  /* A 4 bit absolute relocation  */
-	 			 				 				 		  HOWTO (R_MC9XGATE_IMM4,		/* type */
-	 			 				 				 			 8,			/* rightshift */
-	 			 				 				 			 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 			 				 				 			 16,			/* bitsize */
-	 			 				 				 			 FALSE,			/* pc_relative */
-	 			 				 				 			 0,			/* bitpos */
-	 			 				 				 			 complain_overflow_dont,	/* complain_on_overflow */
-	 			 				 				 			 bfd_elf_generic_reloc,	/* special_function */
-	 			 				 				 			 "R_MC9XGATE_IMM4",	/* name */
-	 			 				 				 			 FALSE,			/* partial_inplace */
-	 			 				 				 			 0x00ff,		/* src_mask */
-	 			 				 				 			 0x00ff,		/* dst_mask */
-	 			 				 				 			 FALSE),		/* pcrel_offset */
-
-  //EMPTY_HOWTO (14),
-  //EMPTY_HOWTO (15),
-  //EMPTY_HOWTO (16),
-  //EMPTY_HOWTO (17),
-  //EMPTY_HOWTO (18),
-  //EMPTY_HOWTO (19),
-
-  /* Mark beginning of a jump instruction (any form).  */
-  HOWTO (R_MC9S12X_RL_JUMP,	/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 0,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 mc9s12x_elf_ignore_reloc,	/* special_function */
-	 "R_MC9S12X_RL_JUMP",	/* name */
-	 TRUE,			/* partial_inplace */
-	 0,			/* src_mask */
-	 0,			/* dst_mask */
-	 TRUE),                 /* pcrel_offset */
-
-  /* Mark beginning of Gcc relaxation group instruction.  */
-  HOWTO (R_MC9S12X_RL_GROUP,	/* type */
-	 0,			/* rightshift */
-	 1,			/* size (0 = byte, 1 = short, 2 = long) */
-	 0,			/* bitsize */
-	 FALSE,			/* pc_relative */
-	 0,			/* bitpos */
-	 complain_overflow_dont,	/* complain_on_overflow */
-	 mc9s12x_elf_ignore_reloc,	/* special_function */
-	 "R_MC9S12X_RL_GROUP",	/* name */
-	 TRUE,			/* partial_inplace */
-	 0,			/* src_mask */
-	 0,			/* dst_mask */
-	 TRUE),                 /* pcrel_offset */
+/* Mark beginning of a jump instruction (any form).  */
+HOWTO (R_MC9S12X_RL_JUMP, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		0, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		mc9s12x_elf_ignore_reloc, /* special_function */
+		"R_MC9S12X_RL_JUMP", /* name */
+		TRUE, /* partial_inplace */
+		0, /* src_mask */
+		0, /* dst_mask */
+		TRUE), /* pcrel_offset */
+/* Mark beginning of Gcc relaxation group instruction.  */
+HOWTO (R_MC9S12X_RL_GROUP, /* type */
+		0, /* rightshift */
+		1, /* size (0 = byte, 1 = short, 2 = long) */
+		0, /* bitsize */
+		FALSE, /* pc_relative */
+		0, /* bitpos */
+		complain_overflow_dont, /* complain_on_overflow */
+		mc9s12x_elf_ignore_reloc, /* special_function */
+		"R_MC9S12X_RL_GROUP", /* name */
+		TRUE, /* partial_inplace */
+		0, /* src_mask */
+		0, /* dst_mask */
+		TRUE), /* pcrel_offset */
 };
 
 /* Map BFD reloc types to M68HC11 ELF reloc types.  */
@@ -481,6 +493,7 @@ static const struct mc9s12x_reloc_map mc9s12x_reloc_map[] = {
   {BFD_RELOC_MC9XGATE_IMM8_HI, R_MC9XGATE_IMM8_HI},
   {BFD_RELOC_MC9XGATE_IMM3, R_MC9XGATE_IMM3},
   {BFD_RELOC_MC9XGATE_IMM4, R_MC9XGATE_IMM4},
+  {BFD_RELOC_MC9XGATE_IMM5, R_MC9XGATE_IMM5},
 
   {BFD_RELOC_MC9S12X_RL_JUMP, R_MC9S12X_RL_JUMP},
   {BFD_RELOC_MC9S12X_RL_GROUP, R_MC9S12X_RL_GROUP},
@@ -531,7 +544,7 @@ mc9s12x_info_to_howto_rel (bfd *abfd ATTRIBUTE_UNUSED,
                            arelent *cache_ptr, Elf_Internal_Rela *dst)
 {
   unsigned int r_type;
-
+  printf("\n in elf-mc9s12x.c");
   r_type = ELF32_R_TYPE (dst->r_info);
   BFD_ASSERT (r_type < (unsigned int) R_MC9S12X_max);
   cache_ptr->howto = &elf_mc9s12x_howto_table[r_type];
@@ -1710,16 +1723,16 @@ elf32_mc9s12x_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       phys_addr = mc9s12x_phys_addr (pinfo, relocation + rel->r_addend);
       phys_page = mc9s12x_phys_page (pinfo, relocation + rel->r_addend);
       switch (r_type)
-        {
+       {
       case	R_MC9XGATE_IMM8_LO:
-         	  //printf("\n relocation is %lu", relocation);
+         	  printf("\n case mc9s12x.c relocation is %lu", relocation);
          	  /* relocation is already set to physical address at this point */
 
-         	//  break;
-       case	R_MC9XGATE_IMM8_HI:
-               //printf("\n case  elf32 relocate IMM16");
-               break;
-        case R_MC9S12X_24:
+         break;
+      case	R_MC9XGATE_IMM8_HI:
+               printf("\n case  mc9s12x.c elf32 relocate IMM8 relocation is %lu", relocation);
+         break;
+      case R_MC9S12X_24:
           /* Reloc used by 68HC12 call instruction.  */
           bfd_put_16 (input_bfd, phys_addr,
                       (bfd_byte*) contents + rel->r_offset);
@@ -1728,7 +1741,6 @@ elf32_mc9s12x_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           r = bfd_reloc_ok;
           r_type = R_MC9S12X_NONE;
           break;
-
         case R_MC9S12X_NONE:
           r = bfd_reloc_ok;
           break;
@@ -1812,7 +1824,7 @@ elf32_mc9s12x_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           if (mc9s12x_addr_is_banked (pinfo, relocation + rel->r_addend))
             relocation = phys_addr;
           break;
-        }
+       }
       if (r_type != R_MC9S12X_NONE)
         r = _bfd_final_link_relocate (howto, input_bfd, input_section,
                                       contents, rel->r_offset,
