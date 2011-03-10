@@ -30,7 +30,8 @@
  architecture of input file
  failed to merge target specific data
  Can't disassemble for architecture
- printf
+ printf relocation truncated to fit is not in the same bank as current banked address
+ about to detect operands,
 
  */
 
@@ -170,6 +171,7 @@ static unsigned int prev = 0; /* Previous opcode.  */
 static unsigned char fixup_required = 0;
 //static char parse_error;
 //static char error_message[ sizeof( char) ];
+static unsigned char macroClipping = 0; /* used to enable clipping of 16 bit operands into 8 bit constraints */
 static char oper_check;
 
 static unsigned int oper1 = 0;
@@ -679,7 +681,8 @@ md_assemble(char *input_line)
         }
       else
         { /* if insns is a simplified instruction expand it out */
-          char constraintString[50];
+    	  macroClipping = 1;
+    	  char constraintString[50];
           unsigned int i;
           /* extract formal constraint string */
           for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
@@ -720,7 +723,7 @@ md_assemble(char *input_line)
                 }
             }
 
-          if (0)
+          if (0) //Disable block
             {
               if (*input_line == 'r' || *input_line == 'R')
                 {
@@ -803,7 +806,7 @@ md_assemble(char *input_line)
         }
 
     }
-
+  macroClipping = 0;
   input_line = saved_input_line;
 }
 
@@ -1061,6 +1064,13 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     if (value < 0 || value > 15)
       as_bad_where(fixP->fx_file, fixP->fx_line, _("Value out of 4-bit range."));
     value <<= 4; /* alight the operand bits */
+    //printf("\n need to process imm4 relocatoin");
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    break;
+  case BFD_RELOC_MC9XGATE_IMM5:
+    if (value < 0 || value > 31)
+      as_bad_where(fixP->fx_file, fixP->fx_line, _("Value out of 5-bit range."));
+    value <<= 5; /* alight the operand bits */
     //printf("\n need to process imm4 relocatoin");
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
@@ -1514,8 +1524,8 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
       }
     break;
 
-  case 'i': /* immediate value expected */
-    (*op_con)++; /* advance the origional format pointer */
+  case 'i': /* immediate value or expression expected */
+    (*op_con)++; /* advance the original format pointer */
     op_constraint++;
 
     if (ISDIGIT(*op_constraint))
@@ -1541,6 +1551,15 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
               *op_constraint);
         //printf("\n case is i input string is %s",str);
         op_mask = mc9xgate_get_constant(str, 0xFFFF);
+        if ((opcode->name[strlen(opcode->name) - 1] == 'l')
+					&& macroClipping)
+        	{
+        		op_mask &= 0x00FF;//printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_LO);
+		    }else if ((opcode->name[strlen(opcode->name) - 1]) == 'h'
+					&& macroClipping)
+		    {
+				op_mask >>= 8;
+			}
         /* make sure it fits */
         for (i = *bit_width; i; i--)
           {
@@ -1548,7 +1567,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
             max_size += 1;
           }
         if (op_mask > max_size)
-          as_bad(_(":operand too big for constraint"));
+          as_bad(_(":operand value(%d) too big for constraint"), op_mask);
       }
     else
       {
@@ -1558,6 +1577,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 
         fixS *fixp = 0;
         fixup_required = 1;
+
         //printf("\n need to do fixup");
         if (*op_constraint == '8')
           { /* mode == M68XG_OP_REL9 */
@@ -1565,7 +1585,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
             //printf("\n char is %c",opcode->name[strlen(opcode->name)]);
             //printf("\n char is %c",opcode->name[3]);
 
-            if (opcode->name[strlen(opcode->name) - 1] == 'l')
+            if ((opcode->name[strlen(opcode->name) - 1] == 'l') && macroClipping)
               {
                 //printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_LO);
                 fixp = fix_new_exp(frag_now, where, 2, &op_expr, FALSE,
@@ -1574,7 +1594,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 
               }
 
-            if (opcode->name[strlen(opcode->name) - 1] == 'h')
+            if ((opcode->name[strlen(opcode->name) - 1]) == 'h' && macroClipping)
               {
                 //printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_HI);
                 fixp = fix_new_exp(frag_now, where, 2, &op_expr, FALSE,
@@ -1587,6 +1607,16 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
                 as_bad(_(":unknown relocation"));
               }
           }
+        else if (*op_constraint == '5')
+                  {
+
+                    //printf("\n not 0_register parsing IMM4 with reloc %d", BFD_RELOC_MC9XGATE_IMM4);
+                    fixp = fix_new_exp(frag_now, where, 2, &op_expr, FALSE,
+                        BFD_RELOC_MC9XGATE_IMM5); /* BFD_RELOC_MC9XGATE_IMM5 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8*/
+                    fixp->fx_pcrel_adjust = 0;
+                    //printf("\n need to gen 4 bit fixup"); unknown relocation type
+
+                  }
         else if (*op_constraint == '4')
           {
 
@@ -1606,7 +1636,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
             //printf("\n need to gen 3 bit fixup");
           }
         else
-          {
+          { printf(" constraint is %c opcode is %s", *op_constraint, opcode->format);
             as_bad(_(":unknown relocation constraint size"));
             //if (*op_constraint == 'f') { /* mode == M68XG_OP_REL10 */
             //	printf("\n not 0_register parsing 16");
@@ -1770,7 +1800,7 @@ mc9xgate_detect_format(char *line_in)
   for (i = 0, process_first_char = 1; (c = TOLOWER(*skip_whitespace(str)))
       && num_operands < 3; ++str)
     {
-      //	printf("\n debug detect char read %c",c);
+      //	printf("\n debug detect char read %c",c); :error matching operand format
 
       /* mark immediate values incase they are not marked */
       //	if (ISDIGIT(c) && process_first_char){

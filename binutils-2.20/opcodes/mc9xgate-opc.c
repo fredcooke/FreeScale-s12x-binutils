@@ -97,7 +97,7 @@
 
 #define OP_IMM8m			MC9XGATE_OP_IMM8m
 
-
+//:unknown relocation constraint size
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 /*

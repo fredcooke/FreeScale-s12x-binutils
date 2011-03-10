@@ -4296,6 +4296,9 @@ This is the 5 bits of a value.  */
 /*   */
   BFD_RELOC_MC9XGATE_IMM4,
 
+/*   */
+  BFD_RELOC_MC9XGATE_IMM5,
+
 /* NS CR16C Relocations.  */
   BFD_RELOC_16C_NUM08,
   BFD_RELOC_16C_NUM08_C,

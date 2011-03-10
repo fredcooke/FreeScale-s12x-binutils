@@ -49,13 +49,14 @@ START_RELOC_NUMBERS (elf_mc9s12x_reloc_type)
   RELOC_NUMBER (R_MC9XGATE_IMM8_HI, 17)
   RELOC_NUMBER (R_MC9XGATE_IMM3, 18)
   RELOC_NUMBER (R_MC9XGATE_IMM4, 19)
+  RELOC_NUMBER (R_MC9XGATE_IMM5, 20)
 
      /* GNU extension for linker relaxation.
         Mark beginning of a jump instruction (any form).  */
-  RELOC_NUMBER (R_MC9S12X_RL_JUMP, 20)
+  RELOC_NUMBER (R_MC9S12X_RL_JUMP, 21)
 
      /* Mark beginning of Gcc relaxation group instruction.  */
-  RELOC_NUMBER (R_MC9S12X_RL_GROUP, 21)
+  RELOC_NUMBER (R_MC9S12X_RL_GROUP, 22)
 END_RELOC_NUMBERS (R_MC9S12X_max)
 
 /* Processor specific flags for the ELF header e_flags field.  */
