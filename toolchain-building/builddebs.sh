@@ -20,17 +20,17 @@ tar -cjf ${BUILDDIRBIN}/binutils-2.20.tar.bz2 $SRCDIRBIN
 
 cp -R binutils-s12x/debian $BUILDDIRBIN
 cp -R binutils-s12x/example $BUILDDIRBIN
-cp -R binutils-s12x/patches $BUILDDIRBIN
+#cp -R binutils-s12x/patches $BUILDDIRBIN
 
 cd $BUILDDIRBIN
 #fakeroot debian/rules clean
 #fakeroot debian/rules build
 fakeroot debian/rules binary
 
-if [ -f /usr/src/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb ]; then
+if [ -f ${BUILDDIRBIN}/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb ]; then
   echo "binutils-mc9s12x package built successfully"
   #read 
-  #dpkg -i /usr/src/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb; 
+  dpkg -i ${BUILDDIRBIN}/binutils-mc9s12x_2.20-0+${RELEASE_VER}_i386.deb; 
 else 
   echo "exiting please review output"; 
   read
@@ -47,15 +47,15 @@ tar -cjf ${BUILDDIRBINXGATE}/binutils-2.20.tar.bz2 $SRCDIRBIN
 
 cp -R binutils-xgate/debian $BUILDDIRBINXGATE
 cp -R binutils-xgate/example $BUILDDIRBINXGATE
-cp -R binutils-xgate/patches $BUILDDIRBINXGATE
+#cp -R binutils-xgate/patches $BUILDDIRBINXGATE
 
 cd $BUILDDIRBINXGATE
 fakeroot debian/rules binary
 
-if [ -f /usr/src/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb ]; then
+if [ -f ${BUILDDIRBINXGATE}/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb ]; then
   echo "binutils-mc9xgate packages built successfully"
   #read 
-  #dpkg -i /usr/src/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb; 
+  dpkg -i ${BUILDDIRBINXGATE}/binutils-mc9xgate_2.20-0+${RELEASE_VER}_i386.deb; 
 else 
   echo "please review output"; 
   read
@@ -81,10 +81,10 @@ cd ${BUILDDIRGCC}/gcc-m68hc1x-3.3.6*
 #fakeroot debian/rules binary
 fakeroot dpkg-buildpackage -b -uc 
 
-if [ -f /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb ]; then
+if [ -f ${BUILDDIRGCC}/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb ]; then
   echo "gcc-mc9s12x packages built successfully"
   #read 
-  #dpkg -i /usr/src/gcc-mc9s12x/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb; 
+  dpkg -i ${BUILDDIRGCC}/gcc-mc9s12x_3.3.6+3.1+dfsg-3+${RELEASE_VER}_i386.deb; 
 else 
   echo "error building gcc debian package, please review output"; 
   exit -1; 
