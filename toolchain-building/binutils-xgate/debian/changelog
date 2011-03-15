@@ -3,40 +3,40 @@ binutils-mc9xgate (1:2.20-0+6) unstable; urgency=low
   [ Sean Keys ]
   * Updated xgate GAS
 
- -- Sean Keys <support@computer-ss.com>   Thu, 10 Mar 2011 12:14:00 -0700
+ -- Sean Keys <support@computer-ss.com>  Thu, 10 Mar 2011 12:14:00 -0700
 
 binutils-mc9xgate (1:2.20-0+5) unstable; urgency=low
 
   [ Sean Keys ]
   * Changed Deps
 
- -- Sean Keys <support@computer-ss.com>   Wed, 20 Oct 2010 12:14:00 -0700 
+ -- Sean Keys <support@computer-ss.com>  Wed, 20 Oct 2010 12:14:00 -0700 
 
 binutils-mc9xgate (1:2.20-0+4) unstable; urgency=low
 
   [ Sean Keys ]
   * Changed Deps
 
- -- Sean Keys <support@computer-ss.com>   Wed, 20 Oct 2010 10:14:00 -0700 
+ -- Sean Keys <support@computer-ss.com>  Wed, 20 Oct 2010 10:14:00 -0700 
 
 binutils-mc9xgate (1:2.20-0+3) unstable; urgency=low
 
   [ Sean Keys ]
   * Changed Deps
 
- -- Sean Keys <support@computer-ss.com>   Wed, 20 Oct 2010 10:13:00 -0700
+ -- Sean Keys <support@computer-ss.com>  Wed, 20 Oct 2010 10:13:00 -0700
 
 binutils-mc9xgate (1:2.20-0+1) unstable; urgency=low
 
   [ Sean Keys ]
   * Fix Versioning so old tools will be replaced
 
- -- Sean Keys <support@computer-ss.com>   Wed, 20 Oct 2010 10:12:00 -0700 
+ -- Sean Keys <support@computer-ss.com>  Wed, 20 Oct 2010 10:12:00 -0700 
 
 binutils-mc9xgate (1:2.20-0) unstable; urgency=low
 
   [ Sean Keys ]
   * Initial clone of m68hc1x rules/control files
 
- -- Sean Keys <support@computer-ss.com>   Wed, 20 Oct 2010 10:11:00 -0700
+ -- Sean Keys <support@computer-ss.com>  Wed, 20 Oct 2010 10:11:00 -0700
 

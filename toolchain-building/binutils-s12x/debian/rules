@@ -28,17 +28,17 @@ unpack-stamp:
 	touch unpack-stamp
 
 patch: patch-stamp
-patch-stamp: unpack-stamp
+patch-stamp: 
 	dh_testdir
 # TODO impliment patch against van sources
 #	for patch in debian/patches/*.patch; do \
 #	  patch -p0 < $$patch; \
 #	done
 
-#	touch patch-stamp
+	touch patch-stamp
 
 configure: configure-stamp
-configure-stamp: patch-stamp
+configure-stamp: unpack-stamp
 	dh_testdir
 
 	cd build && \
@@ -59,7 +59,15 @@ build-stamp:
 	tar cfz $(CURDIR)/example.tar.gz example
 	touch build-stamp
 
-install: build
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f $(CURDIR)/example.tar.gz
+	rm -rf build $(srcdir)
+	rm -f build-stamp configure-stamp patch-stamp unpack-stamp
+	dh_clean
+
+install: build 
 	dh_testdir
 	dh_testroot
 	dh_clean -k
@@ -99,17 +107,10 @@ install: build
 	install -p -o root -g root -m 644 $(CURDIR)/debian/overrides \
 		$(D)/usr/share/lintian/overrides/binutils-mc9s12x
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f $(CURDIR)/example.tar.gz
-	rm -rf build $(srcdir)
-	rm -f build-stamp configure-stamp patch-stamp unpack-stamp
-
-	dh_clean
 
 # Build architecture-independent files here.
 binary-indep: build install
+
 # We have nothing to do by default.
 
 # Build architecture-dependent files here.

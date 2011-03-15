@@ -28,7 +28,7 @@ unpack-stamp:
 	touch unpack-stamp
 
 patch: patch-stamp
-patch-stamp: unpack-stamp
+patch-stamp: 
 	dh_testdir
 
 #TODO impliment patches with van sources
@@ -39,7 +39,7 @@ patch-stamp: unpack-stamp
 	touch patch-stamp
 
 configure: configure-stamp
-configure-stamp: patch-stamp
+configure-stamp: unpack-stamp
 	dh_testdir
 
 	cd build && \
@@ -59,6 +59,14 @@ build-stamp:
 	cd build && $(MAKE)
 	tar cfz $(CURDIR)/example.tar.gz example
 	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f $(CURDIR)/example.tar.gz
+	rm -rf build $(srcdir)
+	rm -f build-stamp configure-stamp patch-stamp unpack-stamp
+	dh_clean
 
 install: build
 	dh_testdir
@@ -104,14 +112,6 @@ install: build
 	install -p -o root -g root -m 644 $(CURDIR)/debian/overrides \
 		$(D)/usr/share/lintian/overrides/binutils-mc9xgate
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f $(CURDIR)/example.tar.gz
-	rm -rf build $(srcdir)
-	rm -f build-stamp configure-stamp patch-stamp unpack-stamp
-
-	dh_clean
 
 # Build architecture-independent files here.
 binary-indep: build install
