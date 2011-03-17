@@ -18,7 +18,7 @@ GCCTARBALL="gcc-mc9s12x_3.3.6+3.1+dfsg-3+7.tar.gz"
 # previously and has the rootimages setup for the distros specified
 #
 function build_debs {
-DEB_RELEASES="lenny maverick lucid karmic jaunty"
+DEB_RELEASES="maverick lucid karmic jaunty lenny"
 for dist in `echo "${DEB_RELEASES}"` ; do
 	echo "Building for Distro $dist"
 	DESTDIR="${OUTDIR}"/"${dist}"
@@ -65,7 +65,7 @@ if [ ! -f "${WORKDIR}"/"${GCCTARBALL}" ] ; then
 	exit -1
 fi
 mkdir -p "${BUILDDIR}"/gcc
-pushd gcc
+pushd "${BUILDDIR}"/gcc
 tar xfz "${WORKDIR}"/"${GCCTARBALL}"
 pushd gcc-m68hc1x-3.3.6+3.1+dfsg
 cp -a "${WORKDIR}"/gcc/* ./debian
@@ -92,7 +92,7 @@ rm  -f "${BINUTILS}"
 rm -rf "${BUILDDIR}"
 }
 
-build_binutils
+#build_binutils
 build_gcc
-build_newlib
+#build_newlib
 
