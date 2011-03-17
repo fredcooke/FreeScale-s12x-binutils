@@ -8,7 +8,7 @@
 WORKDIR=`pwd`
 BINUTILS="${WORKDIR}"/binutils-2.20.tar.bz2
 OUTDIR="${WORKDIR}"/Output
-OTHERMIRROR=/var/www/repo
+OTHERMIRROR=/var/cache/pbuilder/repo
 BUILDDIR="${WORKDIR}"/build
 NEWLIBDIR=newlib-1.18.0
 BINUTILSPKGS="binutils-s12x binutils-xgate"
