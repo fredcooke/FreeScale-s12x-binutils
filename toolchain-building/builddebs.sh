@@ -18,8 +18,7 @@ GCCTARBALL="gcc-mc9s12x_3.3.6+3.1+dfsg-3+7.tar.gz"
 # previously and has the rootimages setup for the distros specified
 #
 function build_debs {
-#DEB_RELEASES="lenny jaunty karmic lucid"
-DEB_RELEASES="lucid"
+DEB_RELEASES="lenny maverick lucid karmic jaunty"
 for dist in `echo "${DEB_RELEASES}"` ; do
 	echo "Building for Distro $dist"
 	DESTDIR="${OUTDIR}"/"${dist}"
