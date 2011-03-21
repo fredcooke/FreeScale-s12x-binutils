@@ -37,6 +37,9 @@ for dist in `echo "${DEB_RELEASES}"` ; do
 done
 }
 
+function setup {
+mkdir -p "${BUILDDIR}"
+}
 
 # Need to make multiple versions of binutils, 
 # one for S12x, and one for Xgate
@@ -77,6 +80,7 @@ return $?
 
 # Need to make Newlib
 function build_newlib {
+mkdir -p "${BUILDIR}"
 pushd "${BUILDDIR}"
 apt-get source newlib-source
 pushd "${NEWLIBDIR}"
@@ -90,9 +94,27 @@ return $?
 function clean {
 rm  -f "${BINUTILS}"
 rm -rf "${BUILDDIR}"
+rm -rf "${OUTDIR}"
 }
 
-#build_binutils
-build_gcc
-#build_newlib
+function help {
+echo "Run builddebs.sh with no args to rebuild everything"
+echo "Run builddebs.sh build_binutils to just rebuild binutils"
+echo "Run builddebs.sh build_gcc to just rebuild gcc"
+echo "Run builddebs.sh buildnewlib to just rebuild newlib"
+echo "Run builddebs.sh clean to cleanout build and output dirs"
+echo ""
+}
+
+
+if [ $# -eq 1 ] ; then
+	echo "Attempting to run $1"
+	$1
+else
+	echo "Rebuilding all (binutils, gcc, newlib)"
+	setup
+	build_binutils
+	build_gcc
+	build_newlib
+fi
 
