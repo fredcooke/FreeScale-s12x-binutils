@@ -19,8 +19,7 @@ ARCHS="i386 amd64"
 # previously and has the rootimages setup for the distros specified
 #
 function build_debs {
-#DEB_RELEASES="natty maverick lucid karmic jaunty"
-DEB_RELEASES="natty"
+DEB_RELEASES="natty maverick lucid karmic jaunty"
 for dist in `echo "${DEB_RELEASES}"` ; do
 	for arch in `echo ${ARCHS}` ; do
 		echo "Building for Distro $dist Arch $arch"
