@@ -1,0 +1,17 @@
+Package: freeems-toolchain
+Version: 0.0.9
+Section: toolchain
+Priority: optional
+Architecture: i386
+Depends: gcc-mc9s12x (>=1:3.3.6+3.1+dfsg-3+7), binutils-mc9s12x (>=1:2.20-0+7), binutils-mc9xgate (>=1:2.20-0+7), newlib-mc9s12x (>=1.18.0-6+7), make, bc
+Suggests:
+Replaces: freeems-toolchain
+Conflicts: binutils-m68hc1x, gcc-m68hc1x, newlib-m68hc1x
+Installed-Size: 124 kb
+Maintainer: Sean Keys <skeys@ipdatasys.com>
+Description: This will install the Freescale S12X dev tool chain.
+             These tools are required to build FreeEMS firmware.
+
+
+
+
