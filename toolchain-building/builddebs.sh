@@ -13,27 +13,30 @@ BUILDDIR="${WORKDIR}"/build
 NEWLIBDIR=newlib-1.18.0
 BINUTILSPKGS="binutils-s12x binutils-xgate"
 GCCTARBALL="gcc-mc9s12x_3.3.6+3.1+dfsg-3+7.tar.gz"
+ARCHS="i386 amd64"
 
 # Builds the deb pkgs.  Assumes pdebuild has been setup and configured
 # previously and has the rootimages setup for the distros specified
 #
 function build_debs {
-DEB_RELEASES="maverick lucid karmic jaunty lenny"
+DEB_RELEASES="natty maverick lucid karmic jaunty"
 for dist in `echo "${DEB_RELEASES}"` ; do
-	echo "Building for Distro $dist"
-	DESTDIR="${OUTDIR}"/"${dist}"
-	if [ ! -d "${DESTDIR}" ] ; then
-		mkdir -p "${DESTDIR}"
-	fi
-	find ${OTHERMIRROR}  -type f -exec rm -f {} \;
-	find ${DESTDIR} -type f -name "*.deb" -exec cp -a {} ${OTHERMIRROR} \;
-#pdebuild --buildresult "${DESTDIR}" --pbuilderroot "sudo DIST=${dist}" -- --othermirror "deb file:///${DESTDIR} ./"
-	pdebuild --buildresult "${DESTDIR}" --pbuilderroot "sudo DIST=${dist}"
-	if [ $? -ne 0 ] ; then
-		echo "Build failure for dist $dist"
-		exit -1
-	fi
-	find ${OTHERMIRROR}  -type f -exec rm -f {} \;
+	for arch in `echo ${ARCHS}` ; do
+		echo "Building for Distro $dist Arch $arch"
+		DESTDIR="${OUTDIR}"/"${dist}"
+		if [ ! -d "${DESTDIR}" ] ; then
+			mkdir -p "${DESTDIR}"
+		fi
+		find ${OTHERMIRROR}  -type f -exec rm -f {} \;
+		find ${DESTDIR} -type f -name "*$arch.deb" -exec cp -a {} ${OTHERMIRROR} \;
+		#pdebuild --buildresult "${DESTDIR}" --pbuilderroot "sudo DIST=${dist}" -- --othermirror "deb file:///${DESTDIR} ./"
+		pdebuild --architecture $arch --buildresult "${DESTDIR}" --pbuilderroot "sudo DIST=${dist} ARCH=${arch}"
+		if [ $? -ne 0 ] ; then
+			echo "Build failure for Arch $arch Dist $dist"
+			exit -1
+		fi
+		find ${OTHERMIRROR} -type f -exec rm -f {} \;
+	done
 done
 }
 
@@ -64,8 +67,8 @@ return $?
 # Need to make GCC next
 function build_gcc {
 if [ ! -f "${WORKDIR}"/"${GCCTARBALL}" ] ; then
-	echo "MISSING GCC tarball ${GCCTARBALL}"
-	exit -1
+       echo "MISSING GCC tarball ${GCCTARBALL}"
+       exit -1
 fi
 mkdir -p "${BUILDDIR}"/gcc
 pushd "${BUILDDIR}"/gcc
@@ -77,6 +80,7 @@ popd
 popd
 return $?
 }
+
 
 # Need to make Newlib
 function build_newlib {
@@ -101,7 +105,7 @@ function help {
 echo "Run builddebs.sh with no args to rebuild everything"
 echo "Run builddebs.sh build_binutils to just rebuild binutils"
 echo "Run builddebs.sh build_gcc to just rebuild gcc"
-echo "Run builddebs.sh buildnewlib to just rebuild newlib"
+echo "Run builddebs.sh build_newlib to just rebuild newlib"
 echo "Run builddebs.sh clean to cleanout build and output dirs"
 echo ""
 }
