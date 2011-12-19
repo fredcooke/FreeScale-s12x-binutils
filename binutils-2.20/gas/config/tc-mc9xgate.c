@@ -997,16 +997,14 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 
   switch (fixP->fx_r_type)
     {
-
   //   case BFD_RELOC_MC9XGATE_PCREL_9:
   case R_MC9XGATE_PCREL_9:
-
     if (value < -255 || value > 254)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value %ld too large for 9-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
     value = result.quot;
-    mask = 0x1FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
+    mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
     //printf("\n fixup with operand is %ld",(opcode | value));
