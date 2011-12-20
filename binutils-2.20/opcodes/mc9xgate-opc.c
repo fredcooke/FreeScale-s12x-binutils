@@ -109,15 +109,11 @@ Size --------------------------------------------------------+   +--------------
 */
 	{   "adc",   OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "add",   OP_TRI, "00011rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1802, 1, 1, CHG_NZVC, cpumc9xgate},
-
-	{	"add", OP_IMM16mADD, "----------------",   MC9XGATE_R_I, 4,      0, 0, 0, CHG_NONE, cpumc9xgate},
-
+	{   "add", OP_IMM16mADD, "----------------",   MC9XGATE_R_I, 4,      0, 0, 0, CHG_NONE, cpumc9xgate},
 //	{  "add",  OP_IMM16, "11101rrriiiiiiii11100rrriiiiiiii",   MC9XGATE_R_I, 4, 0xE800E000, 1, 1, CHG_NZVC, cpumc9xgate},
 //	{  "addlm",  OP_IMM8m, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
-
 	{  "addh",  OP_IMM8, "11101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "addl",  OP_IMM8, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
-
 	{   "and",   OP_TRI, "00010rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1000, 1, 1,  CHG_NZV, cpumc9xgate},
 	{  "andh",  OP_IMM8, "10001rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8800, 1, 1,  CHG_NZV, cpumc9xgate},
 	{  "andl",  OP_IMM8, "10000rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8000, 1, 1,  CHG_NZV, cpumc9xgate},
@@ -165,7 +161,8 @@ Size --------------------------------------------------------+   +--------------
 	{   "ldb",   OP_IDR, "01100rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6000, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "ldh",  OP_IMM8, "11111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF800, 1, 1, CHG_NONE, cpumc9xgate},
 	{   "ldl",  OP_IMM8, "11110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF000, 1, 1, CHG_NONE, cpumc9xgate},
-	{   "ldd",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate},
+	{   "ldw",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate},
+	{   "ld",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate}, //todo alias instead of duplicate
 	{   "ldw",  OP_IDO5, "01001rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4800, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "ldw",   OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "lsl",  OP_IMM4, "00001rrriiii1100",   MC9XGATE_R_I, 2, 0x080C, 1, 1, CHG_NZVC, cpumc9xgate},
@@ -176,7 +173,7 @@ Size --------------------------------------------------------+   +--------------
 	{   "neg",   OP_DYA, "00011rrrsssrrr00",   MC9XGATE_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "nop",   OP_INH, "0000000100000000",   MC9XGATE_INH, 2, 0x0100, 1, 1, CHG_NONE, cpumc9xgate},
 	{    "or",   OP_TRI, "00010rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1002, 1, 1,  CHG_NZV, cpumc9xgate},
-    {   "orh",  OP_IMM8, "10101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xA800, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "orh",  OP_IMM8, "10101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xA800, 1, 1,  CHG_NZV, cpumc9xgate},
 	{   "orl",  OP_IMM8, "10100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xA000, 1, 1,  CHG_NZV, cpumc9xgate},
 	{   "par",   OP_MON, "00000rrr11110101",     MC9XGATE_R, 2, 0x00F5, 1, 1,  CHG_NZV, cpumc9xgate},
 	{   "rol",  OP_IMM4, "00001rrriiii1110",   MC9XGATE_R_I, 2, 0x080E, 1, 1,  CHG_NZV, cpumc9xgate},
@@ -193,18 +190,18 @@ Size --------------------------------------------------------+   +--------------
 	{   "stb",  OP_IDO5, "01010rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x5000, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "stb",   OP_IDR, "01110rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x7000, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "stw",  OP_IDO5, "01011rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x5800, 2, 2, CHG_NONE, cpumc9xgate},
-    {   "stw",   OP_IDR, "01111rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x7800, 2, 2, CHG_NONE, cpumc9xgate},
-    {   "sub",   OP_TRI, "00011rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
-    {   "sub",    OP_IMM16mSUB, "----------------", MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate},
-    {  "subh",  OP_IMM8, "11001rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC800, 1, 1, CHG_NZVC, cpumc9xgate},
-    {  "subl",  OP_IMM8, "11000rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC000, 1, 1, CHG_NZVC, cpumc9xgate},
-    {   "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 1, CHG_NONE, cpumc9xgate},
-    {   "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 1, CHG_NONE, cpumc9xgate},
-    {   "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 1, CHG_NONE, cpumc9xgate},
-    {   "tst",   OP_MON, "00011sssrrrsss00",   MC9XGATE_R, 2, 0x1800, 1, 1,  CHG_NZV, cpumc9xgate},
-    {  "xnor",   OP_TRI, "00010rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1003, 1, 1, CHG_NZV, cpumc9xgate},
-    { "xnorh",  OP_IMM8, "10111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB800, 1, 1, CHG_NZV, cpumc9xgate},
-    { "xnorl",  OP_IMM8, "10110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB000, 1, 1, CHG_NZV, cpumc9xgate}
+	{   "stw",   OP_IDR, "01111rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x7800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "sub",   OP_TRI, "00011rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "sub",    OP_IMM16mSUB, "----------------", MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate},
+	{  "subh",  OP_IMM8, "11001rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC800, 1, 1, CHG_NZVC, cpumc9xgate},
+	{  "subl",  OP_IMM8, "11000rrriiiiiiii",   MC9XGATE_R_I, 2, 0xC000, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "tfr",  OP_MON_R_C, "00000rrr11111000",   MC9XGATE_R_C, 2, 0x00F8, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "tfr",  OP_MON_C_R, "00000rrr11111001",   MC9XGATE_C_R, 2, 0x00F9, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "tfr",  OP_MON_R_P, "00000rrr11111010",   MC9XGATE_R_P, 2, 0x00FA, 1, 1, CHG_NONE, cpumc9xgate},
+	{   "tst",   OP_MON, "00011sssrrrsss00",   MC9XGATE_R, 2, 0x1800, 1, 1,  CHG_NZV, cpumc9xgate},
+	{  "xnor",   OP_TRI, "00010rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1003, 1, 1, CHG_NZV, cpumc9xgate},
+	{ "xnorh",  OP_IMM8, "10111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB800, 1, 1, CHG_NZV, cpumc9xgate},
+	{ "xnorl",  OP_IMM8, "10110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xB000, 1, 1, CHG_NZV, cpumc9xgate}
 };
 
 const int mc9xgate_num_opcodes = TABLE_SIZE (mc9xgate_opcodes);
