@@ -88,6 +88,7 @@
 #define OP_REL9			MC9XGATE_OP_REL9
 #define OP_REL10    	MC9XGATE_OP_REL10
 #define OP_IMM16mADD    MC9XGATE_OP_IMM16mADD
+#define OP_IMM16mAND    MC9XGATE_OP_IMM16mAND
 #define OP_IMM16mCPC    MC9XGATE_OP_IMM16mCPC
 #define OP_IMM16mLDD    MC9XGATE_OP_IMM16mLDD
 #define OP_IMM16mSUB    MC9XGATE_OP_IMM16mSUB
@@ -109,12 +110,11 @@ Size --------------------------------------------------------+   +--------------
 */
 	{   "adc",   OP_TRI, "00011rrrrrrrrr11", MC9XGATE_R_R_R, 2, 0x1803, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "add",   OP_TRI, "00011rrrrrrrrr10", MC9XGATE_R_R_R, 2, 0x1802, 1, 1, CHG_NZVC, cpumc9xgate},
-	{   "add", OP_IMM16mADD, "----------------",   MC9XGATE_R_I, 4,      0, 0, 0, CHG_NONE, cpumc9xgate},
-//	{  "add",  OP_IMM16, "11101rrriiiiiiii11100rrriiiiiiii",   MC9XGATE_R_I, 4, 0xE800E000, 1, 1, CHG_NZVC, cpumc9xgate},
-//	{  "addlm",  OP_IMM8m, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
+	{   "add", OP_IMM16mADD, "----------------",   MC9XGATE_R_I, 4,  0, 0, 0, CHG_NONE, cpumc9xgate},
 	{  "addh",  OP_IMM8, "11101rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE800, 1, 1, CHG_NZVC, cpumc9xgate},
 	{  "addl",  OP_IMM8, "11100rrriiiiiiii",   MC9XGATE_R_I, 2, 0xE000, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "and",   OP_TRI, "00010rrrrrrrrr00", MC9XGATE_R_R_R, 2, 0x1000, 1, 1,  CHG_NZV, cpumc9xgate},
+	{   "and", OP_IMM16mAND, "----------------",   MC9XGATE_R_I, 4,      0, 0, 0, CHG_NONE, cpumc9xgate},
 	{  "andh",  OP_IMM8, "10001rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8800, 1, 1,  CHG_NZV, cpumc9xgate},
 	{  "andl",  OP_IMM8, "10000rrriiiiiiii",   MC9XGATE_R_I, 2, 0x8000, 1, 1,  CHG_NZV, cpumc9xgate},
 	{   "asr",  OP_IMM4, "00001rrriiii1001",   MC9XGATE_R_I, 2, 0x0809, 1, 1, CHG_NZVC, cpumc9xgate},
@@ -161,10 +161,11 @@ Size --------------------------------------------------------+   +--------------
 	{   "ldb",   OP_IDR, "01100rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6000, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "ldh",  OP_IMM8, "11111rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF800, 1, 1, CHG_NONE, cpumc9xgate},
 	{   "ldl",  OP_IMM8, "11110rrriiiiiiii",   MC9XGATE_R_I, 2, 0xF000, 1, 1, CHG_NONE, cpumc9xgate},
-	{   "ldw",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate},
 	{   "ld",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate}, //todo alias instead of duplicate
+	{   "ldd",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate}, //todo change xgate.s and remove
 	{   "ldw",  OP_IDO5, "01001rrrrrriiiii", MC9XGATE_R_R_I, 2, 0x4800, 2, 2, CHG_NONE, cpumc9xgate},
 	{   "ldw",   OP_IDR, "01101rrrrrrrrrrr", MC9XGATE_R_R_R, 2, 0x6800, 2, 2, CHG_NONE, cpumc9xgate},
+	{   "ldw",  OP_IMM16mLDD, "----------------",   MC9XGATE_R_I, 4, 0, 0, 0, CHG_NONE, cpumc9xgate}, //todo fix mc9xgate_find_match so order wont matter
 	{   "lsl",  OP_IMM4, "00001rrriiii1100",   MC9XGATE_R_I, 2, 0x080C, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "lsl",   OP_DYA, "00001rrrrrr10100",   MC9XGATE_R_R, 2, 0x0814, 1, 1, CHG_NZVC, cpumc9xgate},
 	{   "lsr",  OP_IMM4, "00001rrriiii1101",   MC9XGATE_R_I, 2, 0x080D, 1, 1, CHG_NZVC, cpumc9xgate},

@@ -699,8 +699,7 @@ const struct m68hc11_opcode m68hc11_opcodes[] = {
   { "etbl", OP_IDX | OP_PAGE2,3, 0x3f, 10, 10,  CHG_NZC, cpu6812 | cpu6812x },
 
   /* TODO S12X supports more exg variants than this */
-  { "exg",  OP_EXG_MARKER
-          | OP_REG | OP_REG_2, 2, 0xb7, 1, 1,  CHG_NONE, cpu6812 | cpu6812x },
+  { "exg",  OP_EXG_MARKER | OP_REG | OP_REG_2, 2, 0xb7, 1, 1,  CHG_NONE, cpu6812 | cpu6812x },
 
   { "fdiv", OP_NONE,             1, 0x03,  3, 41, CHG_ZVC, cpu6811},
   { "fdiv", OP_NONE | OP_PAGE2, 2, 0x11, 12, 12, CHG_ZVC, cpu6812 | cpu6812x },

@@ -381,6 +381,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_TRI			 "r,r,r"
 #define MC9XGATE_OP_DYA			 "r,r"
 #define MC9XGATE_OP_IMM16mADD    "r,if; addl addh"
+#define MC9XGATE_OP_IMM16mAND    "r,if; andl andh"
 #define MC9XGATE_OP_IMM16mCPC    "r,if; cmpl cpch"
 #define MC9XGATE_OP_IMM16mSUB    "r,if; subl subh"
 #define MC9XGATE_OP_IMM16mLDD    "r,if; ldl ldh"
@@ -398,7 +399,6 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 #define MC9XGATE_OP_REL9		 "b9"
 #define MC9XGATE_OP_REL10		 "ba"
 #define MC9XGATE_OP_DYA_MON		 "=r,r"
-
 
 #define MC9XGATE_OP_DIRECT       0x0001   /* Page 0 addressing:   *<val-8bits>  */
 #define MC9XGATE_OP_IMM16_REMOVE        0x0009   /* THERE IS NO IMM16 16 bits immediat:    #<val-16bits> */
