@@ -1576,7 +1576,7 @@ const struct m68hc11_opcode m68hc11_opcodes[] = {
   { "wav",  OP_NONE | OP_PAGE2, 2, 0x3c,  8,  _M, SET_Z_CHG_HNVC, cpu6812|cpu6812x },
 
   { "xgdx", OP_NONE,           1, 0x8f,  3,  3,  CHG_NONE, cpu6811 },
-  { "xgdy", OP_NONE | OP_PAGE2,2, 0x8f,  4,  4,  CHG_NONE, cpu6811 },
+  { "xgdy", OP_NONE | OP_PAGE2,2, 0x8f,  4,  4,  CHG_NONE, cpu6811 }
 };
 
 const int m68hc11_num_opcodes = TABLE_SIZE (m68hc11_opcodes);
