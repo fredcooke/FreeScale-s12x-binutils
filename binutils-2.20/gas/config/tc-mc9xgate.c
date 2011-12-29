@@ -650,7 +650,6 @@ void md_assemble(char *input_line)
       if (!opcode)
         {
           as_bad(_(":error matching operand format"));
-          printf("opcode is %x", opcode);
           //TODO print list of possibilities
         }
       else if (opcode->size == 2)
@@ -1742,14 +1741,9 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 
 unsigned int mc9xgate_detect_format(char *line_in) {
   char num_operands = 0;
-  char operand_code = 0;
   char *str = skip_whitespace(line_in);
-  unsigned char operand_detected = 0;
-  unsigned char expecting_more = 0;
-  unsigned char isFirst = 1;
   int i = 0;
   int j = 0;
-  unsigned int num_chars_between_seperators = 0;
   unsigned int stripped_length = 0;
   char sh_format[10] = {0}; /* shorthand format */
   char operands_stripped[3][20] = {{0}};
