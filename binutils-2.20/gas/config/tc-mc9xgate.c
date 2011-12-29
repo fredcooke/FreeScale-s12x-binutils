@@ -21,17 +21,7 @@
  the Free Software Foundation, 51 Franklin Street - Fifth Floor,
  Boston, MA 02110-1301, USA.
 
- Relocation 14 is not supported by object file format
- bfd_install_relocation
- R_MC9XGATE_32
- about to return relocation
- about to compare
- elf_set_mach_from_flag
- architecture of input file
- failed to merge target specific data
- Can't disassemble for architecture
- printf relocation truncated to fit is not in the same bank as current banked address
- about to detect operands,
+
 
  */
 
@@ -82,6 +72,7 @@ const char FLT_CHARS[] = "dD";
 //	unsigned short bin_operand_mask;
 //	unsigned int  shorthand_format; /* prime values used as flags */
 //	char	num_modes;
+// address
 //};
 // bfd_reloc_code_real_type
 /* This macro has no side-effects.  */
@@ -142,9 +133,6 @@ mc9xgate_find_match(struct mc9xgate_opcode_handle *opcode_handle,
 void
 mc9xgate_get_macro_masks(unsigned int *operMask0, unsigned int *operMask1,
     char *string);
-
-static char *
-mc9xgate_parse_exp(char *s, expressionS *op);
 
 unsigned short
 mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
@@ -607,41 +595,36 @@ md_section_align(asection *seg, valueT addr)
   return ((addr + (1 << align) - 1) & (-1 << align));
 }
 
-void
-md_assemble(char *input_line)
+void md_assemble(char *input_line)
 {
   struct mc9xgate_opcode *opcode = 0;
   struct mc9xgate_opcode *macro_opcode = 0;
   struct mc9xgate_opcode_handle *opcode_handle = 0;
   char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
   unsigned short opcode_bin = 0;
-  char op_name[9] =
-    { 0 };
+  char op_name[9] = { 0 };
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
   char *p = 0;
   unsigned int imm16_value0 = 0;
   unsigned int imm16_value1 = 0;
-  char imm16_string[25] =
-    { 0 };
+  char imm16_string[25] = { 0 };
   unsigned int imm16_string_index = 0;
   char *imm16_pointer = 0;
+  unsigned char format_found = 0;
 
   fixup_required = 0;
-
   numberOfCalls++; // for testing
-
   oper_check = 0; /* set error flags */
 
   input_line = extract_word(input_line, op_name, sizeof(op_name));
+  /* check to make sure we are not reading a bugus line */
   if (!op_name[0])
     {
       as_bad(_("opcode missing or not found on input line"));
       //	 return;
     }
-
-  //printf("\n read code %s\n", op_name);
-
+ //printf("\n read code %s\n", op_name);
   if (!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find(
       mc9xgate_hash, op_name)))
     {
@@ -650,7 +633,6 @@ md_assemble(char *input_line)
     }
   else
     {
-
       /* detect operand format so we can pull the proper opcode bin */
       handle_enum_alias = opcode_handle->number_of_modes;
       //printf("\n about to detect operands, %d combinations found", handle_enum_alias);
@@ -660,17 +642,19 @@ md_assemble(char *input_line)
 
       if (handle_enum_alias > 1)
         {
-          opcode = mc9xgate_find_match(opcode_handle,
-              opcode_handle->number_of_modes, sh_format);
+          opcode = mc9xgate_find_match(opcode_handle, opcode_handle->number_of_modes, sh_format);
+          printf("\n opcode match is %hx", opcode->bin_opcode);
         }
       else
         {
           opcode = opcode_handle->opc0;
+          printf("\n opcode match is %hx", opcode->bin_opcode);
         }
 
       if (!opcode)
         {
           as_bad(_(":error matching operand format"));
+          printf("opcode is %x", opcode);
           //TODO print list of possibilities
         }
       else if (opcode->size == 2)
@@ -684,6 +668,7 @@ md_assemble(char *input_line)
     	  macroClipping = 1;
     	  char constraintString[50];
           unsigned int i;
+
           /* extract formal constraint string */
           for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
             {
@@ -692,7 +677,7 @@ md_assemble(char *input_line)
           p++;
           constraintString[i] = 0;
 
-          sh_format = mc9xgate_detect_format(constraintString);
+//          sh_format = mc9xgate_detect_format(constraintString);
 
           input_line = skip_whitespace(input_line);
 
@@ -716,8 +701,7 @@ md_assemble(char *input_line)
                 {
                   sh_format = mc9xgate_detect_format(input_line);
                   //printf("\n about to call find match then operands %s %s , number of modes %d with sh-format %d", op_name, input_line, opcode_handle->number_of_modes, sh_format);
-                  macro_opcode = mc9xgate_find_match(opcode_handle,
-                      opcode_handle->number_of_modes, sh_format);
+                  macro_opcode = mc9xgate_find_match(opcode_handle, opcode_handle->number_of_modes, sh_format);
                   //printf("\n opcode is %s", opcode->name);
                   opcode_bin = mc9xgate_operands(macro_opcode, &input_line);
                 }
@@ -1187,6 +1171,9 @@ extract_word(char *from, char *to, int limit)
 /* Create a new fragment for our instruction. Record the
  line information of that insn in the dwarf2 debug sections. */
 static char *
+mc9xgate_parse_exp(char *s, expressionS *op);
+
+static char *
 mc9xgate_new_instruction(int size)
 {
 
@@ -1202,7 +1189,7 @@ mc9xgate_apply_operand(unsigned short new_mask,
     unsigned short *availiable_mask_bits, unsigned short mask,
     unsigned char n_bits)
 {
-  ////printf("\n need to apply %d to %d with %d left", new_mask, mask, *availiable_mask_bits);
+  printf("\n need to apply %ux to %ux with %ux left", new_mask, mask, *availiable_mask_bits);
   unsigned short n_shifts;
   unsigned int n_drop_bits;
 
@@ -1434,7 +1421,6 @@ static unsigned int
 mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
     char **op_con, char **line)
 {
-
   expressionS op_expr;
   opcode = opcode;
   char *op_constraint = *op_con;
@@ -1453,8 +1439,9 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
     {
   /* TODO should be able to combine with with case R */
   case '+': /* indexed register operand +/- or plain r  */
-    pp_fix = 0x0b00; /* default to no inc or dec */
-    //TODO maybe use a loop so the order is not important
+    //pp_fix = 0x0b00; /* default to neither inc or dec */
+    pp_fix = 0;
+	  //TODO maybe use a loop so the order is not important
     *bit_width = 5;
     //printf("\n found +/- line reads %s", str);
     //str = extract_word (str, r_name, sizeof (r_name));
@@ -1479,7 +1466,6 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
                   op_mask = r_name[1] - '0';
                 if (r_name[2] != '\0' && (r_name[1] - '0' > 7))
                   as_bad(_(": expected register name r0-r7 read %s"), r_name);
-
                 //else{ //if (r_name[1] != '0'
                 //	&& ISDIGIT (r_name[2])
                 //	&& r_name[3] == '\0')
@@ -1758,121 +1744,79 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
   return op_mask;
 }
 
-unsigned int
-mc9xgate_detect_format(char *line_in)
-{
-  char c;
-  char sh_format[10]; /* shorthand format */
+unsigned int mc9xgate_detect_format(char *line_in) {
   char num_operands = 0;
-  int i = 0;
+  char operand_code = 0;
   char *str = skip_whitespace(line_in);
-  char previous_char = 0;
-  char process_first_char = 0; /* next character is first of an operand */
+  unsigned char operand_detected = 0;
+  unsigned char expecting_more = 0;
+  unsigned char isFirst = 1;
+  int i = 0;
+  int j = 0;
+  unsigned int num_chars_between_seperators = 0;
+  unsigned int stripped_length = 0;
+  char sh_format[10] = {0}; /* shorthand format */
+  char operands_stripped[3][20] = {{0}};
 
+  /* if the length is zero this is an inherent instruction */
+  if(strlen(str) == 0) {
+	  return  MC9XGATE_INH;
+  }
+
+  for(i = 0, j = 0, num_operands = 1; *str != 0; str++) {
+	  if (*str == ' ' || *str == '\t' || *str == '(' || *str == ')' || *str == '-' || *str == '+') {
+		  continue;
+	  }
+	  if(*str == ',') {
+		  j++;
+		  num_operands++;
+		  i = 0;
+		  continue;
+	  }
+	  if(i > 20) { /* we should never need more than 20 chars to figure out what it is */
+		  continue;
+	  }
+	  operands_stripped[j][i++] = *str;
+  }
+  /* process our substrings to see what we have */
+  for(i = 0, j = 0; num_operands > i; i++) {
+	  stripped_length = strlen(&operands_stripped[i][0]);
+	  /* add separator if we have more than one operand */
+	  if(i > 0) {
+		  sh_format[j++] = ',';
+	  }
+	  /* try to process by length first */
+	  if(stripped_length > 3) {
+		  sh_format[j++] = 'i';
+	  }else if(stripped_length == 1) {
+		  sh_format[j++] = 'i';
+	  }else if(stripped_length == 2) {
+		  if (operands_stripped[i][0] == 'r' && ISDIGIT(operands_stripped[i][1])) {
+			  sh_format[j++] = 'r';
+		  }else if(operands_stripped[i][0] == 'p' && operands_stripped[i][1] == 'c') {
+				  sh_format[j++] = 'p';
+		  } else {
+			  sh_format[j++] = 'i';
+		  }
+	  } else if(stripped_length == 3){
+		  if(operands_stripped[i][0] == 'c' && (operands_stripped[i][1] == 'c' && operands_stripped[i][2] == 'r')) {
+			  sh_format[j++] = 'c';
+		  }else if(operands_stripped[i][0] == '#') {
+			  sh_format[j++] = 'i';
+		  }
+	  }
+  }
   /* strings TODO maybe structure this*/
-  char* i_string =
-    { "i" };
-  char *r_string =
-    { "r" };
-  char *r_r_string =
-    { "r,r" };
-  char *r_r_r_string =
-    { "r,r,r" };
-  char *r_i_string =
-    { "r,i" };
-  char *r_c_string =
-    { "r,c" };
-  char *c_r_string =
-    { "c,r" };
-  char *r_p_string =
-    { "r,p" };
-  char *r_r_i_string =
-    { "r,r,i" };
-  char *r_bug3_string =
-    { "r," }; /* TODO seems there is a bug with the parsing code*/
-  char *r_bug4_string =
-    { ",r" }; /* TODO seems there is a bug with the parsing code*/
-  char *r_bug5_string =
-    { "r,ip" }; /* TODO seems there is a bug with the parsing code*/
-
-  for (i = 0, process_first_char = 1; (c = TOLOWER(*skip_whitespace(str)))
-      && num_operands < 3; ++str)
-    {
-      //	printf("\n debug detect char read %c",c); :error matching operand format
-
-      /* mark immediate values incase they are not marked */
-      //	if (ISDIGIT(c) && process_first_char){
-      //		c = '#';
-      //		process_first_char = 0;
-      //	}
-
-      switch (c)
-        {
-      case 'r':
-        if (process_first_char)
-          {
-            process_first_char = 0;
-            if (previous_char == 'c')
-              {
-                sh_format[i++] = 'c'; /* special registers allowed */
-              }
-            else
-              {
-                sh_format[i++] = 'r';
-              }
-          }
-        break;
-      case ',':
-        if (process_first_char)
-          { /* default to an immediate value */
-            sh_format[i++] = 'i';
-          }
-        process_first_char = 1;
-        sh_format[i++] = ',';
-        num_operands++;
-        break;
-      case '#':
-        process_first_char = 0;
-        sh_format[i++] = 'i'; /* immediate address */
-        break;
-      case 'c': /* TODO make expected var work with r case */
-        process_first_char = 0;
-        if (previous_char == 'p')
-          {
-            sh_format[i++] = 'p'; /* special registers allowed */
-          }
-        else
-          {
-            // possobile error message
-          }
-        break;
-      default: /* default to an immediate as an expression */
-        if (process_first_char && c != '+' && c != '-')
-          {
-            process_first_char = 0;
-            sh_format[i++] = 'i'; /* immediate address */
-          }
-        break;
-        }
-      if (c)
-        previous_char = c;
-
-    }
-
-  /* TODO maybe mark this as something else if its always missed as one specific type */
-  if (process_first_char && c)
-    { /* default to an immediate value if char hasnt yet been processed*/
-      sh_format[i++] = 'i';
-    }
-
-  sh_format[i] = 0; /* null terminate */
-
-  /* if there are chars there is at least 1 operand */
-  if (i)
-    num_operands++;
-
-  //printf("\n detected format %s and counted %d operands", sh_format, num_operands);
-  /* TODO MACRO THIS */
+  char *i_string = { "i" };
+  char *r_string = { "r" };
+  char *r_r_string = { "r,r" };
+  char *r_r_r_string = { "r,r,r" };
+  char *r_i_string = { "r,i" };
+  char *r_c_string = { "r,c" };
+  char *c_r_string = { "c,r" };
+  char *r_p_string = { "r,p" };
+  char *r_r_i_string = { "r,r,i" };
+  /* TODO Clean this */
   if (!strcmp(i_string, sh_format) && num_operands == 1)
     return MC9XGATE_I;
   if (!strcmp(r_i_string, sh_format) && num_operands == 2)
@@ -1889,16 +1833,10 @@ mc9xgate_detect_format(char *line_in)
     return MC9XGATE_C_R;
   if (!strcmp(r_p_string, sh_format) && num_operands == 2)
     return MC9XGATE_R_P;
-  if (!strcmp(r_r_i_string, sh_format) && num_operands == 3)
-    return MC9XGATE_R_R_I;
-  if (!strcmp(r_bug3_string, sh_format) && num_operands == 2) /* FOR TESTING TODO */
-    return MC9XGATE_R_C;
-  if (!strcmp(r_bug4_string, sh_format) && num_operands == 2) /* FOR TESTING TODO */
-    return MC9XGATE_C_R;
-  if (!strcmp(r_bug5_string, sh_format) && num_operands == 2) /* FOR TESTING TODO */
-    return MC9XGATE_R_P;
-  if (!num_operands)
-    return MC9XGATE_INH;
+  if (!strcmp(r_r_i_string, sh_format) && num_operands == 3) {
+	  return MC9XGATE_R_R_I;
+  }
+  as_bad((":Error unable to detect operand format"));
   return 0;
 }
 
@@ -1907,7 +1845,7 @@ mc9xgate_find_match(struct mc9xgate_opcode_handle *opcode_handle,
     unsigned char numberOfModes, unsigned int sh_format)
 {
   struct mc9xgate_opcode *opcode = 0;
-
+  /* TODO this is a shit function that needs to be redone this makes optable order sensitive*/
   while (numberOfModes)
     {
       switch (numberOfModes)
