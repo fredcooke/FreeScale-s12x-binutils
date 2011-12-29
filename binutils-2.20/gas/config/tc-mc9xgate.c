@@ -607,7 +607,7 @@ void md_assemble(char *input_line)
   char imm16_string[25] = { 0 };
   unsigned int imm16_string_index = 0;
   char *imm16_pointer = 0;
-  unsigned char format_found = 0;
+  //unsigned char format_found = 0;
 
   fixup_required = 0;
   numberOfCalls++; // for testing
