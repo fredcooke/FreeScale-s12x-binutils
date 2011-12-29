@@ -39,8 +39,8 @@ const char FLT_CHARS[] = "dD";
 #define SIXTEENTH_BIT	0x8000
 #define N_BITS_IN_WORD	16	/* number of bits in a word */
 
-#define STATE_CONDITIONAL_BRANCH	(1)
-#define STATE_PC_RELATIVE		(2)
+#define STATE_CONDITIONAL_BRANCH		(1)
+#define STATE_PC_RELATIVE				(2)
 #define STATE_INDEXED_OFFSET            (3)
 #define STATE_INDEXED_PCREL             (4)
 #define STATE_XBCC_BRANCH               (5)
