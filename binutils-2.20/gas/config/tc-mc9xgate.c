@@ -1,5 +1,4 @@
-/* tc-avr.c -- Assembler code for the Freescale XGATE
-
+/* tc-mc9xgate.c -- Assembler code for the Freescale XGATE
  Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
  Free Software Foundation, Inc.
  Contributed by Sean Keys <info@powerefi.com>
@@ -20,9 +19,6 @@
  along with GAS; see the file COPYING.  If not, write to
  the Free Software Foundation, 51 Franklin Street - Fifth Floor,
  Boston, MA 02110-1301, USA.
-
-
-
  */
 
 #include "as.h"
