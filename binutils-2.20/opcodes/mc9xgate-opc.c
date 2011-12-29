@@ -69,7 +69,6 @@
 #define SET_C_CLR_V_CHG_NZ MC9XGATE_C_BIT,MC9XGATE_V_BIT,MC9XGATE_NZ_BIT
 #define SET_Z_CHG_HNVC  MC9XGATE_Z_BIT,0,MC9XGATE_HNVC_BIT
 
-#define _M 0xff
 #define OP_NONE         MC9XGATE_OP_NONE
 #define OP_INH			MC9XGATE_OP_INH
 #define OP_TRI			MC9XGATE_OP_TRI
@@ -93,12 +92,6 @@
 #define OP_IMM16mLDD    MC9XGATE_OP_IMM16mLDD
 #define OP_IMM16mSUB    MC9XGATE_OP_IMM16mSUB
 
-
-#define BI_MODE(mode1,mode2)	"mode1 | mode2"
-
-#define OP_IMM8m			MC9XGATE_OP_IMM8m
-
-//:unknown relocation constraint size
 /* TODO reinstate const */
 struct mc9xgate_opcode mc9xgate_opcodes[] = {
 /*
@@ -206,4 +199,3 @@ Size --------------------------------------------------------+   +--------------
 };
 
 const int mc9xgate_num_opcodes = TABLE_SIZE (mc9xgate_opcodes);
-
