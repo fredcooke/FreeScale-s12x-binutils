@@ -1744,6 +1744,7 @@ unsigned int mc9xgate_detect_format(char *line_in) {
   char *str = skip_whitespace(line_in);
   int i = 0;
   int j = 0;
+  char c = 0;
   unsigned int stripped_length = 0;
   char sh_format[10] = {0}; /* shorthand format */
   char operands_stripped[3][20] = {{0}};
@@ -1753,11 +1754,11 @@ unsigned int mc9xgate_detect_format(char *line_in) {
 	  return  MC9XGATE_INH;
   }
 
-  for(i = 0, j = 0, num_operands = 1; *str != 0; str++) {
-	  if (*str == ' ' || *str == '\t' || *str == '(' || *str == ')' || *str == '-' || *str == '+') {
+  for(i = 0, j = 0, num_operands = 1; (c = TOLOWER (*str)) != 0; str++) {
+	  if (c == ' ' || c == '\t' || c == '(' || c == ')' || c == '-' || c == '+') {
 		  continue;
 	  }
-	  if(*str == ',') {
+	  if(c == ',') {
 		  j++;
 		  num_operands++;
 		  i = 0;
@@ -1766,7 +1767,7 @@ unsigned int mc9xgate_detect_format(char *line_in) {
 	  if(i > 20) { /* we should never need more than 20 chars to figure out what it is */
 		  continue;
 	  }
-	  operands_stripped[j][i++] = *str;
+	  operands_stripped[j][i++] = c;
   }
   /* process our substrings to see what we have */
   for(i = 0, j = 0; num_operands > i; i++) {
