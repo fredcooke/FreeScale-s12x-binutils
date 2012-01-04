@@ -1421,8 +1421,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
   char *op_constraint = *op_con;
   unsigned int op_mask = 0;
   char *str = skip_whitespace(*line);
-  char r_name[20] =
-    { 0 };
+  char r_name[20] = { 0 };
   unsigned int pp_fix = 0;
   unsigned short max_size = 0;
   char reg_expected = 0;
