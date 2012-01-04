@@ -70,7 +70,7 @@ const char FLT_CHARS[] = "dD";
 //	unsigned int  shorthand_format; /* prime values used as flags */
 //	char	num_modes;
 // address
-//};
+//}; unknown relocation
 // bfd_reloc_code_real_type
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
@@ -980,8 +980,7 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
   //   case BFD_RELOC_MC9XGATE_PCREL_9:
   case R_MC9XGATE_PCREL_9:
     if (value < -255 || value > 254)
-      as_bad_where(fixP->fx_file, fixP->fx_line,
-          _("Value %ld too large for 9-bit PC-relative branch."), value);
+      as_bad_where(fixP->fx_file, fixP->fx_line, _("Value %ld too large for 9-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
     value = result.quot;
     mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
@@ -1012,7 +1011,6 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
     //printf("\n fixup 8 with operand is %ld",(long int) opcode);
     break;
-
   case BFD_RELOC_MC9XGATE_IMM8_LO:
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
@@ -1020,8 +1018,7 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     value &= 0x00ff;
     bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
     if (value < -65537 || value > 65535)
-      as_bad_where(fixP->fx_file, fixP->fx_line,
-          _("Value out of 16-bit range."));
+      as_bad_where(fixP->fx_file, fixP->fx_line, _("Value out of 16-bit range."));
 
     //number_to_chars_bigendian(where, opcode , 2);
 
@@ -1056,8 +1053,7 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
   case 0x2: /* seems to be the default value for no fixup TODO figure out how to remove*/
     break;
   default:
-    as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
-        fixP->fx_r_type);
+    as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line, fixP->fx_r_type);
     }
 }
 
@@ -1526,15 +1522,20 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
      */
     if(*str == '#')
     	str++;
-    if(0) {
-    /*    if (*str == '#')
-      {  go past # character
-        str++;
+
+    str = mc9xgate_parse_exp(str, &op_expr);
+
+    if (op_expr.X_op == O_constant) {
+//        if (*str == '#')
+//        go past # character
+//        str++;
         if (!ISDIGIT(*op_constraint))
            	as_bad(_(":expected bit length with constraint type i(# immediate) read %c"),  *op_constraint);
 
         //printf("\n case is i input string is %s",str);
-        op_mask = mc9xgate_get_constant(str, 0xFFFF);
+        //op_mask = mc9xgate_get_constant(str, 0xFFFF);
+        op_mask = op_expr.X_add_number;
+
         if ((opcode->name[strlen(opcode->name) - 1] == 'l')
 					&& macroClipping)
         	{
@@ -1544,7 +1545,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 		    {
 				op_mask >>= 8;
 			}
-         make sure it fits
+        // make sure it fits
         for (i = *bit_width; i; i--)
           {
             max_size <<= 1;
@@ -1552,13 +1553,13 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
           }
         if (op_mask > max_size)
           as_bad(_(":operand value(%d) too big for constraint"), op_mask);
-      }*/
-    }
+      }
+
     else
       {
 
         //printf("\n getting relocatable expresson from string %s", str);
-        str = mc9xgate_parse_exp(str, &op_expr);
+        //str = mc9xgate_parse_exp(str, &op_expr);
 
         fixS *fixp = 0;
         fixup_required = 1;
@@ -1800,7 +1801,11 @@ unsigned int mc9xgate_detect_format(char *line_in) {
 			  sh_format[j++] = 'c';
 		  }else if(operands_stripped[i][0] == '#') {
 			  sh_format[j++] = 'i';
+		  } else {
+			  sh_format[j++] = 'i';
 		  }
+	  } else { //default to immediate
+		  sh_format[j++] = 'i';
 	  }
   }
   /* strings TODO maybe structure this*/
@@ -1834,6 +1839,7 @@ unsigned int mc9xgate_detect_format(char *line_in) {
 	  return MC9XGATE_R_R_I;
   }
   as_bad((":Error unable to detect operand format"));
+  printf("\n sh reads sh_format %s", sh_format);
   return 0;
 }
 
