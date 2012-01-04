@@ -65,6 +65,7 @@ const char FLT_CHARS[] = "dD";
 #define TEN_BITS			1023
 
 //struct mc9xgate_parsed_op{
+// constant value required
 //	unsigned short bin_operand_mask;
 //	unsigned int  shorthand_format; /* prime values used as flags */
 //	char	num_modes;
@@ -1520,13 +1521,18 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
       }
     //as_bad(_(":expected numerical value after i constraint"));
 
-    if (*str == '#')
-      { /* go past # character */
+    /* todo test not treating the # as constant value required, instead just treat it as *immediate value
+     * http://tigcc.ticalc.org/doc/gnuasm.html#SEC31
+     */
+    if(*str == '#')
+    	str++;
+    if(0) {
+    /*    if (*str == '#')
+      {  go past # character
         str++;
         if (!ISDIGIT(*op_constraint))
-          as_bad(
-              _(":expected bit length with constraint type i(# immediate) read %c"),
-              *op_constraint);
+           	as_bad(_(":expected bit length with constraint type i(# immediate) read %c"),  *op_constraint);
+
         //printf("\n case is i input string is %s",str);
         op_mask = mc9xgate_get_constant(str, 0xFFFF);
         if ((opcode->name[strlen(opcode->name) - 1] == 'l')
@@ -1538,7 +1544,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 		    {
 				op_mask >>= 8;
 			}
-        /* make sure it fits */
+         make sure it fits
         for (i = *bit_width; i; i--)
           {
             max_size <<= 1;
@@ -1546,7 +1552,8 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
           }
         if (op_mask > max_size)
           as_bad(_(":operand value(%d) too big for constraint"), op_mask);
-      }
+      }*/
+    }
     else
       {
 
