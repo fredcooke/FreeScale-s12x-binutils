@@ -717,7 +717,7 @@ void md_assemble(char *input_line)
 
                   if (*input_line != ',')
                     {
-                      as_bad(_(":expected , operand seperator"));
+                      as_bad(_(":expected , operand separator"));
                     }
                   else
                     {
@@ -728,9 +728,10 @@ void md_assemble(char *input_line)
                     { /* go past # character */
                       input_line++;
                       //printf("\n about to call get constant %s", input_line);
-                      imm16_value0 = mc9xgate_get_constant(input_line, 0xFFFF);
-                      imm16_value1 = (imm16_value0 & 0xFF00) >> 8;
-                      imm16_value0 &= 0x00FF;
+                      // todo see if commenting out the next three lines works
+//                      imm16_value0 = mc9xgate_get_constant(input_line, 0xFFFF);
+//                      imm16_value1 = (imm16_value0 & 0xFF00) >> 8;
+//                      imm16_value0 &= 0x00FF;
                       //printf("\n in case r extracted %s and read valueL %x valueH %x", imm16_string, imm16_value0, imm16_value1);
                     }
                   else
