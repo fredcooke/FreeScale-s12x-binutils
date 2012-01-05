@@ -133,8 +133,9 @@ mc9xgate_get_macro_masks(unsigned int *operMask0, unsigned int *operMask1,
 
 unsigned short
 mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
-static unsigned int
-mc9xgate_get_constant(char *input, int max);
+//prevent defined but not used warning
+//static unsigned int
+//mc9xgate_get_constant(char *input, int max);
 void
 append_str(char *in, char c);
 static int
@@ -1224,9 +1225,9 @@ mc9xgate_parse_exp(char *s, expressionS *op)
     as_bad(_("missing operand"));
   return input_line_pointer;
 }
+/* for testing comment out to prevent defined but not used warning
 
-static unsigned int
-mc9xgate_get_constant(char *str, int max)
+static unsigned int mc9xgate_get_constant(char *str, int max)
 {
   expressionS ex;
 
@@ -1242,6 +1243,7 @@ mc9xgate_get_constant(char *str, int max)
 
   return ex.X_add_number;
 }
+*/
 
 void
 append_str(char *in, char c)
