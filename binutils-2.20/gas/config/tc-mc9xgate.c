@@ -981,7 +981,8 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     {
   //   case BFD_RELOC_MC9XGATE_PCREL_9:
   case R_MC9XGATE_PCREL_9:
-    if (value < -255 || value > 254)
+	//todo add check for even number only
+	if (value < -512 || value > 511)
       as_bad_where(fixP->fx_file, fixP->fx_line, _("Value %ld too large for 9-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
     value = result.quot;
@@ -991,7 +992,8 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     //printf("\n fixup with operand is %ld",(opcode | value));
     break;
   case R_MC9XGATE_PCREL_10:
-    if (value < -512 || value > 511)
+    //todo add check for even number only
+	if (value < -1024 || value > 1023)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value %ld too large for 10-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
