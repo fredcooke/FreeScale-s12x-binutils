@@ -41,18 +41,18 @@ const char FLT_CHARS[] = "dD";
 
 #define STATE_CONDITIONAL_BRANCH		(1)
 #define STATE_PC_RELATIVE				(2)
-#define STATE_INDEXED_OFFSET            (3)
-#define STATE_INDEXED_PCREL             (4)
-#define STATE_XBCC_BRANCH               (5)
-#define STATE_CONDITIONAL_BRANCH_6812	(6)
+//#define STATE_INDEXED_OFFSET            (3)
+//#define STATE_INDEXED_PCREL             (4)
+//#define STATE_XBCC_BRANCH               (5)
+//#define STATE_CONDITIONAL_BRANCH_6812	(6)
 
-#define STATE_BYTE			(0)
-#define STATE_BITS5                     (0)
-#define STATE_WORD			(1)
-#define STATE_BITS9                     (1)
-#define STATE_LONG			(2)
-#define STATE_BITS16                    (2)
-#define STATE_UNDF			(3)	/* Symbol undefined in pass1 */
+//#define STATE_BYTE			(0)
+//#define STATE_BITS5                     (0)
+//#define STATE_WORD			(1)
+//#define STATE_BITS9                     (1)
+//#define STATE_LONG			(2)
+//#define STATE_BITS16                    (2)
+//#define STATE_UNDF			(3)	/* Symbol undefined in pass1 */
 
 #define REGISTER_P(ptr)		(ptr == 'r')
 
@@ -61,8 +61,9 @@ const char FLT_CHARS[] = "dD";
 
 #define MAXREGISTER			07
 #define MINREGISTER			00
-#define NINE_BITS			511
-#define TEN_BITS			1023
+
+//#define NINE_BITS			511
+//#define TEN_BITS			1023
 
 //struct mc9xgate_parsed_op{
 // constant value required
@@ -74,10 +75,10 @@ const char FLT_CHARS[] = "dD";
 // bfd_reloc_code_real_type
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
-#define RELAX_STATE(s) ((s) >> 2)
-#define RELAX_LENGTH(s) ((s) & 3)
+//#define RELAX_STATE(s) ((s) >> 2)
+//#define RELAX_LENGTH(s) ((s) & 3)
 
-#define IS_OPCODE(C1,C2)        (((C1) & 0x0FF) == ((C2) & 0x0FF))
+//#define IS_OPCODE(C1,C2)        (((C1) & 0x0FF) == ((C2) & 0x0FF))
 
 struct mc9xgate_opcode_handle
 {
@@ -127,12 +128,12 @@ static struct mc9xgate_opcode*
 mc9xgate_find_match(struct mc9xgate_opcode_handle *opcode_handle,
     unsigned char numberOfModes, unsigned int sh_format);
 
-void
-mc9xgate_get_macro_masks(unsigned int *operMask0, unsigned int *operMask1,
-    char *string);
+//void
+//mc9xgate_get_macro_masks(unsigned int *operMask0, unsigned int *operMask1,
+//    char *string);
 
-unsigned short
-mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
+//unsigned short
+//mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
 //prevent defined but not used warning
 //static unsigned int
 //mc9xgate_get_constant(char *input, int max);
@@ -198,46 +199,46 @@ relax_typeS md_relax_table[] =
 
   /* Relax for bcc <L>.
    These insns are translated into b!cc +3 jmp L.  */
-    { (127), (-128), 0, ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_WORD) },
-    { 0, 0, 3, 0 },
-    { 1, 1, 0, 0 },
-    { 1, 1, 0, 0 },
+//    { (127), (-128), 0, ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_WORD) },
+//    { 0, 0, 3, 0 },
+//    { 1, 1, 0, 0 },
+//    { 1, 1, 0, 0 },
 
   /* Relax for bsr <L> and bra <L>.
    These insns are translated into jsr and jmp.  */
-    { (127), (-128), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD) },
-    { 0, 0, 1, 0 },
-    { 1, 1, 0, 0 },
-    { 1, 1, 0, 0 },
+//    { (127), (-128), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD) },
+//    { 0, 0, 1, 0 },
+//    { 1, 1, 0, 0 },
+//    { 1, 1, 0, 0 },
 
   /* Relax for indexed offset: 5-bits, 9-bits, 16-bits.  */
-    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS9) },
-    { (255), (-256), 1, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS16) },
-    { 0, 0, 2, 0 },
-    { 1, 1, 0, 0 },
+//    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS9) },
+//    { (255), (-256), 1, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS16) },
+//    { 0, 0, 2, 0 },
+//    { 1, 1, 0, 0 },
 
   /* Relax for PC relative offset: 5-bits, 9-bits, 16-bits.
    For the 9-bit case, there will be a -1 correction to take into
    account the new byte that's why the range is -255..256.  */
-    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS9) },
-    { (256), (-255), 1, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS16) },
-    { 0, 0, 2, 0 },
-    { 1, 1, 0, 0 },
+//    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS9) },
+//    { (256), (-255), 1, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS16) },
+//    { 0, 0, 2, 0 },
+//    { 1, 1, 0, 0 },
 
   /* Relax for dbeq/ibeq/tbeq r,<L>:
-   These insns are translated into db!cc +3 jmp L.  */
-    { (255), (-256), 0, ENCODE_RELAX (STATE_XBCC_BRANCH, STATE_WORD) },
-    { 0, 0, 3, 0 },
-    { 1, 1, 0, 0 },
-    { 1, 1, 0, 0 },
+//   These insns are translated into db!cc +3 jmp L.  */
+//    { (255), (-256), 0, ENCODE_RELAX (STATE_XBCC_BRANCH, STATE_WORD) },
+//    { 0, 0, 3, 0 },
+//    { 1, 1, 0, 0 },
+//    { 1, 1, 0, 0 },
 
   /* Relax for bcc <L> on 68HC12.
    These insns are translated into lbcc <L>.  */
-    { (127), (-128), 0,
-        ENCODE_RELAX (STATE_CONDITIONAL_BRANCH_6812, STATE_WORD) },
-    { 0, 0, 2, 0 },
-    { 1, 1, 0, 0 },
-    { 1, 1, 0, 0 },
+//    { (127), (-128), 0,
+//        ENCODE_RELAX (STATE_CONDITIONAL_BRANCH_6812, STATE_WORD) },
+//    { 0, 0, 2, 0 },
+//   { 1, 1, 0, 0 },
+//    { 1, 1, 0, 0 },
 
   };
 
@@ -275,25 +276,25 @@ typedef enum register_id
 const pseudo_typeS md_pseudo_table[] =
   {
   /* The following pseudo-ops are supported for MRI compatibility.  */
-    { "fcb", cons, 1 },
-    { "fdb", cons, 2 },
-    { "fcc", stringer, 8 + 1 },
-    { "rmb", s_space, 0 },
-
-  /* Motorola ALIS.  */
-    { "xrefb", s_ignore, 0 }, /* Same as xref  */
-
-  /* Gcc driven relaxation.  */
-    { "relax", s_mc9xgate_relax, 0 },
-
-  /* .mode instruction (ala SH).  */
-    { "mode", s_mc9xgate_mode, 0 },
-
-  /* .far instruction.  */
-    { "far", s_mc9xgate_mark_symbol, STO_MC9XGATE_FAR },
-
-  /* .interrupt instruction.  */
-    { "interrupt", s_mc9xgate_mark_symbol, STO_MC9XGATE_INTERRUPT },
+//    { "fcb", cons, 1 },
+//    { "fdb", cons, 2 },
+//    { "fcc", stringer, 8 + 1 },
+//    { "rmb", s_space, 0 },
+//
+//  /* Motorola ALIS.  */
+//    { "xrefb", s_ignore, 0 }, /* Same as xref  */
+//
+//  /* Gcc driven relaxation.  */
+//    { "relax", s_mc9xgate_relax, 0 },
+//
+//  /* .mode instruction (ala SH).  */
+//    { "mode", s_mc9xgate_mode, 0 },
+//
+//  /* .far instruction.  */
+//    { "far", s_mc9xgate_mark_symbol, STO_MC9XGATE_FAR },
+//
+//  /* .interrupt instruction.  */
+//    { "interrupt", s_mc9xgate_mark_symbol, STO_MC9XGATE_INTERRUPT },
 
     { 0, 0, 0 } };
 
@@ -311,42 +312,43 @@ static int elf_flags = E_MC9XGATE_F64;
 const char *md_shortopts = "Sm:";
 struct option md_longopts[] =
   {
-
-#define OPTION_FORCE_LONG_BRANCH (OPTION_MD_BASE)
-        { "force-long-branches", no_argument, NULL, OPTION_FORCE_LONG_BRANCH },
-        { "force-long-branchs", no_argument, NULL, OPTION_FORCE_LONG_BRANCH }, /* Misspelt version kept for backwards compatibility.  */
-
-#define OPTION_SHORT_BRANCHES     (OPTION_MD_BASE + 1)
-        { "short-branches", no_argument, NULL, OPTION_SHORT_BRANCHES },
-        { "short-branchs", no_argument, NULL, OPTION_SHORT_BRANCHES }, /* Misspelt version kept for backwards compatibility.  */
-
-#define OPTION_STRICT_DIRECT_MODE  (OPTION_MD_BASE + 2)
-        { "strict-direct-mode", no_argument, NULL, OPTION_STRICT_DIRECT_MODE },
-
-#define OPTION_PRINT_INSN_SYNTAX  (OPTION_MD_BASE + 3)
-        { "print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX },
-
-#define OPTION_PRINT_OPCODES  (OPTION_MD_BASE + 4)
-        { "print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES },
-
-#define OPTION_GENERATE_EXAMPLE  (OPTION_MD_BASE + 5)
-        { "generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE },
-
-#define OPTION_MSHORT  (OPTION_MD_BASE + 6)
-        { "mshort", no_argument, NULL, OPTION_MSHORT },
-
-#define OPTION_MLONG  (OPTION_MD_BASE + 7)
-        { "mlong", no_argument, NULL, OPTION_MLONG },
-
-#define OPTION_MSHORT_DOUBLE  (OPTION_MD_BASE + 8)
-        { "mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE },
-
-#define OPTION_MLONG_DOUBLE  (OPTION_MD_BASE + 9)
-        { "mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE },
-
-        { NULL, no_argument, NULL, 0 } };
-
-size_t md_longopts_size = sizeof(md_longopts);
+//
+//#define OPTION_FORCE_LONG_BRANCH (OPTION_MD_BASE)
+//        { "force-long-branches", no_argument, NULL, OPTION_FORCE_LONG_BRANCH },
+//        { "force-long-branchs", no_argument, NULL, OPTION_FORCE_LONG_BRANCH }, /* Misspelt version kept for backwards compatibility.  */
+//
+//#define OPTION_SHORT_BRANCHES     (OPTION_MD_BASE + 1)
+//        { "short-branches", no_argument, NULL, OPTION_SHORT_BRANCHES },
+//        { "short-branchs", no_argument, NULL, OPTION_SHORT_BRANCHES }, /* Misspelt version kept for backwards compatibility.  */
+//
+//#define OPTION_STRICT_DIRECT_MODE  (OPTION_MD_BASE + 2)
+//        { "strict-direct-mode", no_argument, NULL, OPTION_STRICT_DIRECT_MODE },
+//
+//#define OPTION_PRINT_INSN_SYNTAX  (OPTION_MD_BASE + 3)
+//        { "print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX },
+//
+//#define OPTION_PRINT_OPCODES  (OPTION_MD_BASE + 4)
+//        { "print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES },
+//
+//#define OPTION_GENERATE_EXAMPLE  (OPTION_MD_BASE + 5)
+//        { "generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE },
+//
+//#define OPTION_MSHORT  (OPTION_MD_BASE + 6)
+//        { "mshort", no_argument, NULL, OPTION_MSHORT },
+//
+//#define OPTION_MLONG  (OPTION_MD_BASE + 7)
+//        { "mlong", no_argument, NULL, OPTION_MLONG },
+//
+//#define OPTION_MSHORT_DOUBLE  (OPTION_MD_BASE + 8)
+//        { "mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE },
+//
+//#define OPTION_MLONG_DOUBLE  (OPTION_MD_BASE + 9)
+//        { "mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE },
+//
+//        { NULL, no_argument, NULL, 0 } };
+//
+  };
+		  size_t md_longopts_size = sizeof(md_longopts);
 
 char *
 md_atof(int type, char *litP, int *sizeP)
@@ -481,8 +483,10 @@ md_begin(void)
             break;
           case 4:
             op_handles[j].opc3 = mc9xgate_opcode_ptr;
+            break;
           case 5:
             op_handles[j].opc4 = mc9xgate_opcode_ptr;
+            break;
           default:
             as_bad(_(":error adding operand handle"));
             break;
@@ -1058,6 +1062,7 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line, fixP->fx_r_type);
+    break;
     }
 }
 
@@ -1419,7 +1424,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
     char **op_con, char **line)
 {
   expressionS op_expr;
-  opcode = opcode;
+  //opcode = opcode;
   char *op_constraint = *op_con;
   unsigned int op_mask = 0;
   char *str = skip_whitespace(*line);
@@ -1745,6 +1750,7 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 
   default:
     as_bad(_("unknown constraint `%c'"), *op_constraint);
+    break;
     }
 
   *line = str;
@@ -1873,12 +1879,14 @@ mc9xgate_find_match(struct mc9xgate_opcode_handle *opcode_handle,
       case 4:
         if (opcode_handle->opc3->sh_format & sh_format)
           opcode = opcode_handle->opc3;
+        break;
       case 5:
         if (opcode_handle->opc2->sh_format & sh_format)
           opcode = opcode_handle->opc2;
         break;
       default:
         as_bad((":Error too many operand to opcode combinations"));
+        break;
         }
       numberOfModes--;
     }
