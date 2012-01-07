@@ -72,18 +72,18 @@ struct macroOperands
 };
 
 /*  LOCAL FUNCTIONS */
-static void
-s_mc9xgate_mode(int); /* Pseudo op to control the ELF flags.  */
+//static void
+//s_mc9xgate_mode(int); /* Pseudo op to control the ELF flags.  */
 static inline char *
 skip_whitespace(char *);
 static void
 get_default_target(void); /* Pseudo op to indicate a relax group.  */
-static void
-s_mc9xgate_relax(int);
-static void
-s_mc9xgate_mode(int);
-static void
-s_mc9xgate_mark_symbol(int);/* Pseudo op to control the ELF flags.  */
+//static void
+//s_mc9xgate_relax(int);
+//static void
+//s_mc9xgate_mode(int);
+//static void
+//s_mc9xgate_mark_symbol(int);/* Pseudo op to control the ELF flags.  */
 static char*
 extract_word(char *, char *, int);
 static char *
@@ -604,25 +604,25 @@ void md_assemble(char *input_line)
   input_line = saved_input_line;
 }
 
-static void
-s_mc9xgate_relax(int ignore ATTRIBUTE_UNUSED)
-{
-  printf("\n in s_mc9xgate_relax");
-  expressionS ex;
-
-  expression (&ex);
-
-  if (ex.X_op != O_symbol || ex.X_add_number != 0)
-    {
-      as_bad(_("bad .relax format"));
-      ignore_rest_of_line();
-      return;
-    }
-
-  fix_new_exp(frag_now, frag_now_fix(), 0, &ex, 1, BFD_RELOC_MC9XGATE_RL_GROUP);
-
-  demand_empty_rest_of_line();
-}
+//static void
+//s_mc9xgate_relax(int ignore ATTRIBUTE_UNUSED)
+//{
+//  printf("\n in s_mc9xgate_relax");
+//  expressionS ex;
+//
+//  expression (&ex);
+//
+//  if (ex.X_op != O_symbol || ex.X_add_number != 0)
+//    {
+//      as_bad(_("bad .relax format"));
+//      ignore_rest_of_line();
+//      return;
+//    }
+//
+//  fix_new_exp(frag_now, frag_now_fix(), 0, &ex, 1, BFD_RELOC_MC9XGATE_RL_GROUP);
+//
+//  demand_empty_rest_of_line();
+//}
 
 /* Pseudo op to control the ELF flags.  */
 //static void
