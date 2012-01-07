@@ -1,7 +1,7 @@
-/* tc-mc9xgate.c -- Assembler code for the Freescale XGATE
+/* tc-mc9xgate.c -- Assembler code for Freescale XGATE
  Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
  Free Software Foundation, Inc.
- Contributed by Sean Keys <info@powerefi.com>
+ Contributed by Sean Keys <skeys@ipdatasys.com>
 
  This file is part of GAS, the GNU Assembler.
 
@@ -136,18 +136,14 @@ relax_typeS md_relax_table[] =
     { 1, 1, 0, 0 }, /* First entries aren't used.  */
     { 1, 1, 0, 0 }, /* For no good reason except.  */
     { 1, 1, 0, 0 }, /* that the VAX doesn't either.  */
-    { 1, 1, 0, 0 }
-
-    /* todo utilize this */
-  /* Relax for bcc <L>.
-   These insns are translated into b!cc +3 jmp L.  */
-//    { (127), (-128), 0, ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_WORD) },
-//    { 0, 0, 3, 0 },
-//    { 1, 1, 0, 0 },
-//    { 1, 1, 0, 0 },
+    { 1, 1, 0, 0 },
+   /* XGATE 9 and 10 bit pc rel */ //todo complete and test
+//    {(511), (-512), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD)},
+//    {(1023), (-1024), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD)},
+    { 0, 0, 0, 0 }
   };
 
-/* mc9Xgate registers all are 16-bit.  They are numbered according to the mc9xgate.  */
+/* XGATE's registers all are 16-bit general purpose.  They are numbered according to the specifications.  */
 typedef enum register_id
 {
   REG_NONE = -1,
@@ -183,11 +179,9 @@ static int current_architecture;
 static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
 static unsigned int numberOfCalls = 0;
-
 /* ELF flags to set in the output file header.  */
 static int elf_flags = E_MC9XGATE_F64;
 
-/* Declaired to keep the current make happy with alot of baggage from the old port  TODO clean up*/
 const char *md_shortopts = "Sm:";
 struct option md_longopts[] =
   {
@@ -739,28 +733,32 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     {
   //   case BFD_RELOC_MC9XGATE_PCREL_9:
   case R_MC9XGATE_PCREL_9:
-	//todo add check for even number only
 	if (value < -512 || value > 511)
       as_bad_where(fixP->fx_file, fixP->fx_line, _("Value %ld too large for 9-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
     value = result.quot;
+    if(result.rem)
+        	 as_bad_where(fixP->fx_file, fixP->fx_line,_("Value %ld not aligned by 2 for 9-bit PC-relative branch."), value);
     mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
-    //printf("\n fixup with operand is %ld",(opcode | value));
+    /* todo attempt to use internal fixups */
+    //fixP = fix_new_exp (frag_now, f - frag_now->fr_literal -1, 2,
+    //			      oper, TRUE, BFD_RELOC_M68HC12_9_PCREL);
+    //	            fixP->fx_pcrel_adjust = 1;
+     //printf("\n fixup with operand is %ld",(opcode | value));
     break;
   case R_MC9XGATE_PCREL_10:
-    //todo add check for even number only
-	if (value < -1024 || value > 1023)
-      as_bad_where(fixP->fx_file, fixP->fx_line,
-          _("Value %ld too large for 10-bit PC-relative branch."), value);
+    if (value < -1024 || value > 1023)
+      as_bad_where(fixP->fx_file, fixP->fx_line,_("Value %ld too large for 10-bit PC-relative branch."), value);
     result = ldiv(value, 2); /* from bytes to words */
     value = result.quot;
+    if(result.rem)
+    	 as_bad_where(fixP->fx_file, fixP->fx_line,_("Value %ld not aligned by 2 for 10-bit PC-relative branch."), value);
     mask = 0x3FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
     //printf("\n fixup with operand is %ld",(opcode | value));
-    break;
     break;
     //case R_MC9XGATE_32: // for testing
   case BFD_RELOC_MC9XGATE_24:
@@ -793,7 +791,7 @@ md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
     if (value < 0 || value > 7)
       as_bad_where(fixP->fx_file, fixP->fx_line, _("Value out of 3-bit range."));
     //printf("\n need to process imm3 relocatoin");
-    value <<= 8; /* alight the operand bits */
+    value <<= 8; /* make big endian */
 
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
