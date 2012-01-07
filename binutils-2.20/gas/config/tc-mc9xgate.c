@@ -499,11 +499,11 @@ void md_assemble(char *input_line)
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
   char *p = 0;
-  unsigned int imm16_value0 = 0;
-  unsigned int imm16_value1 = 0;
-  char imm16_string[25] = { 0 };
-  unsigned int imm16_string_index = 0;
-  char *imm16_pointer = 0;
+  //unsigned int imm16_value0 = 0;
+  //unsigned int imm16_value1 = 0;
+  //char imm16_string[25] = { 0 };
+  //unsigned int imm16_string_index = 0;
+  //char *imm16_pointer = 0;
   //unsigned char format_found = 0;
 
   fixup_required = 0;
