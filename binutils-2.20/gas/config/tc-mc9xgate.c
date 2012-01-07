@@ -607,7 +607,7 @@ void md_assemble(char *input_line)
 static void
 s_mc9xgate_relax(int ignore ATTRIBUTE_UNUSED)
 {
-  //printf("\n in s_mc9xgate_relax");
+  printf("\n in s_mc9xgate_relax");
   expressionS ex;
 
   expression (&ex);
@@ -625,17 +625,17 @@ s_mc9xgate_relax(int ignore ATTRIBUTE_UNUSED)
 }
 
 /* Pseudo op to control the ELF flags.  */
-static void
-s_mc9xgate_mode(int x ATTRIBUTE_UNUSED)
-{
+//static void
+//s_mc9xgate_mode(int x ATTRIBUTE_UNUSED)
+//{
+//	as_bad("s")
+//}
 
-}
-
-static void
-s_mc9xgate_mark_symbol(int mark)
-{
-  mark = 0; //for testing
-}
+//static void
+//s_mc9xgate_mark_symbol(int mark)
+//{
+//  mark = 0; //for testing
+//}
 
 /* Force truly undefined symbols to their maximum size, and generally set up
  the frag list to be relaxed.  */
