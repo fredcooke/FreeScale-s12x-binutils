@@ -151,19 +151,16 @@ relax_typeS md_relax_table[] =
 typedef enum register_id
 {
   REG_NONE = -1,
-  REG_A = 0, /* is tied to the value “$0000”
-   Selecting R0 as destination register will discard the result of the instruction. Only
-   the Condition Code Register will be updated  */
-  REG_B = 1, /* variable pointer, It is preloaded with the initial variable pointer
-   of the channel’s service request vector  */
-  REG_C = 2,
-  REG_D = 3,
-  REG_E = 4,
-  REG_F = 5,
-  REG_G = 6,
-  REG_H = 7,
-  REG_CCR = 8, //was 8 set to 55 for testing
-  REG_PC = 9
+  REG_R0 = 0,
+  REG_R1 = 1,
+  REG_R2 = 2,
+  REG_R3 = 3,
+  REG_R4 = 4,
+  REG_R5 = 5,
+  REG_R6 = 6,
+  REG_R7 = 7,
+  REG_PC = 8,
+  REG_CCR = 9
 } register_id;
 
 /* These are the machine dependent pseudo-ops.  These are included so
@@ -178,7 +175,8 @@ typedef enum register_id
 const pseudo_typeS md_pseudo_table[] =
   {
   /* The following pseudo-ops are supported for MRI compatibility.  */
-    { 0, 0, 0 } };
+    { 0, 0, 0 }
+  };
 
 /* statics */
 static int current_architecture;
