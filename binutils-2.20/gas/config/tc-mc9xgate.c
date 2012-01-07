@@ -64,13 +64,6 @@ struct mc9xgate_opcode_handle
   struct mc9xgate_opcode *opc4;
 };
 
-struct macroOperands
-{
-  char *oper1;
-  char *oper2;
-  char *oper3;
-};
-
 /*  LOCAL FUNCTIONS */
 //static void
 //s_mc9xgate_mode(int); /* Pseudo op to control the ELF flags.  */
