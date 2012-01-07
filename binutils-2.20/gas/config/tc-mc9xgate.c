@@ -41,19 +41,6 @@ const char FLT_CHARS[] = "dD";
 
 #define STATE_CONDITIONAL_BRANCH		(1)
 #define STATE_PC_RELATIVE				(2)
-//#define STATE_INDEXED_OFFSET            (3)
-//#define STATE_INDEXED_PCREL             (4)
-//#define STATE_XBCC_BRANCH               (5)
-//#define STATE_CONDITIONAL_BRANCH_6812	(6)
-
-//#define STATE_BYTE			(0)
-//#define STATE_BITS5                     (0)
-//#define STATE_WORD			(1)
-//#define STATE_BITS9                     (1)
-//#define STATE_LONG			(2)
-//#define STATE_BITS16                    (2)
-//#define STATE_UNDF			(3)	/* Symbol undefined in pass1 */
-
 #define REGISTER_P(ptr)		(ptr == 'r')
 
 #define INCREMENT			01
@@ -62,24 +49,10 @@ const char FLT_CHARS[] = "dD";
 #define MAXREGISTER			07
 #define MINREGISTER			00
 
-//#define NINE_BITS			511
-//#define TEN_BITS			1023
-
-//struct mc9xgate_parsed_op{
-// constant value required
-//	unsigned short bin_operand_mask;
-//	unsigned int  shorthand_format; /* prime values used as flags */
-//	char	num_modes;
-// address
-//}; unknown relocation
-// bfd_reloc_code_real_type
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
-//#define RELAX_STATE(s) ((s) >> 2)
-//#define RELAX_LENGTH(s) ((s) & 3)
 
-//#define IS_OPCODE(C1,C2)        (((C1) & 0x0FF) == ((C2) & 0x0FF))
-
+/* what this is */
 struct mc9xgate_opcode_handle
 {
   unsigned char number_of_modes;
@@ -128,15 +101,6 @@ static struct mc9xgate_opcode*
 mc9xgate_find_match(struct mc9xgate_opcode_handle *opcode_handle,
     unsigned char numberOfModes, unsigned int sh_format);
 
-//void
-//mc9xgate_get_macro_masks(unsigned int *operMask0, unsigned int *operMask1,
-//    char *string);
-
-//unsigned short
-//mc9xgate_get_operands_old(char *input, struct mc9xgate_opcode *opcode);
-//prevent defined but not used warning
-//static unsigned int
-//mc9xgate_get_constant(char *input, int max);
 void
 append_str(char *in, char c);
 static int
@@ -144,13 +108,6 @@ cmp_opcode(struct mc9xgate_opcode *, struct mc9xgate_opcode *);
 
 unsigned int
 mc9xgate_detect_format(char *line_in);
-
-//char get_address_mode(char *);
-/* Mark the symbols with STO_M68HC12_FAR to indicate the functions
- are using 'rtc' for returning.  It is necessary to use 'call'
- to invoke them.  This is also used by the debugger to correctly
- find the stack frame.  */
-/* END LOCAL FUNCTIONS */
 
 /* LOCAL DATA */
 static struct hash_control *mc9xgate_hash;
@@ -170,9 +127,6 @@ static int oper2_present = 0;
 static int oper2_bit_length = 0;
 static int oper3_present = 0;
 static int oper3_bit_length = 0;
-
-//static struct mc9xgate_opcode *mc9xgate_op_table = 0;
-
 
 typedef struct mc9xgate_operand
 {
@@ -195,51 +149,15 @@ relax_typeS md_relax_table[] =
     { 1, 1, 0, 0 }, /* First entries aren't used.  */
     { 1, 1, 0, 0 }, /* For no good reason except.  */
     { 1, 1, 0, 0 }, /* that the VAX doesn't either.  */
-    { 1, 1, 0, 0 },
+    { 1, 1, 0, 0 }
 
+    /* todo utilize this */
   /* Relax for bcc <L>.
    These insns are translated into b!cc +3 jmp L.  */
 //    { (127), (-128), 0, ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_WORD) },
 //    { 0, 0, 3, 0 },
 //    { 1, 1, 0, 0 },
 //    { 1, 1, 0, 0 },
-
-  /* Relax for bsr <L> and bra <L>.
-   These insns are translated into jsr and jmp.  */
-//    { (127), (-128), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD) },
-//    { 0, 0, 1, 0 },
-//    { 1, 1, 0, 0 },
-//    { 1, 1, 0, 0 },
-
-  /* Relax for indexed offset: 5-bits, 9-bits, 16-bits.  */
-//    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS9) },
-//    { (255), (-256), 1, ENCODE_RELAX (STATE_INDEXED_OFFSET, STATE_BITS16) },
-//    { 0, 0, 2, 0 },
-//    { 1, 1, 0, 0 },
-
-  /* Relax for PC relative offset: 5-bits, 9-bits, 16-bits.
-   For the 9-bit case, there will be a -1 correction to take into
-   account the new byte that's why the range is -255..256.  */
-//    { (15), (-16), 0, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS9) },
-//    { (256), (-255), 1, ENCODE_RELAX (STATE_INDEXED_PCREL, STATE_BITS16) },
-//    { 0, 0, 2, 0 },
-//    { 1, 1, 0, 0 },
-
-  /* Relax for dbeq/ibeq/tbeq r,<L>:
-//   These insns are translated into db!cc +3 jmp L.  */
-//    { (255), (-256), 0, ENCODE_RELAX (STATE_XBCC_BRANCH, STATE_WORD) },
-//    { 0, 0, 3, 0 },
-//    { 1, 1, 0, 0 },
-//    { 1, 1, 0, 0 },
-
-  /* Relax for bcc <L> on 68HC12.
-   These insns are translated into lbcc <L>.  */
-//    { (127), (-128), 0,
-//        ENCODE_RELAX (STATE_CONDITIONAL_BRANCH_6812, STATE_WORD) },
-//    { 0, 0, 2, 0 },
-//   { 1, 1, 0, 0 },
-//    { 1, 1, 0, 0 },
-
   };
 
 /* mc9Xgate registers all are 16-bit.  They are numbered according to the mc9xgate.  */
@@ -261,9 +179,6 @@ typedef enum register_id
   REG_PC = 9
 } register_id;
 
-/* ELF flags to set in the output file header.  */
-//static int elf_flags = E_MC9XGATE_F64;
-
 /* These are the machine dependent pseudo-ops.  These are included so
  the assembler can work on the output from the SUN C compiler, which
  generates these.  */
@@ -276,35 +191,14 @@ typedef enum register_id
 const pseudo_typeS md_pseudo_table[] =
   {
   /* The following pseudo-ops are supported for MRI compatibility.  */
-//    { "fcb", cons, 1 },
-//    { "fdb", cons, 2 },
-//    { "fcc", stringer, 8 + 1 },
-//    { "rmb", s_space, 0 },
-//
-//  /* Motorola ALIS.  */
-//    { "xrefb", s_ignore, 0 }, /* Same as xref  */
-//
-//  /* Gcc driven relaxation.  */
-//    { "relax", s_mc9xgate_relax, 0 },
-//
-//  /* .mode instruction (ala SH).  */
-//    { "mode", s_mc9xgate_mode, 0 },
-//
-//  /* .far instruction.  */
-//    { "far", s_mc9xgate_mark_symbol, STO_MC9XGATE_FAR },
-//
-//  /* .interrupt instruction.  */
-//    { "interrupt", s_mc9xgate_mark_symbol, STO_MC9XGATE_INTERRUPT },
-
     { 0, 0, 0 } };
 
 /* statics */
 static int current_architecture;
 static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
-//static struct hash_control *mc9xgate_hash;
-//static struct mc9xgate_opcode_def *mc9xgate_opcode_defs = 0;
 static unsigned int numberOfCalls = 0;
+
 /* ELF flags to set in the output file header.  */
 static int elf_flags = E_MC9XGATE_F64;
 
@@ -412,13 +306,10 @@ md_begin(void)
   struct mc9xgate_opcode *mc9xgate_opcode_ptr;
   struct mc9xgate_opcode *mc9xgate_op_table;
   struct mc9xgate_opcode_handle *op_handles = 0;
-  //struct mc9xgate_opcode *mc9xgate_op_handle_ptr;
-  //struct mc9xgate_opcode *op_alias;
   char prev_op_name[9];
   char handle_enum = 0;
   unsigned int number_of_handle_rows = 0;
   int i, j = 0;
-  //int opcode_offset = 0;
 
   /* create a local copy of our opcode table including and an extra line for NULL termination*/
   mc9xgate_op_table = (struct mc9xgate_opcode *) xmalloc((mc9xgate_num_opcodes
@@ -707,90 +598,7 @@ void md_assemble(char *input_line)
                   opcode_bin = mc9xgate_operands(macro_opcode, &input_line);
                 }
             }
-
-          if (0) //Disable block
-            {
-              if (*input_line == 'r' || *input_line == 'R')
-                {
-                  //	*bit_width = 3;
-                  //	input_line = extract_word (input_line, imm16_string, sizeof (imm16_string));
-
-                  for (imm16_string_index = 0; is_part_of_name(*input_line); imm16_string_index++, input_line++)
-                    {
-                      imm16_string[imm16_string_index] = *input_line;
-                    }
-
-                  if (*input_line != ',')
-                    {
-                      as_bad(_(":expected , operand separator"));
-                    }
-                  else
-                    {
-                      imm16_string[imm16_string_index++] = *input_line++;
-                    }
-
-                  if (*input_line == '#')
-                    { /* go past # character */
-                      input_line++;
-                      //printf("\n about to call get constant %s", input_line);
-                      // todo see if commenting out the next three lines works
-//                      imm16_value0 = mc9xgate_get_constant(input_line, 0xFFFF);
-//                      imm16_value1 = (imm16_value0 & 0xFF00) >> 8;
-//                      imm16_value0 &= 0x00FF;
-                      //printf("\n in case r extracted %s and read valueL %x valueH %x", imm16_string, imm16_value0, imm16_value1);
-                    }
-                  else
-                    {
-                      //printf("\n need to parse expression for macro");
-                    }
-
-                }
-              else
-                {
-                  as_bad(_(": expected register name r0-r7 read %s "),
-                      input_line);
-
-                }
-
-              for (i = 0; *p && i < 2; i++)
-                { /* loop though macro operand list */
-                  p = extract_word(p, op_name, 10);
-                  if (!(opcode_handle
-                      = (struct mc9xgate_opcode_handle *) hash_find(
-                          mc9xgate_hash, op_name)))
-                    {
-                      as_bad(_("opcode not found in hash"));
-                      break;
-                    }
-                  else
-                    {
-                      //printf("\n found %s", op_name);
-                      opcode = mc9xgate_find_match(opcode_handle,
-                          opcode_handle->number_of_modes, sh_format);
-                    }
-
-                  if (!i)
-                    { /* write the low byte first since it will clear the high byte in the process */
-                      sprintf(&imm16_string[imm16_string_index], "#%d",
-                          imm16_value0);
-                      //printf("\n paresd %s", imm16_string);
-                      //imm16_string[imm16_string_index] = inttos();
-                    }
-                  else
-                    {
-                      sprintf(&imm16_string[imm16_string_index], "#%d",
-                          imm16_value1);
-                      //printf("\n parsed %s", imm16_string);
-                      // opcode_bin = mc9xgate_operands(opcode, &input_line);
-                    }
-                  imm16_pointer = imm16_string;
-                  //printf("\n parsed %s about to call operands", imm16_pointer);
-                  opcode_bin = mc9xgate_operands(opcode, &imm16_pointer);
-                }
-              //printf("\n done processing macro");
-            }
         }
-
     }
   macroClipping = 0;
   input_line = saved_input_line;
@@ -1424,7 +1232,6 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
     char **op_con, char **line)
 {
   expressionS op_expr;
-  //opcode = opcode;
   char *op_constraint = *op_con;
   unsigned int op_mask = 0;
   char *str = skip_whitespace(*line);
@@ -1567,9 +1374,6 @@ mc9xgate_operand(struct mc9xgate_opcode *opcode, int *bit_width, int where,
 
     else
       {
-
-        //printf("\n getting relocatable expresson from string %s", str);
-        //str = mc9xgate_parse_exp(str, &op_expr);
 
         fixS *fixp = 0;
         fixup_required = 1;
