@@ -67,6 +67,7 @@ struct mc9xgate_opcode_handle
 /*  LOCAL FUNCTIONS */
 //static void
 //s_mc9xgate_mode(int); /* Pseudo op to control the ELF flags.  */
+static char * mc9xgate_parse_exp (char *s, expressionS * op);
 static inline char *skip_whitespace (char *);
 static void get_default_target (void);	/* Pseudo op to indicate a relax group.  */
 static char *extract_word (char *, char *, int);
@@ -80,27 +81,22 @@ static unsigned int mc9xgate_operands (struct mc9xgate_opcode *opcode,
 static unsigned int mc9xgate_operand (struct mc9xgate_opcode *opcode,
 				      int *bit_width, int where,
 				      char **op_con, char **line);
-static struct mc9xgate_opcode *mc9xgate_find_match (struct
+static struct mc9xgate_opcode * mc9xgate_find_match (struct
 						    mc9xgate_opcode_handle
 						    *opcode_handle,
 						    unsigned char
 						    numberOfModes,
 						    unsigned int sh_format);
-
 void append_str (char *in, char c);
 static int cmp_opcode (struct mc9xgate_opcode *, struct mc9xgate_opcode *);
-
 unsigned int mc9xgate_detect_format (char *line_in);
 
 /* LOCAL DATA */
 static struct hash_control *mc9xgate_hash;
 static unsigned int prev = 0;	/* Previous opcode.  */
 static unsigned char fixup_required = 0;
-//static char parse_error;
-//static char error_message[ sizeof( char) ];
 static unsigned char macroClipping = 0;	/* used to enable clipping of 16 bit operands into 8 bit constraints */
 static char oper_check;
-
 static unsigned int oper1 = 0;
 static unsigned int oper2 = 0;
 static unsigned int oper3 = 0;
@@ -241,7 +237,6 @@ mc9xgate_arch_format (void)
     }
   else
     {
-      //printf("\n ERROR in mc9xgate_arch_format ---unknown----\n");  //for debugging
       return "error";
     }
 }
@@ -251,10 +246,8 @@ get_default_target (void)
 {
   const bfd_target *target;
   bfd abfd;
-
   if (current_architecture != 0)
     return;
-
   default_cpu = "unknown";
   target = bfd_find_target (0, &abfd);
   if (target && target->name)
@@ -283,7 +276,6 @@ md_begin (void)
   char handle_enum = 0;
   unsigned int number_of_handle_rows = 0;
   int i, j = 0;
-
   /* create a local copy of our opcode table including and an extra line for NULL termination */
   mc9xgate_op_table =
     (struct mc9xgate_opcode *) xmalloc ((mc9xgate_num_opcodes + 1) *
@@ -307,7 +299,6 @@ md_begin (void)
 	 sizeof (struct mc9xgate_opcode), (int
 					   (*)(const void *,
 					       const void *)) cmp_opcode);
-
   /* Calculate number of handles since this will be smaller than the raw number of opcodes in the table */
   for (mc9xgate_opcode_ptr = mc9xgate_op_table; mc9xgate_opcode_ptr->name;
        mc9xgate_opcode_ptr++)
@@ -323,7 +314,6 @@ md_begin (void)
     (struct mc9xgate_opcode_handle *)
     xmalloc (sizeof (struct mc9xgate_opcode_handle) *
 	     (number_of_handle_rows + 1));
-
   /* insert opcode names into hash table, aliasing duplicates */
   /* TODO do this dynamically with xmalloc and a loop */
   mc9xgate_hash = hash_new ();	/* create a new has control table */
@@ -477,24 +467,19 @@ md_assemble (char *input_line)
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
   char *p = 0;
-
   fixup_required = 0;
   numberOfCalls++;		// for testing
   oper_check = 0;		/* set error flags */
-
   input_line = extract_word (input_line, op_name, sizeof (op_name));
   /* check to make sure we are not reading a bugus line */
   if (!op_name[0])
     {
       as_bad (_("opcode missing or not found on input line"));
-      //         return;
     }
-  //printf("\n read code %s\n", op_name);
   if (!
       (opcode_handle =
        (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name)))
     {
-      //         //printf("\n %s\n",op_name);
       as_bad (_("opcode not found in hash"));
     }
   else
@@ -505,7 +490,6 @@ md_assemble (char *input_line)
       //printf("\n inline reads %s", input_line);
       sh_format = mc9xgate_detect_format (input_line);
       //printf("\n detected shorthand %d of %d alias",sh_format, handle_enum_alias);
-
       if (handle_enum_alias > 1)
 	{
 	  opcode =
@@ -518,7 +502,6 @@ md_assemble (char *input_line)
 	  opcode = opcode_handle->opc0;
 	  printf ("\n opcode match is %hx", opcode->bin_opcode);
 	}
-
       if (!opcode)
 	{
 	  as_bad (_(":error matching operand format"));
@@ -535,7 +518,6 @@ md_assemble (char *input_line)
 	  macroClipping = 1;
 	  char constraintString[50];
 	  unsigned int i;
-
 	  /* extract formal constraint string */
 	  for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
 	    {
@@ -543,15 +525,9 @@ md_assemble (char *input_line)
 	    }
 	  p++;
 	  constraintString[i] = 0;
-
 //          sh_format = mc9xgate_detect_format(constraintString);
-
 	  input_line = skip_whitespace (input_line);
-
-	  //printf("\n inline reads %s", input_line);
-
 	  char *macro_inline = input_line;
-
 	  for (i = 0; *p && i < (opcode->size / 2); i++)
 	    {			/* loop though macro operand list */
 	      input_line = macro_inline;	/* rewind */
@@ -582,7 +558,6 @@ md_assemble (char *input_line)
   macroClipping = 0;
   input_line = saved_input_line;
 }
-
 /* Force truly undefined symbols to their maximum size, and generally set up
  the frag list to be relaxed.  */
 int
@@ -620,16 +595,13 @@ md_pcrel_from (fixS * fixP)
 
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
 }
-
 /* If while processing a fixup, a reloc really needs to be created
  then it is done here.  */
 arelent *
 tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
 {
   //printf("\n in tc_gen_reloc fx_r_type is %d ", fixp->fx_r_type);
-
   arelent *reloc;
-
   reloc = (arelent *) xmalloc (sizeof (arelent));
   reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
@@ -641,12 +613,10 @@ tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
       reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
       //printf("\nlooking up howto based on fx_r_type");
     }
-
   if (fixp->fx_r_type == 14)
     {
       reloc->howto = bfd_reloc_name_lookup (stdoutput, "R_MC9XGATE_IMM8");
     }
-
   if (reloc->howto == (reloc_howto_type *) NULL)
     {
       as_bad_where (fixp->fx_file, fixp->fx_line,
@@ -655,44 +625,13 @@ tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
 		    (int) fixp->fx_r_type);
       return NULL;
     }
-
   /* Since we use Rel instead of Rela, encode the vtable entry to be
      used in the relocation's section offset.  */
   if (fixp->fx_r_type == BFD_RELOC_VTABLE_ENTRY)
     reloc->address = fixp->fx_offset;
-
   reloc->addend = 0;
   //printf("\n about to return relocation name-%s size-%d type->%u", reloc->howto->name, reloc->howto->size, reloc->howto->type);
   return reloc;
-
-  //    arelent *reloc;
-
-  //    reloc = (arelent *) xmalloc (sizeof (arelent));
-  //    reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
-  //    *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
-  //    reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
-  //    if (fixp->fx_r_type == 0)
-  //            reloc->howto = bfd_reloc_type_lookup (stdoutput, BFD_RELOC_16);
-  //    else /* TODO fix so it finds by type */
-  //            reloc->howto = bfd_reloc_name_lookup(stdoutput, "R_MC9XGATE_IMM8");
-  // reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
-  //    if (reloc->howto == (reloc_howto_type *) NULL)
-  //    {
-  //            as_bad_where (fixp->fx_file, fixp->fx_line,
-  //                            _("Relocation %d is not supported by object file format."),
-  //                            (int) fixp->fx_r_type);
-  //            return NULL;
-  //    }
-
-  /* Since we use Rel instead of Rela, encode the vtable entry to be
-     used in the relocation's section offset.  */
-  //    if (fixp->fx_r_type == BFD_RELOC_VTABLE_ENTRY)
-  //            reloc->address = fixp->fx_offset;
-
-  //    //printf("\name of reloc is %s", reloc->howto->name);
-
-  //    reloc->addend = 0;
-  //    return reloc;
 }
 
 /* Patch the instruction with the resolved operand.  Elf relocation
@@ -706,139 +645,112 @@ tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
 
  */
 void
-md_apply_fix (fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
+md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
-  //printf("\n in md_apply_fix");
-
   char *where;
   long value = *valP;
   int op_type;
   int opcode = 0;
   ldiv_t result;
-
   /* if the fixup is done mark it done so no further symbol resoloution will take place */
   if (fixP->fx_addsy == (symbolS *) NULL)
     {
       fixP->fx_done = 1;
       //printf("\n fixup done");
     }
-
   /* We don't actually support subtracting a symbol.  */
   if (fixP->fx_subsy != (symbolS *) NULL)
-    as_bad_where (fixP->fx_file, fixP->fx_line, _("Expression too complex."));
-
+    as_bad_where(fixP->fx_file, fixP->fx_line, _("Expression too complex."));
   op_type = fixP->fx_r_type;
-
   where = fixP->fx_frag->fr_literal + fixP->fx_where;
-
-  opcode = bfd_getl16 (where);
-
+  opcode = bfd_getl16(where);
   int mask = 0;
-
-  //printf("\n read opcode %d from frag", opcode);
-
   switch (fixP->fx_r_type)
-    {
-      //   case BFD_RELOC_MC9XGATE_PCREL_9:
-    case R_MC9XGATE_PCREL_9:
-      if (value < -512 || value > 511)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value %ld too large for 9-bit PC-relative branch."),
-		      value);
-      result = ldiv (value, 2);	/* from bytes to words */
-      value = result.quot;
-      if (result.rem)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _
-		      ("Value %ld not aligned by 2 for 9-bit PC-relative branch."),
-		      value);
-      mask = 0x1FF;		/* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
-      value &= mask;
-      number_to_chars_bigendian (where, (opcode | value), 2);
-      /* todo attempt to use internal fixups */
-      //fixP = fix_new_exp (frag_now, f - frag_now->fr_literal -1, 2,
-      //                        oper, TRUE, BFD_RELOC_M68HC12_9_PCREL);
-      //              fixP->fx_pcrel_adjust = 1;
-      //printf("\n fixup with operand is %ld",(opcode | value));
-      break;
-    case R_MC9XGATE_PCREL_10:
-      if (value < -1024 || value > 1023)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value %ld too large for 10-bit PC-relative branch."),
-		      value);
-      result = ldiv (value, 2);	/* from bytes to words */
-      value = result.quot;
-      if (result.rem)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _
-		      ("Value %ld not aligned by 2 for 10-bit PC-relative branch."),
-		      value);
-      mask = 0x3FF;		/* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
-      value &= mask;
-      number_to_chars_bigendian (where, (opcode | value), 2);
-      //printf("\n fixup with operand is %ld",(opcode | value));
-      break;
-      //case R_MC9XGATE_32: // for testing
-    case BFD_RELOC_MC9XGATE_24:
-      //case R_MC9XGATE_IMM8_LO:
-    case BFD_RELOC_MC9XGATE_IMM8_HI:
-      if (value < -65537 || value > 65535)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 16-bit range."));
-      value >>= 8;
-      bfd_putb16 ((bfd_vma) value | opcode, (unsigned char *) where);
-      //printf("\n fixup 8 with operand is %ld",(long int) opcode);
-      break;
-    case BFD_RELOC_MC9XGATE_IMM8_LO:
-      if (value < -65537 || value > 65535)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 16-bit range."));
-      value &= 0x00ff;
-      bfd_putb16 ((bfd_vma) value | opcode, (unsigned char *) where);
-      if (value < -65537 || value > 65535)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 16-bit range."));
-
-      //number_to_chars_bigendian(where, opcode , 2);
-
-      //printf("\n fixup 8LO with operand is %ld",(long int) opcode);
-
-      // case R_MC9XGATE_16:
-      //     //printf("\n need to fixup 16");
-      break;
-    case BFD_RELOC_MC9XGATE_IMM3:
-      if (value < 0 || value > 7)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 3-bit range."));
-      //printf("\n need to process imm3 relocatoin");
-      value <<= 8;		/* make big endian */
-
-      number_to_chars_bigendian (where, (opcode | value), 2);
-      break;
-    case BFD_RELOC_MC9XGATE_IMM4:
-      if (value < 0 || value > 15)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 4-bit range."));
-      value <<= 4;		/* alight the operand bits */
-      //printf("\n need to process imm4 relocatoin");
-      number_to_chars_bigendian (where, (opcode | value), 2);
-      break;
-    case BFD_RELOC_MC9XGATE_IMM5:
-      if (value < 0 || value > 31)
-	as_bad_where (fixP->fx_file, fixP->fx_line,
-		      _("Value out of 5-bit range."));
-      value <<= 5;		/* alight the operand bits */
-      //printf("\n need to process imm4 relocatoin");
-      number_to_chars_bigendian (where, (opcode | value), 2);
-      break;
-    case R_MC9XGATE_16:
-    case 0x2:			/* seems to be the default value for no fixup TODO figure out how to remove */
-      break;
-    default:
-      as_fatal (_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
-		fixP->fx_r_type);
-      break;
-    }
+  {
+  //   case BFD_RELOC_MC9XGATE_PCREL_9:
+  case R_MC9XGATE_PCREL_9:
+    if (value < -512 || value > 511)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value %ld too large for 9-bit PC-relative branch."), value);
+    result = ldiv(value, 2); /* from bytes to words */
+    value = result.quot;
+    if (result.rem)
+      as_bad_where(fixP->fx_file, fixP->fx_line, _
+          ("Value %ld not aligned by 2 for 9-bit PC-relative branch."), value);
+    mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
+    value &= mask;
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    /* todo attempt to use internal fixups is applicable */
+    //fixP = fix_new_exp (frag_now, f - frag_now->fr_literal -1, 2,
+    //                        oper, TRUE, BFD_RELOC_M68HC12_9_PCREL);
+    //              fixP->fx_pcrel_adjust = 1;
+    break;
+  case R_MC9XGATE_PCREL_10:
+    if (value < -1024 || value > 1023)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value %ld too large for 10-bit PC-relative branch."), value);
+    result = ldiv(value, 2); /* from bytes to words */
+    value = result.quot;
+    if (result.rem)
+      as_bad_where(fixP->fx_file, fixP->fx_line, _
+          ("Value %ld not aligned by 2 for 10-bit PC-relative branch."), value);
+    mask = 0x3FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
+    value &= mask;
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    break;
+    //case R_MC9XGATE_32: // for testing
+  case BFD_RELOC_MC9XGATE_24:
+    //case R_MC9XGATE_IMM8_LO:
+  case BFD_RELOC_MC9XGATE_IMM8_HI:
+    if (value < -65537 || value > 65535)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value out of 16-bit range."));
+    value >>= 8;
+    bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
+    break;
+  case BFD_RELOC_MC9XGATE_IMM8_LO:
+    if (value < -65537 || value > 65535)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value out of 16-bit range."));
+    value &= 0x00ff;
+    bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
+//    if (value < -65537 || value > 65535)
+//      as_bad_where(fixP->fx_file, fixP->fx_line,
+//          _("Value out of 16-bit range."));
+    //number_to_chars_bigendian(where, opcode , 2);
+    //printf("\n fixup 8LO with operand is %ld",(long int) opcode);
+    // case R_MC9XGATE_16:
+    //     //printf("\n need to fixup 16");
+    break;
+  case BFD_RELOC_MC9XGATE_IMM3:
+    if (value < 0 || value > 7)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value out of 3-bit range."));
+    value <<= 8; /* make big endian */
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    break;
+  case BFD_RELOC_MC9XGATE_IMM4:
+    if (value < 0 || value > 15)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value out of 4-bit range."));
+    value <<= 4; /* alight the operand bits */
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    break;
+  case BFD_RELOC_MC9XGATE_IMM5:
+    if (value < 0 || value > 31)
+      as_bad_where(fixP->fx_file, fixP->fx_line,
+          _("Value out of 5-bit range."));
+    value <<= 5; /* alight the operand bits */
+    number_to_chars_bigendian(where, (opcode | value), 2);
+    break;
+  case R_MC9XGATE_16:
+  case 0x2: /* seems to be the default value for no fixup TODO figure out how to remove */
+    break;
+  default:
+    as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
+        fixP->fx_r_type);
+    break;
+  }
 }
 
 /* See whether we need to force a relocation into the output file.  */
@@ -848,7 +760,6 @@ tc_mc9xgate_force_relocation (fixS * fixP)
   //printf("\n in force_relocation");
   if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_GROUP)
     return 1;
-
   return generic_force_reloc (fixP);
 }
 
@@ -860,12 +771,10 @@ tc_mc9xgate_force_relocation (fixS * fixP)
 int
 tc_mc9xgate_fix_adjustable (fixS * fixP)
 {
-  //printf("\n in fix_adjustable");
-
   switch (fixP->fx_r_type)
     {
-      /* For the linker relaxation to work correctly, these relocs
-         need to be on the symbol itself.  */
+//       For the linker relaxation to work correctly, these relocs
+//         need to be on the symbol itself.
     case BFD_RELOC_MC9XGATE_IMM8_LO:
     case BFD_RELOC_MC9XGATE_IMM8_HI:
     case BFD_RELOC_16:
@@ -874,14 +783,12 @@ tc_mc9xgate_fix_adjustable (fixS * fixP)
     case BFD_RELOC_VTABLE_INHERIT:
     case BFD_RELOC_VTABLE_ENTRY:
     case BFD_RELOC_32:
-
-      /* The memory bank addressing translation also needs the original
-         symbol.  */
+//       The memory bank addressing translation also needs the original
+//         symbol.
     case BFD_RELOC_MC9XGATE_LO16:
     case BFD_RELOC_MC9XGATE_PAGE:
     case BFD_RELOC_MC9XGATE_24:
       return 0;
-
     default:
       return 1;
     }
@@ -891,8 +798,6 @@ void
 md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED, asection * sec ATTRIBUTE_UNUSED,
 		 fragS * fragP)
 {
-  //printf("\n in convert_frag");
-
   int temp = fragP->fr_address;
   temp++;
   return;
@@ -902,7 +807,6 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED, asection * sec ATTRIBUTE_UNUSED,
 void
 mc9xgate_elf_final_processing (void)
 {
-  //printf("\n in elf_final processing");
   /* TODO make this always true */
   if (current_architecture & cpumc9xgate)
     elf_flags |= EF_MC9XGATE_MACH;
@@ -917,7 +821,6 @@ skip_whitespace (char *s)
     {
       s++;
     }
-  ////printf("\n debug white space %c", *s);
   return s;
 }
 
@@ -928,11 +831,9 @@ extract_word (char *from, char *to, int limit)
   char *op_start;
   char *op_end;
   int size = 0;
-
   /* Drop leading whitespace.  */
   from = skip_whitespace (from);
   *to = 0;
-
   /* Find the op code end.  */
   for (op_start = op_end = from; *op_end != 0 && is_part_of_name (*op_end);)
     {
@@ -940,14 +841,13 @@ extract_word (char *from, char *to, int limit)
       if (size + 1 >= limit)
 	break;
     }
-
   to[size] = 0;
   return op_end;
 }
 
-/* Create a new fragment for our instruction. Record the
- line information of that insn in the dwarf2 debug sections. */
-static char *mc9xgate_parse_exp (char *s, expressionS * op);
+///* Create a new fragment for our instruction. Record the
+// line information of that insn in the dwarf2 debug sections. */
+
 
 static char *
 mc9xgate_new_instruction (int size)
