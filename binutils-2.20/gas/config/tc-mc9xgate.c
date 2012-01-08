@@ -456,9 +456,7 @@ md_assemble (char *input_line)
   input_line = extract_word (input_line, op_name, sizeof (op_name));
   /* check to make sure we are not reading a bugus line */
   if (!op_name[0])
-    {
-      as_bad (_("opcode missing or not found on input line"));
-    }
+    as_bad (_("opcode missing or not found on input line"));
   if (!
       (opcode_handle =
        (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name)))
@@ -482,12 +480,13 @@ md_assemble (char *input_line)
 	}
       else
 	{
-	  opcode = opcode_handle->opc0;
+	  /* todo i suspect that this code should not be here if mc9xgate_find_match was more thorough ? */
+          opcode = opcode_handle->opc0;
 	  //printf ("\n opcode match is %hx", opcode->bin_opcode);
 	}
       if (!opcode)
 	{
-	  as_bad (_(":error matching operand format"));
+	  as_bad (_(":error matching operands to opcode"));
 	  //TODO print list of possibilities
 	}
       else if (opcode->size == 2)
@@ -508,20 +507,18 @@ md_assemble (char *input_line)
 	    }
 	  p++;
 	  constraintString[i] = 0;
-//          sh_format = mc9xgate_detect_format(constraintString);
 	  input_line = skip_whitespace (input_line);
 	  char *macro_inline = input_line;
+	  /* loop though the macro's opcode list and apply operands to each real opcode*/
 	  for (i = 0; *p && i < (opcode->size / 2); i++)
-	    {			/* loop though macro operand list */
+	    {	/* loop though macro operand list */
 	      input_line = macro_inline;	/* rewind */
 	      p = extract_word (p, op_name, 10);
 	      //printf("\n read real opcode %s", op_name);
-	      if (!(opcode_handle
-		    =
-		    (struct mc9xgate_opcode_handle *)
+	      if (!(opcode_handle = (struct mc9xgate_opcode_handle *)
 		    hash_find (mc9xgate_hash, op_name)))
 		{
-		  as_bad (_("opcode handle not found in hash"));
+		  as_bad (_(":real opcode handle not found in hash"));
 		  break;
 		}
 	      else
@@ -573,8 +570,8 @@ long
 md_pcrel_from (fixS * fixP)
 {
   //printf("\n in perel_from");
-  if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
-    return 0;
+  //if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
+  //  return 0;
 
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
 }
@@ -661,7 +658,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
-    /* todo attempt to use internal fixups is applicable */
+    /* todo attempt to use internal fixups if applicable */
     //fixP = fix_new_exp (frag_now, f - frag_now->fr_literal -1, 2,
     //                        oper, TRUE, BFD_RELOC_M68HC12_9_PCREL);
     //              fixP->fx_pcrel_adjust = 1;
@@ -680,7 +677,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
     //case R_MC9XGATE_32: // for testing
-  case BFD_RELOC_MC9XGATE_24:
+  //case BFD_RELOC_MC9XGATE_24:
     //case R_MC9XGATE_IMM8_LO:
   case BFD_RELOC_MC9XGATE_IMM8_HI:
     if (value < -65537 || value > 65535)
@@ -1333,7 +1330,6 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	as_bad (_
 		(":expected bit length with constraint type i(# immediate) read %c"),
 		*op_constraint);
-      //printf("\n case is i input string is %s",str);
       op_mask = (unsigned int) strtol (str, &str, 10);
       /* make sure it fits */
       for (i = *bit_width; i; i--)
