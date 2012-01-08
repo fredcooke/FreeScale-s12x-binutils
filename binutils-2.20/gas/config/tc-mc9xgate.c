@@ -572,7 +572,6 @@ md_pcrel_from (fixS * fixP)
   //printf("\n in perel_from");
   //if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
   //  return 0;
-
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
 }
 /* If while processing a fixup, a reloc really needs to be created
@@ -736,8 +735,8 @@ int
 tc_mc9xgate_force_relocation (fixS * fixP)
 {
   //printf("\n in force_relocation");
-  if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_GROUP)
-    return 1;
+  //if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_GROUP)
+  //  return 1;
   return generic_force_reloc (fixP);
 }
 
