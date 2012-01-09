@@ -1,5 +1,5 @@
-/* xgate-dis.c -- Motorola 68HC11 & 68HC12 disassembly
-   Copyright 1999, 2000, 2001, 2002, 2003, 2005, 2006, 2007
+/* xgate-dis.c -- Motorola XGATE disassembly
+   Copyright 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Sean Keys (skeys@ipdatasys.com)
 
@@ -19,7 +19,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.
-yo*/
+*/
 
 #include <assert.h>
 #include <math.h>
@@ -32,9 +32,9 @@ yo*/
 #include "ansidecl.h"
 #include "opcode/mc9xgate.h"
 
-#define MC9XGATE_TWO_BYTES				02 /* two bytes */
-#define MC9XGATE_MIN_INS_SIZE			02 /* the minimum size(in bytes of an instruction */
-#define MC9XGATE_MAX_INS_SIZE			04 /* the maximum size(in bytes) of an instruction */
+#define MC9XGATE_TWO_BYTES      02 /* two bytes */
+#define MC9XGATE_MIN_INS_SIZE	02 /* the minimum size(in bytes of an instruction */
+#define MC9XGATE_MAX_INS_SIZE	04 /* the maximum size(in bytes) of an instruction */
 
 //#define PC_REGNUM 3
 
@@ -64,8 +64,11 @@ static int initialized;
 //                                 int*, int, int, bfd_vma);
 static int print_insn(bfd_vma, struct disassemble_info *, int);
 static int read_memory(bfd_vma, bfd_byte*, int, struct disassemble_info*);
-static unsigned int ripBits(unsigned int *bitsLeft, unsigned int numBits,
-    struct mc9xgate_opcode *opcodePTR, unsigned int raw_code);
+//static unsigned int ripBits(unsigned int *bitsLeft, unsigned int numBits,
+//    struct mc9xgate_opcode *opcodePTR, unsigned int raw_code);
+
+static unsigned int
+ripBits(unsigned int *operandBitsRemaining, unsigned int numBitsRequested, struct mc9xgate_opcode *opcodePTR, unsigned int memory);
 
 static unsigned int
 power(unsigned int base, unsigned int powerof);
@@ -73,44 +76,58 @@ power(unsigned int base, unsigned int powerof);
 
 
 /* Disassemble one instruction at address 'memaddr'.  Returns the number
-   of bytes used by that instruction.  */
+   of bytes used by that instruction.
+
+tmpdir/dump:     file format elf32-xgate
+
+Disassembly of section .text:
+
+00008000 <_start> ldl R1, #0xed
+00008002 <_start+0x2> ldh R1, #0xfe
+00008004 <_start+0x4> addl R5, #0xaf
+00008006 <_start+0x6> addh R5, #0xde
+00008008 <_start+0x8> ldl R2, #0x56
+0000800a <_start+0xa> ldh R2, #0x34
+0000800c <_start+0xc> ldl R3, #0x21
+0000800e <_start+0xe> ldh R6, #0xfa
+00008010 <_start+0x10> cmpl R1, #0xcd
+00008012 <_start+0x12> cpch R1, #0xab
+00008014 <_start+0x14> cmpl R2, #0xb2
+00008016 <_start+0x16> cpch R2, #0xa1
+
+*/
+
 static int
 print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 {
-  printf("\n in print_insn arch is %d", arch);
-  printf("\n memaddr is %d",(unsigned int)memaddr);
-  printf("\n dis info    symtab size is %d",info->symtab_size);
-  printf("\n number of symbols is %d",info->num_symbols);
-  printf("\n trying print address fuction ");
-  info->print_address_func(memaddr, info);
+  //printf("\n in print_insn arch is %d", arch);
+  //printf("\n memaddr is %d",(unsigned int)memaddr);
+  //printf("\n dis info    symtab size is %d",info->symtab_size);
+  //printf("\n number of symbols is %d",info->num_symbols);
+  //printf("\n trying print address fuction ");
+  //info->print_address_func(memaddr, info);
 
   int status;
   bfd_byte buffer[4];
-  //unsigned int code = 0;
+  char opString[25] = {0};
+  unsigned opIndex = 0;
   unsigned int raw_code;
-  //unsigned int operandMask;
   char *s = 0;
-  //unsigned int mask;
-  //long format, pos, i;
   long pos;
-  //short sval;
   int i = 0;
   struct mc9xgate_opcode *opcodePTR = mc9xgate_opcodes;
   unsigned int *operMaskPTR = 0;
-  unsigned int operandMask = 0;
+  unsigned int operandBits = 0;
+  signed int relAddr = 0;
   int found = 0;
   //struct mc9xgate_opcode *opcTablePtr = opcodeTable;
-
   pos = 2; /* default to one word read from mem */
-
+  /* initialize our table of opcode masks and check them against our constant table */
   if(!initialized){
-
       operMasks =  xmalloc(sizeof(unsigned int) * mc9xgate_num_opcodes);
-
       for(i = 0, operMaskPTR = operMasks; i < mc9xgate_num_opcodes; i++, opcodePTR++, operMaskPTR++){
           unsigned int bin = 0;
           unsigned int mask = 0;
-
           for(s = opcodePTR->format; *s; s++){
               bin <<= 1;
               mask <<= 1;
@@ -122,78 +139,80 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
           assert (opcodePTR->bin_opcode == bin);
           *operMaskPTR = mask;
       }
-
       initialized = 1;
   }
-
-  /* read one word */
+  /* read 16 bits */
   status = read_memory (memaddr, buffer, 2, info);
   raw_code = buffer[0];
   raw_code <<= 8;
   raw_code += buffer[1];
-
+  /* todo since we have macros and alias codes make this print all possible matches instead of just the first */
   for(i = 0, opcodePTR = mc9xgate_opcodes, operMaskPTR = operMasks; i < mc9xgate_num_opcodes; i++, operMaskPTR++, opcodePTR++){
-
       if((raw_code & *operMaskPTR) == opcodePTR->bin_opcode){
-          found = 1;
-          break;
-
+          /* make sure we didn't run into a macro */
+          if(opcodePTR->cycles_min != 0) {
+              found = 1;
+              break;
+          } else {
+              continue;
+          }
       }
   }
-
   if(found){
       pos = opcodePTR->size;
-      operandMask = ~*operMaskPTR;
-      printf("\n match found-%s constraints-%s rawcode-%x", opcodePTR->name, opcodePTR->format, raw_code);
-      printf("\nsymbol at address %d", info->symbol_at_address_func(memaddr, info));
-
+      operandBits = ~(*operMaskPTR) & 0xFFFF;
+      (*info->fprintf_func) (info->stream, "%s", opcodePTR->name);
       int operand = 0;
       int operandSize = 0;
-      for(s = opcodePTR->constraints; *s; s++){
 
-          switch (*s){
-
-          case 's':
-          case 'r':
-            operandSize = 3;
-            printf("\n ripped R%x\n", (ripBits(&operandMask, operandSize, opcodePTR, raw_code)) );
-            break;
-          case 'i':
-            printf("\n need to diss an immediate operand");
-            (*info->fprintf_func) (info->stream, " #$%02x%s",
-                buffer[0] & 0x0FF, " ");
-            //(format & MC9S12X_OP_JUMP_REL ? " " : ""));
-            break;
-          case 'b': /* either 9 or 10 bit PC real operand */
-            if(info->symbol_at_address_func(memaddr, info)){
-
-                if(*(++s) == '9'){
-                    operandSize = 9;
-                }else if(*s == 'a'){
-                    operandSize = 10;
-                }
-                operand = (ripBits(&operandMask, *(s++) - '0', opcodePTR, raw_code) + 1);
-                /* covert sign */
-                if((operand & 0x0200) && (operandSize == 10))
-                  operand |= 0xFFFFFC00;
-                if((operand & 0x0100) && (operandSize == 9))
-                  operand |= 0xFFFFFE00;
-                /* words to bytes */
-                operand *= 2;
-                printf("\n ripped %d\n", operand);
+      switch (opcodePTR->sh_format)
+        {
+      case MC9XGATE_R_R_R:
+        if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_TRI)) {
+            (*info->fprintf_func) (info->stream, " R%x, R%x, R%x", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, (raw_code >> 2) & 0x7 );
+        } else if(!strcmp (opcodePTR->constraints, MC9XGATE_OP_IDR) ) {
+            if (raw_code & 0x01) {
+                (*info->fprintf_func) (info->stream, " R%x, (R%x, R%x+)", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, (raw_code >> 2) & 0x7 );
+            } else if(raw_code & 0x02) {
+                (*info->fprintf_func) (info->stream, " R%x, (R%x, -R%x)", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, (raw_code >> 2) & 0x7 );
+            }else {
+                (*info->fprintf_func) (info->stream, " R%x, (R%x, R%x)", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, (raw_code >> 2) & 0x7 );
             }
-            break;
-          default:
-            //as_error(_(": unhandled constraint"));
-            break;
-          }
+        } else {
+            (*info->fprintf_func) (info->stream, " unhandled mode) %s", opcodePTR->constraints );
+        }
+        break;
+      case MC9XGATE_R_R:
+        (*info->fprintf_func) (info->stream, " R%x, R%x", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7 );
+        break;
+      case MC9XGATE_R:
+        (*info->fprintf_func) (info->stream, "todo finish dynamic bit riper");
+        break;
+      case MC9XGATE_I | MC9XGATE_PCREL:
+        if(!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL9)) {
+            relAddr = (raw_code & 0x1FF << 1) + 2;
+            (*info->fprintf_func) (info->stream, " 0x%x", relAddr);
+            (*info->print_address_func) (memaddr + (raw_code & 0x1FF) + 2, info);
+            //(*info->fprintf_func) (info->stream, " %02x", (raw_code & 0x1FF));
+        } else if(!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL10)) {
 
-      }
-
+        }else {
+            (*info->fprintf_func) (info->stream, " Can't disassemble for mode) %s", opcodePTR->constraints );
+        }
+        break;
+      case MC9XGATE_R_I:
+        (*info->fprintf_func) (info->stream, " R%x, #0x%02x", (raw_code >> 8) & 0x7, raw_code & 0xff);
+        break;
+      default:
+        (*info->fprintf_func)(info->stream, "address mode not found\t %x",
+            opcodePTR->bin_opcode);
+        break;
+        }
+  } else {
+      printf("\n !!!! unable to find matching opcode !!!!!!!!");
   }
   //printf("\n extracted from memory a-%x b-%x c-%x d-%x \n",(unsigned int) buffer[0], (unsigned int)buffer[1]
   //                                  ,(unsigned int) buffer[2], (unsigned int)buffer[3] );
-
   if(status)
     printf("\n error reading memory");
   return pos;
@@ -210,7 +229,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 int
 print_insn_mc9xgate (bfd_vma memaddr, struct disassemble_info* info)
 {
-	printf("\nin print_insn_mc9xgate\n");
+	//printf("\nin print_insn_mc9xgate\n");
 	return print_insn (memaddr, info, cpumc9xgate);
 	//	return 1;
 }
@@ -220,8 +239,6 @@ read_memory (bfd_vma memaddr, bfd_byte* buffer, int size,
     struct disassemble_info* info)
 {
   int status;
-  /* Get first byte.  Only one at a time because we don't know the
-     size of the insn.  */
   status = (*info->read_memory_func) (memaddr, buffer, size, info);
   if (status != 0)
     {
@@ -232,22 +249,35 @@ read_memory (bfd_vma memaddr, bfd_byte* buffer, int size,
 }
 
 static unsigned int
-ripBits(unsigned int *bitsLeft, unsigned int numBits, struct mc9xgate_opcode *opcodePTR, unsigned int raw_code){
+ripBits(unsigned int *operandBitsRemaining, unsigned int numBitsRequested, struct mc9xgate_opcode *opcodePTR, unsigned int memory){
   unsigned int bitsToProcess = (opcodePTR->size) * 8;
-  unsigned int bitPointer = power(2,bitsToProcess - 1 );
+  unsigned int currentBit = 0;
   unsigned int operand = 0;
-  for(;bitsToProcess && numBits;  bitsToProcess--){
-      bitPointer = power(2,bitsToProcess - 1);
-      if(*bitsLeft & bitPointer){
-          operand <<= 1;
-          if(raw_code & bitPointer)
-            operand += 1;
-          /*flag bit as used */
-          bitPointer = ~bitPointer;
-          *bitsLeft &= bitPointer;
-          numBits--;
-      }
+  unsigned int numBitsFound;
+  for(numBitsFound = 0; numBitsFound < numBitsRequested && *operandBitsRemaining; --bitsToProcess) {
+     currentBit = power(2,bitsToProcess - 1 );
+     if(currentBit & *operandBitsRemaining) {
+         *operandBitsRemaining &= ~(currentBit);
+         operand <<= 1;
+         numBitsFound++;
+         if(currentBit & memory) {
+             operand += 1;
+         }
+     }
   }
+
+//  for(;bitsToProcess && numBits;  bitsToProcess--){
+//      bitPointer = power(2,bitsToProcess - 1);
+//      if(*bitsLeft & bitPointer){
+//          operand <<= 1;
+//          if(raw_code & bitPointer)
+//            operand += 1;
+//          /*flag bit as used */
+//          bitPointer = ~bitPointer;
+//          *bitsLeft &= bitPointer;
+//          numBits--;
+//      }
+//  }
   return operand;
 }
 
