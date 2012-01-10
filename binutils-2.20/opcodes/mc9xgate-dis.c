@@ -171,6 +171,17 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
 
       switch (opcodePTR->sh_format)
         {
+      case MC9XGATE_R_C:
+        (*info->fprintf_func) (info->stream, " R%x, CCR", (raw_code >> 8) & 0x7);
+        break;
+      case MC9XGATE_C_R:
+        (*info->fprintf_func) (info->stream, " CCR, R%x", (raw_code >> 8) & 0x7);
+        break;
+      case MC9XGATE_R_P:
+        (*info->fprintf_func) (info->stream, " R%x, PC", (raw_code >> 8) & 0x7);
+        break;
+      case MC9XGATE_INH:
+        break;
       case MC9XGATE_R_R_R:
         if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_TRI)) {
             (*info->fprintf_func) (info->stream, " R%x, R%x, R%x", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, (raw_code >> 2) & 0x7 );
@@ -187,7 +198,24 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
         }
         break;
       case MC9XGATE_R_R:
-        (*info->fprintf_func) (info->stream, " R%x, R%x", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7 );
+        if(!strcmp(opcodePTR->constraints, MC9XGATE_OP_DYA_MON))
+          {
+            (*info->fprintf_func)(info->stream, " R%x, R%x",
+                (raw_code >> 2) & 0x7, (raw_code >> 5) & 0x7);
+          }
+        else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_DYA))
+          {
+            (*info->fprintf_func)(info->stream, " R%x, R%x",
+                (raw_code >> 2) & 0x7, (raw_code >> 8) & 0x7);
+          }
+        else
+          {
+            (*info->fprintf_func)(info->stream, " unhandled mode) %s",
+                opcodePTR->constraints);
+          }
+        break;
+      case MC9XGATE_R_R_I:
+        (*info->fprintf_func) (info->stream, " R%x, (R%x, #0x%x)", (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, raw_code & 0x1f );
         break;
       case MC9XGATE_R:
         (*info->fprintf_func) (info->stream, "todo finish dynamic bit riper");
@@ -239,6 +267,9 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
         break;
       case MC9XGATE_R_I:
         (*info->fprintf_func) (info->stream, " R%x, #0x%02x", (raw_code >> 8) & 0x7, raw_code & 0xff);
+        break;
+      case MC9XGATE_I:
+        (*info->fprintf_func) (info->stream, " #0x%x", (raw_code >> 8) & 0x7 );
         break;
       default:
         (*info->fprintf_func)(info->stream, "address mode not found\t %x",
