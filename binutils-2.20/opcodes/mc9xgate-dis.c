@@ -35,6 +35,10 @@
 #define MC9XGATE_TWO_BYTES      02 /* two bytes */
 #define MC9XGATE_MIN_INS_SIZE	02 /* the minimum size(in bytes of an instruction */
 #define MC9XGATE_MAX_INS_SIZE	04 /* the maximum size(in bytes) of an instruction */
+#define MC9XGATE_NINE_BITS      0x1FF
+#define MC9XGATE_TEN_BITS       0x3FF
+#define MC9XGATE_NINE_MSB       0x100
+#define MC9XGATE_TEN_MSB        0x200
 
 //#define PC_REGNUM 3
 
@@ -189,16 +193,49 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
         (*info->fprintf_func) (info->stream, "todo finish dynamic bit riper");
         break;
       case MC9XGATE_I | MC9XGATE_PCREL:
-        if(!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL9)) {
-            relAddr = (raw_code & 0x1FF << 1) + 2;
-            (*info->fprintf_func) (info->stream, " 0x%x", relAddr);
-            (*info->print_address_func) (memaddr + (raw_code & 0x1FF) + 2, info);
-            //(*info->fprintf_func) (info->stream, " %02x", (raw_code & 0x1FF));
-        } else if(!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL10)) {
-
-        }else {
-            (*info->fprintf_func) (info->stream, " Can't disassemble for mode) %s", opcodePTR->constraints );
-        }
+        if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL9))
+          {
+            /* if address is negative handle it accordingly */
+            if (raw_code & MC9XGATE_NINE_MSB)
+              {
+                relAddr = MC9XGATE_NINE_BITS >> 1; //one bit is wasted on sign, clip it
+                relAddr = ~relAddr; //make into a negative
+                relAddr |= (raw_code & 0xFF) + 1; //apply our value
+                relAddr <<= 1; //multiply by two
+              }
+            else
+              {
+                relAddr = raw_code & 0xff;
+                relAddr = (relAddr << 1) + 2;
+              }
+            (*info->fprintf_func)(info->stream, " *%d", relAddr);
+            (*info->fprintf_func)(info->stream, "\tAbsolute: ");
+            (*info->print_address_func)(memaddr + relAddr, info);
+          }
+        else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL10))
+          {
+            /* if address is negative handle it accordingly */
+            if (raw_code & MC9XGATE_TEN_MSB)
+              {
+                relAddr = MC9XGATE_TEN_BITS >> 1; //one bit is wasted on sign, clip it
+                relAddr = ~relAddr; //make into a negative
+                relAddr |= (raw_code & 0x1FF) + 1; //apply our value
+                relAddr <<= 1; //multiply by two
+              }
+            else
+              {
+                relAddr = raw_code & 0x1FF;
+                relAddr = (relAddr << 1) + 2;
+              }
+            (*info->fprintf_func)(info->stream, " *%d", relAddr);
+            (*info->fprintf_func)(info->stream, "\tAbsolute: ");
+            (*info->print_address_func)(memaddr + relAddr, info);
+          }
+        else
+          {
+            (*info->fprintf_func)(info->stream,
+                " Can't disassemble for mode) %s", opcodePTR->constraints);
+          }
         break;
       case MC9XGATE_R_I:
         (*info->fprintf_func) (info->stream, " R%x, #0x%02x", (raw_code >> 8) & 0x7, raw_code & 0xff);
