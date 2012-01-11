@@ -172,10 +172,9 @@ static int elf_flags = E_MC9XGATE_F64; /* ELF flags to set in the output file he
 const char *md_shortopts = "m:";
 
 struct option md_longopts[] =
-    {
-        { "mmcu", required_argument, NULL, OPTION_MMCU },
-        { NULL, no_argument, NULL, 0 }
-    };
+  {
+    { "mmcu", required_argument, NULL, OPTION_MMCU },
+    { NULL, no_argument, NULL, 0 } };
 
 size_t md_longopts_size = sizeof (md_longopts);
 
@@ -241,8 +240,8 @@ get_default_target (void)
 void
 md_begin (void)
 {
-  struct mc9xgate_opcode *mc9xgate_opcode_ptr;
-  struct mc9xgate_opcode *mc9xgate_op_table;
+  struct mc9xgate_opcode *mc9xgate_opcode_ptr = NULL;
+  struct mc9xgate_opcode *mc9xgate_op_table = NULL;
   struct mc9xgate_opcode_handle *op_handles = 0;
   char prev_op_name[9];
   char handle_enum = 0;
@@ -254,20 +253,16 @@ md_begin (void)
 					sizeof (struct mc9xgate_opcode));
   memset (mc9xgate_op_table, 0,
 	  sizeof (struct mc9xgate_opcode) * (mc9xgate_num_opcodes + 1));
-  for (i = (mc9xgate_num_opcodes + 1); i; i--)
-    {
-
-      mc9xgate_opcode_ptr = NULL;
-    }
   for (mc9xgate_opcode_ptr = mc9xgate_opcodes, i = 0;
        i < mc9xgate_num_opcodes; i++)
     {
       mc9xgate_op_table[i] = mc9xgate_opcode_ptr[i];
     }
-  qsort (mc9xgate_opcode_ptr, mc9xgate_num_opcodes,
-	 sizeof (struct mc9xgate_opcode), (int
-					   (*)(const void *,
-					       const void *)) cmp_opcode);
+
+  qsort(mc9xgate_op_table, mc9xgate_num_opcodes,
+      sizeof(struct mc9xgate_opcode), (int
+      (*)(const void *, const void *)) cmp_opcode);
+
   /* Calculate number of handles since this will be smaller than the raw number of opcodes in the table */
   for (mc9xgate_opcode_ptr = mc9xgate_op_table; mc9xgate_opcode_ptr->name;
        mc9xgate_opcode_ptr++)
@@ -879,6 +874,7 @@ append_str (char *in, char c)
 static int
 cmp_opcode (struct mc9xgate_opcode *op1, struct mc9xgate_opcode *op2)
 {
+  printf("\n comparing %s and %s", op1->name, op2->name);
   return strcmp (op1->name, op2->name);
 }
 
@@ -1458,6 +1454,7 @@ mc9xgate_find_match (struct mc9xgate_opcode_handle *opcode_handle,
 {
   struct mc9xgate_opcode *opcode = 0;
   /* TODO make this into a loop */
+  printf("\n number of modes for opcode are %d", numberOfModes);
   while (numberOfModes)
     {
       switch (numberOfModes)
