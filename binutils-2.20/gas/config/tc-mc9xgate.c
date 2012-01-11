@@ -167,7 +167,6 @@ const pseudo_typeS md_pseudo_table[] = {
 static int current_architecture;
 static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
-static unsigned int numberOfCalls = 0;
 static int elf_flags = E_MC9XGATE_F64; /* ELF flags to set in the output file header.  */
 const char *md_shortopts = "m:";
 
@@ -385,7 +384,7 @@ const char *
 mc9xgate_listing_header (void)
 {
   if (current_architecture & cpumc9xgate)
-    return "MC9S12X GAS ";	/* TODO same as above */
+    return "XGATE GAS ";
   else
     return "ERROR MC9S12X GAS ";
 }
@@ -395,6 +394,9 @@ md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
 {
   return 0;
 }
+
+/* GAS will call this function for each section at the end of the assembly,
+   to permit the CPU backend to adjust the alignment of a section.  */
 
 valueT
 md_section_align (asection * seg, valueT addr)
@@ -416,7 +418,6 @@ md_assemble (char *input_line)
   unsigned int sh_format = 0;
   char *p = 0;
   fixup_required = 0;
-  numberOfCalls++;		// for testing
   oper_check = 0;		/* set error flags */
   input_line = extract_word (input_line, op_name, sizeof (op_name));
   /* check to make sure we are not reading a bugus line */
@@ -432,22 +433,17 @@ md_assemble (char *input_line)
     {
       /* detect operand format so we can pull the proper opcode bin */
       handle_enum_alias = opcode_handle->number_of_modes;
-      //printf("\n about to detect operands, %d combinations found", handle_enum_alias);
-      //printf("\n inline reads %s", input_line);
       sh_format = mc9xgate_detect_format (input_line);
-      //printf("\n detected shorthand %d of %d alias",sh_format, handle_enum_alias);
       if (handle_enum_alias > 1)
 	{
 	  opcode =
 	    mc9xgate_find_match (opcode_handle,
 				 opcode_handle->number_of_modes, sh_format);
-	  //printf ("\n opcode match is %hx", opcode->bin_opcode);
 	}
       else
 	{
 	  /* todo i suspect that this code should not be here if mc9xgate_find_match was more thorough ? */
           opcode = opcode_handle->opc0;
-	  //printf ("\n opcode match is %hx", opcode->bin_opcode);
 	}
       if (!opcode)
 	{
@@ -456,12 +452,10 @@ md_assemble (char *input_line)
 	}
       else if (opcode->size == 2)
 	{			/* if size is one word assemble that native insn */
-	  //printf("\n matched code %s and format %s",opcode->name, opcode->format);
 	  opcode_bin = mc9xgate_operands (opcode, &input_line);
-	  //printf("\n parsed bin_opcode is  %x", opcode_bin);
 	}
       else
-	{			/* if insns is a simplified instruction expand it out */
+	{ /* if insns is a simplified instruction expand it out */
 	  macroClipping = 1;
 	  char constraintString[50];
 	  unsigned int i;
@@ -479,7 +473,6 @@ md_assemble (char *input_line)
 	    {	/* loop though macro operand list */
 	      input_line = macro_inline;	/* rewind */
 	      p = extract_word (p, op_name, 10);
-	      //printf("\n read real opcode %s", op_name);
 	      if (!(opcode_handle = (struct mc9xgate_opcode_handle *)
 		    hash_find (mc9xgate_hash, op_name)))
 		{
@@ -489,12 +482,10 @@ md_assemble (char *input_line)
 	      else
 		{
 		  sh_format = mc9xgate_detect_format (input_line);
-		  //printf("\n about to call find match then operands %s %s , number of modes %d with sh-format %d", op_name, input_line, opcode_handle->number_of_modes, sh_format);
 		  macro_opcode =
 		    mc9xgate_find_match (opcode_handle,
 					 opcode_handle->number_of_modes,
 					 sh_format);
-		  //printf("\n opcode is %s", opcode->name);
 		  opcode_bin = mc9xgate_operands (macro_opcode, &input_line);
 		}
 	    }
@@ -534,39 +525,34 @@ mc9xgate_relax_frag (segT seg ATTRIBUTE_UNUSED, fragS * fragP,
 long
 md_pcrel_from (fixS * fixP)
 {
-  //printf("\n in perel_from");
-  //if (fixP->fx_r_type == BFD_RELOC_MC9XGATE_RL_JUMP)
-  //  return 0;
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
 }
+
 /* If while processing a fixup, a reloc really needs to be created
  then it is done here.  */
 arelent *
 tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
 {
-  //printf("\n in tc_gen_reloc fx_r_type is %d ", fixp->fx_r_type);
   arelent *reloc;
   reloc = (arelent *) xmalloc (sizeof (arelent));
   reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
   *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
   reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
   if (fixp->fx_r_type == 0)
-    reloc->howto = bfd_reloc_type_lookup (stdoutput, BFD_RELOC_16);
+    reloc->howto = bfd_reloc_type_lookup(stdoutput, BFD_RELOC_16);
   else
     {
-      reloc->howto = bfd_reloc_type_lookup (stdoutput, fixp->fx_r_type);
-      //printf("\nlooking up howto based on fx_r_type");
+      reloc->howto = bfd_reloc_type_lookup(stdoutput, fixp->fx_r_type);
     }
   if (fixp->fx_r_type == 14)
     {
-      reloc->howto = bfd_reloc_name_lookup (stdoutput, "R_MC9XGATE_IMM8");
+      reloc->howto = bfd_reloc_name_lookup(stdoutput, "R_MC9XGATE_IMM8");
     }
   if (reloc->howto == (reloc_howto_type *) NULL)
     {
-      as_bad_where (fixp->fx_file, fixp->fx_line,
-		    _
-		    ("Relocation %d is not supported by object file format."),
-		    (int) fixp->fx_r_type);
+      as_bad_where(fixp->fx_file, fixp->fx_line, _
+      ("Relocation %d is not supported by object file format."),
+          (int) fixp->fx_r_type);
       return NULL;
     }
   /* Since we use Rel instead of Rela, encode the vtable entry to be
@@ -574,18 +560,13 @@ tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
   if (fixp->fx_r_type == BFD_RELOC_VTABLE_ENTRY)
     reloc->address = fixp->fx_offset;
   reloc->addend = 0;
-  //printf("\n about to return relocation name-%s size-%d type->%u", reloc->howto->name, reloc->howto->size, reloc->howto->type);
   return reloc;
 }
 
 /* Patch the instruction with the resolved operand.  Elf relocation
  info will also be generated to take care of linker/loader fixups.
- The 68HC11 addresses only 64Kb, we are only concerned by 8 and 16-bit
- relocs.  BFD_RELOC_8 is basically used for .page0 access (the linker
- will warn for overflows).  BFD_RELOC_8_PCREL should not be generated
- because it's either resolved or turned out into non-relative insns (see
- relax table, bcc, bra, bsr transformations)
- The BFD_RELOC_32 is necessary for the support of --gstabs. */
+ The XGATE addresses only 16-bit addresses.The BFD_RELOC_32 is necessary
+ for the support of --gstabs. */
 void
 md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
@@ -1050,8 +1031,6 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	    {
 	      reg_expected = 1;
 	      str = extract_word (str, r_name, sizeof (r_name));
-	      //printf("\n extracted %s %c and %c", r_name, r_name[0], r_name[1]);
-	      //str--; /* rewind */
 	      if (ISDIGIT (r_name[1]))
 		{
 		  if (r_name[2] == '\0' && (r_name[1] - '0' < 8))
@@ -1074,14 +1053,12 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	}
       op_mask <<= 2;
       op_mask |= pp_fix;
-      //printf("\n built code %d from prefix %d",op_mask,pp_fix);
       break;
-    case 'r':			/* register operand.  */
+    case 'r':	/* register operand.  */
       if (*str == 'r' || *str == 'R')
 	{
 	  *bit_width = 3;
 	  str = extract_word (str, r_name, sizeof (r_name));
-	  //  printf("\n in case r extracted %s", r_name);
 	  op_mask = 0xff;
 	  if (ISDIGIT (r_name[1]))
 	    {
@@ -1099,8 +1076,8 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	  as_bad (_(": expected register name r0-r7 read %s "), r_name);
 	}
       break;
-    case 'i':			/* immediate value or expression expected */
-      (*op_con)++;		/* advance the original format pointer */
+    case 'i':	/* immediate value or expression expected */
+      (*op_con)++; /* advance the original format pointer */
       op_constraint++;
       if (ISDIGIT (*op_constraint))
 	{
@@ -1123,20 +1100,16 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
       str = mc9xgate_parse_exp (str, &op_expr);
       if (op_expr.X_op == O_constant)
 	{
-//        if (*str == '#')
-//        go past # character
-//        str++;
 	  if (!ISDIGIT (*op_constraint))
 	    as_bad (_
 		    (":expected bit length with constraint type i(# immediate) read %c"),
 		    *op_constraint);
-	  //printf("\n case is i input string is %s",str);
 	  //op_mask = mc9xgate_get_constant(str, 0xFFFF);
 	  op_mask = op_expr.X_add_number;
 	  if ((opcode->name[strlen (opcode->name) - 1] == 'l')
 	      && macroClipping)
 	    {
-	      op_mask &= 0x00FF;	//printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_LO);
+	      op_mask &= 0x00FF;
 	    }
 	  else if ((opcode->name[strlen (opcode->name) - 1]) == 'h'
 		   && macroClipping)
@@ -1156,23 +1129,17 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	{
 	  fixS *fixp = 0;
 	  fixup_required = 1;
-	  //printf("\n need to do fixup");
 	  if (*op_constraint == '8')
-	    {			/* mode == M68XG_OP_REL9 */
-	      //printf("\n length of opcode name is %d ", strlen(opcode->name));
-	      //printf("\n char is %c",opcode->name[strlen(opcode->name)]);
-	      //printf("\n char is %c",opcode->name[3]);
+	    {
 	      if ((opcode->name[strlen (opcode->name) - 1] == 'l')
 		  && macroClipping)
 		{
-		  //printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_LO);
 		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_MC9XGATE_IMM8_LO);	/* BFD_RELOC_MC9XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8 */
 		  fixp->fx_pcrel_adjust = 0;
 		}
 	      if ((opcode->name[strlen (opcode->name) - 1]) == 'h'
 		  && macroClipping)
 		{
-		  //printf("\n not 0_register parsing IMM8 with reloc %d", BFD_RELOC_MC9XGATE_IMM8_HI);
 		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_MC9XGATE_IMM8_HI);	/* BFD_RELOC_MC9XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8 */
 		  fixp->fx_pcrel_adjust = 0;
 		}
@@ -1183,24 +1150,18 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	    }
 	  else if (*op_constraint == '5')
 	    {
-	      //printf("\n not 0_register parsing IMM4 with reloc %d", BFD_RELOC_MC9XGATE_IMM4);
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_MC9XGATE_IMM5);	/* BFD_RELOC_MC9XGATE_IMM5 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8 */
 	      fixp->fx_pcrel_adjust = 0;
-	      //printf("\n need to gen 4 bit fixup"); unknown relocation type
 	    }
 	  else if (*op_constraint == '4')
 	    {
-	      //printf("\n not 0_register parsing IMM4 with reloc %d", BFD_RELOC_MC9XGATE_IMM4);
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_MC9XGATE_IMM4);	/* BFD_RELOC_MC9XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8 */
 	      fixp->fx_pcrel_adjust = 0;
-	      //printf("\n need to gen 4 bit fixup");
 	    }
 	  else if (*op_constraint == '3')
 	    {
-	      //printf("\n not 0_register parsing IMM3 with reloc %d", BFD_RELOC_MC9XGATE_IMM3);
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_MC9XGATE_IMM3);	/* BFD_RELOC_MC9XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_MC9XGATE_HI8 */
 	      fixp->fx_pcrel_adjust = 0;
-	      //printf("\n need to gen 3 bit fixup");
 	    }
 	  else
 	    {
@@ -1214,14 +1175,12 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	      //  fixp->fx_pcrel_adjust = 0;
 	    }
 	}
-      //printf("\n length is %c and read %d from get_constant", *op_constraint, op_mask);
       break;
-    case 'c':			/* CCR register expected */
+    case 'c':   /* CCR register expected */
       if (*str == 'c' || *str == 'C')
 	{
 	  *bit_width = 0;
 	  str = extract_word (str, r_name, sizeof (r_name));
-	  //printf("\n in case c extracted %s", r_name);
 	  if (!(strcmp (r_name, "ccr") || strcmp (r_name, "CCR")))
 	    as_bad (_(": expected register name ccr read %s "), r_name);
 	}
@@ -1230,14 +1189,11 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	  as_bad (_(": expected character c or C  read %c"), *str);
 	}
       break;
-    case 'p':			/* PC register expected */
+    case 'p':   /* PC register expected */
       if (*str == 'p' || *str == 'P')
 	{
 	  *bit_width = 0;
-
 	  str = extract_word (str, r_name, sizeof (r_name));
-	  //printf("\n in case c extracted %s", r_name);
-
 	  if (!(strcmp (r_name, "pc") || strcmp (r_name, "PC")))
 	    as_bad (_(": expected register name pc read %s "), r_name);
 	}
@@ -1246,8 +1202,7 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	  as_bad (_(": expected character p or P read %c "), *str);
 	}
       break;
-    case 'b':			/* branch expected */
-      //printf("\n getting branch expresson");
+    case 'b':   /* branch expected */
       str = mc9xgate_parse_exp (str, &op_expr);
       (*op_con)++;
       op_constraint++;
@@ -1257,14 +1212,13 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
       if (op_expr.X_op != O_register)
 	{
 	  if (*op_constraint == '9')
-	    {			/* mode == M68XG_OP_REL9 */
-	      //printf("\n not 0_register parsing reloc 9");
+	    {   /* mode == M68XG_OP_REL9 */
 	      fixS *fixp;
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_MC9XGATE_PCREL_9);	/* forced type into bfd-in-2 around line 2367 */
 	      fixp->fx_pcrel_adjust = 1;
 	    }
 	  else if (*op_constraint == 'a')
-	    {			/* mode == M68XG_OP_REL10 */
+	    {	/* mode == M68XG_OP_REL10 */
 	      fixS *fixp;
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_MC9XGATE_PCREL_10);	/* forced type into bfd-in-2 around line 2367 */
 	      fixp->fx_pcrel_adjust = 1;
@@ -1276,9 +1230,8 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 		    op_expr.X_op);
 	}
       break;
-    case 'm':			/* immediate value from macro expansion */
-      //printf("\n trying to apply macro value");
-      (*op_con)++;		/* advance the origional format pointer */
+    case 'm':   /* immediate value from macro expansion */
+      (*op_con)++;      /* advance the original format pointer */
       op_constraint++;
       if (ISDIGIT (*op_constraint))
 	{
@@ -1288,8 +1241,7 @@ mc9xgate_operand (struct mc9xgate_opcode *opcode, int *bit_width, int where,
 	{
 	  *bit_width = 0xA;
 	}
-      //as_bad(_(":expected numerical value after i constraint"));
-      if (*str == '#')		/* go past # character */
+      if (*str == '#')  /* go past # character */
 	str++;
       if (!ISDIGIT (*op_constraint))
 	as_bad (_
