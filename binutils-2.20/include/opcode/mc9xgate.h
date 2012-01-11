@@ -461,8 +461,8 @@ f — Free cycle: no read or write, lasts for one RISC core cycles
 
 
 /* CPU identification.  */
-#define cpu6811 0x01
-#define cpu6812 0x02
+//#define cpu6811 0x01
+//#define cpu6812 0x02
 #define cpumc9xgate 0x06  /* was 0x4 somewhere it is bit-wised to 0x06 otherwise objdump will see it as UNKNOWN*/
 
 /* The opcode table is an array of struct mc9xgate_opcode.  */
