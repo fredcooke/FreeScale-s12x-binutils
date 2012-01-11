@@ -156,10 +156,8 @@ typedef enum register_id
 } register_id;
 
 /* This table describes all the machine specific pseudo-ops the assembler
- has to support.  The fields are:
- pseudo-op name without dot
- function to call to execute this pseudo-op
- Integer arg to pass to the function.  */
+ has to support.  The fields are: pseudo-op name without dot function to
+  call to execute this pseudo-op Integer arg to pass to the function.  */
 const pseudo_typeS md_pseudo_table[] = {
   /* The following pseudo-ops are supported for MRI compatibility.  */
   {0, 0, 0}
@@ -173,10 +171,11 @@ static unsigned int numberOfCalls = 0;
 static int elf_flags = E_MC9XGATE_F64; /* ELF flags to set in the output file header.  */
 const char *md_shortopts = "m:";
 
-struct option md_longopts[] = {
-    { "mmcu",   required_argument, NULL, OPTION_MMCU },
-    { NULL, no_argument, NULL, 0 }
-};
+struct option md_longopts[] =
+    {
+        { "mmcu", required_argument, NULL, OPTION_MMCU },
+        { NULL, no_argument, NULL, 0 }
+    };
 
 size_t md_longopts_size = sizeof (md_longopts);
 
