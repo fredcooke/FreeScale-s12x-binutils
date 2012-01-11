@@ -334,29 +334,25 @@ mc9xgate_init_after_args (void)
 }
 
 void
-md_show_usage (FILE * stream)
+md_show_usage(FILE * stream)
 {
-  get_default_target ();
-  fprintf (stream, _("\
+  get_default_target();
+  fprintf(
+      stream,
+      _("\
       Freescale XGATE co-processor options:\n\
       -mxgate                 specify the processor varriant[default %s]\n\
       --print-insn-syntax     print the syntax of instruction in case of error\n\
       --print-opcodes         print the list of instructions with syntax\n\
-      --generate-example      generate an example of each instruction\n\
-  (used for testing)\n"), default_cpu);
+      --generate-example      generate an example of each instruction"),
+      default_cpu);
 }
 
 enum bfd_architecture
 mc9xgate_arch (void)
 {
   get_default_target ();
-  if (current_architecture & cpumc9xgate)	/* TODO same as above todo */
-    // return bfd_arch_mc9xgate;
-    return bfd_arch_mc9xgate;
-  else
-    //printf("\n error in tc-mc9s12x mc9xgate_arch \n");
-    //return bfd_arch_mc9xgate;
-    return bfd_arch_mc9xgate;
+  return bfd_arch_mc9xgate;
 }
 
 int
