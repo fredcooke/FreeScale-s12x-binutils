@@ -112,13 +112,6 @@ static struct mcu_type_s mcu_types[] =
   {"xgatev3",       XGATE_V2,    cpumc9xgate}
 };
 
-//typedef struct mc9xgate_operand
-//{
-//  expressionS exp0;
-//  expressionS exp1;
-//  unsigned char reg;
-//} operand;
-
 /* This table describes how you change sizes for the various types of variable
  size expressions.  This version only supports two kinds.  */
 
@@ -226,7 +219,6 @@ get_default_target (void)
 	{
 	  current_architecture = cpumc9xgate;
 	  default_cpu = "mc9xgate";
-	  //printf("\n found default cpu->%s\n",target->name);
 	  return;
 	}
       else
@@ -257,11 +249,9 @@ md_begin (void)
     {
       mc9xgate_op_table[i] = mc9xgate_opcode_ptr[i];
     }
-
   qsort(mc9xgate_op_table, mc9xgate_num_opcodes,
       sizeof(struct mc9xgate_opcode), (int
       (*)(const void *, const void *)) cmp_opcode);
-
   /* Calculate number of handles since this will be smaller than the raw number of opcodes in the table */
   for (mc9xgate_opcode_ptr = mc9xgate_op_table; mc9xgate_opcode_ptr->name;
        mc9xgate_opcode_ptr++)
@@ -272,7 +262,6 @@ md_begin (void)
 	}
       strcpy (prev_op_name, mc9xgate_opcode_ptr->name);
     }
-
   op_handles =
     (struct mc9xgate_opcode_handle *)
     xmalloc (sizeof (struct mc9xgate_opcode_handle) *
@@ -320,7 +309,6 @@ md_begin (void)
     }
   while (op_handles->name)
     {
-      //printf("\n hash insert message %s",(hash_insert(mc9xgate_hash, op_handles->name, (char *) op_handles)) );
       hash_insert (mc9xgate_hash, op_handles->name, (char *) op_handles);
       op_handles++;
     }
@@ -329,7 +317,6 @@ md_begin (void)
 void
 mc9xgate_init_after_args (void)
 {
-  //return; // no return needed?????
 }
 
 void
@@ -406,90 +393,86 @@ md_section_align (asection * seg, valueT addr)
 }
 
 void
-md_assemble (char *input_line)
+md_assemble(char *input_line)
 {
   struct mc9xgate_opcode *opcode = 0;
   struct mc9xgate_opcode *macro_opcode = 0;
   struct mc9xgate_opcode_handle *opcode_handle = 0;
-  char *saved_input_line = input_line;	/* caller expects it to be returned as it was passed */
+  char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
   unsigned short opcode_bin = 0;
   char op_name[9] = { 0 };
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
   char *p = 0;
   fixup_required = 0;
-  oper_check = 0;		/* set error flags */
-  input_line = extract_word (input_line, op_name, sizeof (op_name));
+  oper_check = 0; /* set error flags */
+  input_line = extract_word(input_line, op_name, sizeof(op_name));
   /* check to make sure we are not reading a bugus line */
   if (!op_name[0])
-    as_bad (_("opcode missing or not found on input line"));
-  if (!
-      (opcode_handle =
-       (struct mc9xgate_opcode_handle *) hash_find (mc9xgate_hash, op_name)))
+    as_bad(_("opcode missing or not found on input line"));
+  if (!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find(
+      mc9xgate_hash, op_name)))
     {
-      as_bad (_("opcode not found in hash"));
+      as_bad(_("opcode not found in hash"));
     }
   else
     {
       /* detect operand format so we can pull the proper opcode bin */
       handle_enum_alias = opcode_handle->number_of_modes;
-      sh_format = mc9xgate_detect_format (input_line);
+      sh_format = mc9xgate_detect_format(input_line);
       if (handle_enum_alias > 1)
-	{
-	  opcode =
-	    mc9xgate_find_match (opcode_handle,
-				 opcode_handle->number_of_modes, sh_format);
-	}
+        {
+          opcode = mc9xgate_find_match(opcode_handle,
+              opcode_handle->number_of_modes, sh_format);
+        }
       else
-	{
-	  /* todo i suspect that this code should not be here if mc9xgate_find_match was more thorough ? */
+        {
+          /* todo i suspect that this code should not be here if mc9xgate_find_match was more thorough ? */
           opcode = opcode_handle->opc0;
-	}
+        }
       if (!opcode)
-	{
-	  as_bad (_(":error matching operands to opcode"));
-	  //TODO print list of possibilities
-	}
+        {
+          as_bad(_(":error matching operands to opcode"));
+          //TODO print list of possibilities
+        }
       else if (opcode->size == 2)
-	{			/* if size is one word assemble that native insn */
-	  opcode_bin = mc9xgate_operands (opcode, &input_line);
-	}
+        { /* if size is one word assemble that native insn */
+          opcode_bin = mc9xgate_operands(opcode, &input_line);
+        }
       else
-	{ /* if insns is a simplified instruction expand it out */
-	  macroClipping = 1;
-	  char constraintString[50];
-	  unsigned int i;
-	  /* extract formal constraint string */
-	  for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
-	    {
-	      constraintString[i] = *p;
-	    }
-	  p++;
-	  constraintString[i] = 0;
-	  input_line = skip_whitespace (input_line);
-	  char *macro_inline = input_line;
-	  /* loop though the macro's opcode list and apply operands to each real opcode*/
-	  for (i = 0; *p && i < (opcode->size / 2); i++)
-	    {	/* loop though macro operand list */
-	      input_line = macro_inline;	/* rewind */
-	      p = extract_word (p, op_name, 10);
-	      if (!(opcode_handle = (struct mc9xgate_opcode_handle *)
-		    hash_find (mc9xgate_hash, op_name)))
-		{
-		  as_bad (_(":real opcode handle not found in hash"));
-		  break;
-		}
-	      else
-		{
-		  sh_format = mc9xgate_detect_format (input_line);
-		  macro_opcode =
-		    mc9xgate_find_match (opcode_handle,
-					 opcode_handle->number_of_modes,
-					 sh_format);
-		  opcode_bin = mc9xgate_operands (macro_opcode, &input_line);
-		}
-	    }
-	}
+        { /* if insns is a simplified instruction expand it out */
+          macroClipping = 1;
+          char constraintString[50];
+          unsigned int i;
+          /* extract formal constraint string */
+          for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
+            {
+              constraintString[i] = *p;
+            }
+          p++;
+          constraintString[i] = 0;
+          input_line = skip_whitespace(input_line);
+          char *macro_inline = input_line;
+          /* loop though the macro's opcode list and apply operands to each real opcode*/
+          for (i = 0; *p && i < (opcode->size / 2); i++)
+            { /* loop though macro operand list */
+              input_line = macro_inline; /* rewind */
+              p = extract_word(p, op_name, 10);
+              if (!(opcode_handle = (struct mc9xgate_opcode_handle *) hash_find(
+                  mc9xgate_hash, op_name)))
+                {
+                  as_bad(_(":real opcode handle not found in hash"));
+                  break;
+                }
+              else
+                {
+                  sh_format = mc9xgate_detect_format(input_line);
+                  macro_opcode = mc9xgate_find_match(opcode_handle,
+                      opcode_handle->number_of_modes, sh_format);
+                  opcode_bin = mc9xgate_operands(macro_opcode, &input_line);
+                }
+            }
+        }
     }
   macroClipping = 0;
   input_line = saved_input_line;
@@ -531,12 +514,12 @@ md_pcrel_from (fixS * fixP)
 /* If while processing a fixup, a reloc really needs to be created
  then it is done here.  */
 arelent *
-tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
+tc_gen_reloc(asection * section ATTRIBUTE_UNUSED, fixS * fixp)
 {
   arelent *reloc;
-  reloc = (arelent *) xmalloc (sizeof (arelent));
-  reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
-  *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
+  reloc = (arelent *) xmalloc(sizeof(arelent));
+  reloc->sym_ptr_ptr = (asymbol **) xmalloc(sizeof(asymbol *));
+  *reloc->sym_ptr_ptr = symbol_get_bfdsym(fixp->fx_addsy);
   reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
   if (fixp->fx_r_type == 0)
     reloc->howto = bfd_reloc_type_lookup(stdoutput, BFD_RELOC_16);
@@ -556,7 +539,7 @@ tc_gen_reloc (asection * section ATTRIBUTE_UNUSED, fixS * fixp)
       return NULL;
     }
   /* Since we use Rel instead of Rela, encode the vtable entry to be
-     used in the relocation's section offset.  */
+   used in the relocation's section offset.  */
   if (fixp->fx_r_type == BFD_RELOC_VTABLE_ENTRY)
     reloc->address = fixp->fx_offset;
   reloc->addend = 0;
@@ -579,7 +562,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
   if (fixP->fx_addsy == (symbolS *) NULL)
     {
       fixP->fx_done = 1;
-      //printf("\n fixup done");
     }
   /* We don't actually support subtracting a symbol.  */
   if (fixP->fx_subsy != (symbolS *) NULL)
@@ -589,8 +571,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
   opcode = bfd_getl16(where);
   int mask = 0;
   switch (fixP->fx_r_type)
-  {
-  //   case BFD_RELOC_MC9XGATE_PCREL_9:
+    {
   case R_MC9XGATE_PCREL_9:
     if (value < -512 || value > 511)
       as_bad_where(fixP->fx_file, fixP->fx_line,
@@ -599,7 +580,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     value = result.quot;
     if (result.rem)
       as_bad_where(fixP->fx_file, fixP->fx_line, _
-          ("Value %ld not aligned by 2 for 9-bit PC-relative branch."), value);
+      ("Value %ld not aligned by 2 for 9-bit PC-relative branch."), value);
     mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
@@ -616,14 +597,11 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     value = result.quot;
     if (result.rem)
       as_bad_where(fixP->fx_file, fixP->fx_line, _
-          ("Value %ld not aligned by 2 for 10-bit PC-relative branch."), value);
+      ("Value %ld not aligned by 2 for 10-bit PC-relative branch."), value);
     mask = 0x3FF; /* Clip into 9-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
-    //case R_MC9XGATE_32: // for testing
-  //case BFD_RELOC_MC9XGATE_24:
-    //case R_MC9XGATE_IMM8_LO:
   case BFD_RELOC_MC9XGATE_IMM8_HI:
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
@@ -637,13 +615,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
           _("Value out of 16-bit range."));
     value &= 0x00ff;
     bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
-//    if (value < -65537 || value > 65535)
-//      as_bad_where(fixP->fx_file, fixP->fx_line,
-//          _("Value out of 16-bit range."));
-    //number_to_chars_bigendian(where, opcode , 2);
-    //printf("\n fixup 8LO with operand is %ld",(long int) opcode);
-    // case R_MC9XGATE_16:
-    //     //printf("\n need to fixup 16");
     break;
   case BFD_RELOC_MC9XGATE_IMM3:
     if (value < 0 || value > 7)
@@ -656,14 +627,14 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     if (value < 0 || value > 15)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 4-bit range."));
-    value <<= 4; /* alight the operand bits */
+    value <<= 4; /* align the operand bits */
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case BFD_RELOC_MC9XGATE_IMM5:
     if (value < 0 || value > 31)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 5-bit range."));
-    value <<= 5; /* alight the operand bits */
+    value <<= 5; /* align the operand bits */
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case R_MC9XGATE_16:
@@ -673,7 +644,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
         fixP->fx_r_type);
     break;
-  }
+    }
 }
 
 /* See whether we need to force a relocation into the output file.  */
@@ -777,27 +748,27 @@ mc9xgate_new_instruction (int size)
 }
 
 unsigned short
-mc9xgate_apply_operand (unsigned short new_mask,
-			unsigned short *availiable_mask_bits,
-			unsigned short mask, unsigned char n_bits)
+mc9xgate_apply_operand(unsigned short new_mask,
+    unsigned short *availiable_mask_bits, unsigned short mask,
+    unsigned char n_bits)
 {
   unsigned short n_shifts;
   unsigned int n_drop_bits;
   /* shift until you find an available operand bit "1" and record the number of shifts */
-  for (n_shifts = 0;
-       !(*availiable_mask_bits & SIXTEENTH_BIT) && n_shifts < 16; n_shifts++)
+  for (n_shifts = 0; !(*availiable_mask_bits & SIXTEENTH_BIT) && n_shifts < 16;
+      n_shifts++)
     {
       *availiable_mask_bits <<= 1;
     }
   /* shift for the number of bits your operand requires while bits are available */
-  for (n_drop_bits = n_bits; n_drop_bits && (*availiable_mask_bits
-					     & SIXTEENTH_BIT); --n_drop_bits)
+  for (n_drop_bits = n_bits;
+      n_drop_bits && (*availiable_mask_bits & SIXTEENTH_BIT); --n_drop_bits)
     {
       *availiable_mask_bits <<= 1;
 
     }
   if (n_drop_bits)
-    as_bad (_(":operand has too many bits"));
+    as_bad(_(":operand has too many bits"));
   *availiable_mask_bits >>= n_shifts + n_bits;
   if ((n_drop_bits == 0) && (*availiable_mask_bits == 0))
     {
@@ -851,16 +822,15 @@ append_str (char *in, char c)
 static int
 cmp_opcode (struct mc9xgate_opcode *op1, struct mc9xgate_opcode *op2)
 {
-  printf("\n comparing %s and %s", op1->name, op2->name);
   return strcmp (op1->name, op2->name);
 }
 
 /* Parse instruction operands.
  Return binary opcode.  */
 static unsigned int
-mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
+mc9xgate_operands(struct mc9xgate_opcode *opcode, char **line)
 {
-  char *frag = mc9xgate_new_instruction (opcode->size);
+  char *frag = mc9xgate_new_instruction(opcode->size);
   int where = frag - frag_now->fr_literal;
   char *op = opcode->constraints;
   unsigned int bin = (int) opcode->bin_opcode;
@@ -885,88 +855,78 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
   for (i = 0; (c = opcode->format[i]); i++)
     {
       if (ISDIGIT (c) || (c == 's'))
-	{
-	  oper_mask <<= 1;
-	}
+        {
+          oper_mask <<= 1;
+        }
       else
-	{
-	  oper_mask <<= 1;
-	  oper_mask += 1;
-	  n_operand_bits++;
-	}
+        {
+          oper_mask <<= 1;
+          oper_mask += 1;
+          n_operand_bits++;
+        }
     }
   //printf("\n available operbit mask is %d with %d bits", oper_mask, n_operand_bits);
   /* Opcode have operands.  */
   /* Parse first operand.  */
   if (*op)
     {
-      //printf("\n first char of op is %c",*op);
       if (*op == '=')
-	{
-	  first_can_equal_second = 1;
-	  ++op;
-	}
+        {
+          first_can_equal_second = 1;
+          ++op;
+        }
       oper1_present = 1;
-      //printf("\n getting operand 1 , %c", *op);
-      oper1 = mc9xgate_operand (opcode, &oper1_bit_length, where, &op, &str);
+      oper1 = mc9xgate_operand(opcode, &oper1_bit_length, where, &op, &str);
       ++op;
       /* Parse second operand.  */
       if (*op)
-	{
-	  if (*op == ',')
-	    ++op;
-	  oper2_present = 1;
-	  str = skip_whitespace (str);
-	  //printf("\n string is now %c first_can_second is %c", *str, first_can_equal_second);
-	  if (*str++ != ',')
-	    {
-	      if (first_can_equal_second)
-		{
-		  oper2 = oper1;
-		  ++op;
-		  //op++;
-		  //op++;
-		  //printf("\n op string is now %c",*op);
-		}
-	      else
-		{
-		  as_bad (_("`,' required before second operand"));
-		}
-	    }
-	  else
-	    {
-	      str = skip_whitespace (str);
-	      //printf("\n operand before call to get_operand %c", *op);
-	      oper2 = mc9xgate_operand (opcode, &oper2_bit_length, where, &op,
-					&str);
-	      //printf("\n operand after call to get_operand %c", *op);
-	      ++op;
-	    }
+        {
+          if (*op == ',')
+            ++op;
+          oper2_present = 1;
+          str = skip_whitespace(str);
+           if (*str++ != ',')
+            {
+              if (first_can_equal_second)
+                {
+                  oper2 = oper1;
+                  ++op;
+                }
+              else
+                {
+                  as_bad(_("`,' required before second operand"));
+                }
+            }
+          else
+            {
+              str = skip_whitespace(str);
+              oper2 = mc9xgate_operand(opcode, &oper2_bit_length, where, &op,
+                  &str);
+              ++op;
+            }
 
-	}
+        }
       /* parse the third register */
       if (*op)
-	{
-	  if (*op == ',')
-	    ++op;
+        {
+          if (*op == ',')
+            ++op;
 
-	  oper3_present = 1;
+          oper3_present = 1;
 
-	  str = skip_whitespace (str);
-	  if (*str++ != ',')
-	    as_bad (_("`,' required before third operand"));
-	  str = skip_whitespace (str);
-	  //printf("\n getting operand 3 typs is, %c input string is %s", *op, str);
-	  oper3 =
-	    mc9xgate_operand (opcode, &oper3_bit_length, where, &op, &str);
-	}
+          str = skip_whitespace(str);
+          if (*str++ != ',')
+            as_bad(_("`,' required before third operand"));
+          str = skip_whitespace(str);
+          oper3 = mc9xgate_operand(opcode, &oper3_bit_length, where, &op, &str);
+        }
     }
   if (oper1_present)
-    bin = mc9xgate_apply_operand (oper1, &oper_mask, bin, oper1_bit_length);
+    bin = mc9xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
   if (oper2_present)
-    bin = mc9xgate_apply_operand (oper2, &oper_mask, bin, oper2_bit_length);
+    bin = mc9xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
   if (oper3_present)
-    bin = mc9xgate_apply_operand (oper3, &oper_mask, bin, oper3_bit_length);
+    bin = mc9xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
   if (opcode->size == 4 && fixup_required)
     {
       /* not used */
@@ -974,21 +934,16 @@ mc9xgate_operands (struct mc9xgate_opcode *opcode, char **line)
     }
   else if (opcode->size == 2 && fixup_required)
     {
-      bfd_putl16 (bin, frag);
+      bfd_putl16(bin, frag);
     }
   else if ((opcode->sh_format & MC9XGATE_PCREL))
     {
-      //printf("\n PCREL instruction");
-      bfd_putl16 (opcode->bin_opcode, frag);	/* write our data to a frag for further processing */
+      bfd_putl16(opcode->bin_opcode, frag); /* write our data to a frag for further processing */
     }
   else
-    {				/* apply operand mask(s)to bin opcode and write the output */
-
-      //printf("\n no fixup required writing final bin to object %d",bin);
-      number_to_chars_bigendian (frag, bin, opcode->size);	/* since we are done write this frag in xgate BE format */
+    { /* apply operand mask(s)to bin opcode and write the output */
+      number_to_chars_bigendian(frag, bin, opcode->size); /* since we are done write this frag in xgate BE format */
     }
-  //  printf("\n firt length is %d with operand %d second length is %d with operand %d third length is %d with operand %d",
-  //              oper1_bit_length, oper1, oper2_bit_length, oper2, oper3_bit_length, oper3);
   prev = bin;
   *line = str;
   return bin;
