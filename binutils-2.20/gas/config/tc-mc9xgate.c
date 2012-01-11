@@ -123,7 +123,7 @@ relax_typeS md_relax_table[] = {
   {1, 1, 0, 0},			/* For no good reason except.  */
   {1, 1, 0, 0},			/* that the VAX doesn't either.  */
   {1, 1, 0, 0},
-  /* XGATE 9 and 10 bit pc rel *///todo complete and test
+  /* XGATE 9 and 10 bit pc rel todo complete and test */
 //    {(511), (-512), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD)},
 //    {(1023), (-1024), 0, ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD)},
   {0, 0, 0, 0}
