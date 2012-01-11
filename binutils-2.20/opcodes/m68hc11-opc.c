@@ -105,7 +105,6 @@
 #define OP_IBNE_MARKER  (M6812_OP_IBCC_MARKER)
 
 /*
-   { "test", OP_NONE,          1, 0x00,  5, _M,  CHG_NONE,  cpu6811 },
                                                             +-- cpu
   Name -+                                        +------- Insn CCR changes
   Format  ------+                            +----------- Max # cycles
