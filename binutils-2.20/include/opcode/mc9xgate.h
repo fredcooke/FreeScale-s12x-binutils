@@ -84,7 +84,7 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 #define MC9XGATE_OP_IMM16mAND    "r,if; andl andh"
 #define MC9XGATE_OP_IMM16mCPC    "r,if; cmpl cpch"
 #define MC9XGATE_OP_IMM16mSUB    "r,if; subl subh"
-#define MC9XGATE_OP_IMM16mLDD    "r,if; ldl ldh"
+#define MC9XGATE_OP_IMM16mLDW    "r,if; ldl ldh"
 
 /* todo used by the linker check to see if all are necessary */
 #define MC9XGATE_BANK_VIRT 0x010000
@@ -126,7 +126,7 @@ struct mc9xgate_opcode
 
 /* The opcode table.  The table contains all the opcodes (all pages).
    You can't rely on the order.  */
-extern struct mc9xgate_opcode mc9xgate_opcodes[];
+extern const struct mc9xgate_opcode mc9xgate_opcodes[];
 extern const int mc9xgate_num_opcodes;
 
 #endif /* _OPCODE_MC9XGATE_H */
