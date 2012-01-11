@@ -46,6 +46,8 @@ const char FLT_CHARS[] = "dD";
 #define MAXREGISTER			07
 #define MINREGISTER			00
 
+#define OPTION_MMCU 'm'
+
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
 
@@ -102,12 +104,20 @@ static int oper2_bit_length = 0;
 static int oper3_present = 0;
 static int oper3_bit_length = 0;
 
-typedef struct mc9xgate_operand
+
+static struct mcu_type_s mcu_types[] =
 {
-  expressionS exp0;
-  expressionS exp1;
-  unsigned char reg;
-} operand;
+  {"xgatev1",       XGATE_V1,    cpumc9xgate},
+  {"xgatev2",       XGATE_V2,    cpumc9xgate},
+  {"xgatev3",       XGATE_V2,    cpumc9xgate}
+};
+
+//typedef struct mc9xgate_operand
+//{
+//  expressionS exp0;
+//  expressionS exp1;
+//  unsigned char reg;
+//} operand;
 
 /* This table describes how you change sizes for the various types of variable
  size expressions.  This version only supports two kinds.  */
@@ -161,43 +171,11 @@ static int mc9xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
 static unsigned int numberOfCalls = 0;
 static int elf_flags = E_MC9XGATE_F64; /* ELF flags to set in the output file header.  */
-const char *md_shortopts = "Sm:";
+const char *md_shortopts = "m:";
+
 struct option md_longopts[] = {
-//
-//#define OPTION_FORCE_LONG_BRANCH (OPTION_MD_BASE)
-//        { "force-long-branches", no_argument, NULL, OPTION_FORCE_LONG_BRANCH },
-//        { "force-long-branchs", no_argument, NULL, OPTION_FORCE_LONG_BRANCH }, /* Misspelt version kept for backwards compatibility.  */
-//
-//#define OPTION_SHORT_BRANCHES     (OPTION_MD_BASE + 1)
-//        { "short-branches", no_argument, NULL, OPTION_SHORT_BRANCHES },
-//        { "short-branchs", no_argument, NULL, OPTION_SHORT_BRANCHES }, /* Misspelt version kept for backwards compatibility.  */
-//
-//#define OPTION_STRICT_DIRECT_MODE  (OPTION_MD_BASE + 2)
-//        { "strict-direct-mode", no_argument, NULL, OPTION_STRICT_DIRECT_MODE },
-//
-//#define OPTION_PRINT_INSN_SYNTAX  (OPTION_MD_BASE + 3)
-//        { "print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX },
-//
-//#define OPTION_PRINT_OPCODES  (OPTION_MD_BASE + 4)
-//        { "print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES },
-//
-//#define OPTION_GENERATE_EXAMPLE  (OPTION_MD_BASE + 5)
-//        { "generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE },
-//
-//#define OPTION_MSHORT  (OPTION_MD_BASE + 6)
-//        { "mshort", no_argument, NULL, OPTION_MSHORT },
-//
-//#define OPTION_MLONG  (OPTION_MD_BASE + 7)
-//        { "mlong", no_argument, NULL, OPTION_MLONG },
-//
-//#define OPTION_MSHORT_DOUBLE  (OPTION_MD_BASE + 8)
-//        { "mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE },
-//
-//#define OPTION_MLONG_DOUBLE  (OPTION_MD_BASE + 9)
-//        { "mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE },
-//
-//        { NULL, no_argument, NULL, 0 } };
-//
+    { "mmcu",   required_argument, NULL, OPTION_MMCU },
+    { NULL, no_argument, NULL, 0 }
 };
 
 size_t md_longopts_size = sizeof (md_longopts);
@@ -211,7 +189,13 @@ md_atof (int type, char *litP, int *sizeP)
 int
 md_parse_option (int c, char *arg)
 {
-  c = 0;			//for testing
+  switch(c)
+  {
+  case OPTION_MMCU:
+    //todo loop though table searching for a match
+    break;
+  }
+  //c = 0;			//for testing
   *arg = 't';			//for testing
   return 1;
 }
@@ -360,17 +344,8 @@ md_show_usage (FILE * stream)
 {
   get_default_target ();
   fprintf (stream, _("\
-      Motorola MC9XGATE co-processor options:\n\
-      -mc9xgate               specify the processor [default %s]\n\
-      -mshort                 use 16-bit int ABI (default)\n\
-      -mlong                  use 32-bit int ABI\n\
-      -mshort-double          use 32-bit double ABI\n\
-      -mlong-double           use 64-bit double ABI (default)\n\
-      --force-long-branches   always turn relative branches into absolute ones\n\
-      -S,--short-branches     do not turn relative branches into absolute ones\n\
-      when the offset is out of range\n\
-      --strict-direct-mode    do not turn the direct mode into extended mode\n\
-      when the instruction does not support direct mode\n\
+      Freescale XGATE co-processor options:\n\
+      -mxgate                 specify the processor varriant[default %s]\n\
       --print-insn-syntax     print the syntax of instruction in case of error\n\
       --print-opcodes         print the list of instructions with syntax\n\
       --generate-example      generate an example of each instruction\n\
@@ -1483,7 +1458,7 @@ mc9xgate_find_match (struct mc9xgate_opcode_handle *opcode_handle,
 		     unsigned char numberOfModes, unsigned int sh_format)
 {
   struct mc9xgate_opcode *opcode = 0;
-  /* TODO this is a shit function that needs to be redone this makes optable order sensitive */
+  /* TODO make this into a loop */
   while (numberOfModes)
     {
       switch (numberOfModes)
