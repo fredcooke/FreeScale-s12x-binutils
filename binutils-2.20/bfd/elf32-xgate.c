@@ -806,7 +806,7 @@ xgate_elf_hash_table_create (bfd *abfd)
   memset (ret, 0, amt);
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
       _bfd_elf_link_hash_newfunc,
-      sizeof (struct elf_link_hash_entry)), XGATE_ELF_DATA)
+      sizeof (struct elf_link_hash_entry), XGATE_ELF_DATA))
     {
     free (ret);
     return NULL;
