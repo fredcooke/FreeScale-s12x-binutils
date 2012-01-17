@@ -48,7 +48,7 @@ configure-stamp: unpack-stamp
 			--build=$(DEB_BUILD_GNU_TYPE) \
 			--host=$(DEB_HOST_GNU_TYPE) \
 			--target=m68hc11 \
-			--enable-targets=m68hc11,m68hc12,mc9xgate \
+			--enable-targets=m68hc11,m68hc12,xgate \
 			--program-prefix=m68hc11-
 	touch configure-stamp
 
