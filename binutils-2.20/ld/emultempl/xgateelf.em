@@ -43,9 +43,9 @@
 fragment <<EOF
 
 #include "ldctor.h"
-#include "elf32-mc9xgate.h"
+#include "elf32-xgate.h"
 
-static asection *mc9xgateelf_add_stub_section (const char *, asection *);
+static asection *xgateelf_add_stub_section (const char *, asection *);
 
 /* Fake input file for stubs.  */
 static lang_input_statement_type *stub_file;
@@ -60,7 +60,7 @@ static int no_trampoline = 0;
 static const char* bank_window_name = 0;
 
 static void
-mc9xgate_elf_${EMULATION_NAME}_before_allocation (void)
+xgate_elf_${EMULATION_NAME}_before_allocation (void)
 {
   lang_memory_region_type* region;
   int ret;
@@ -72,7 +72,7 @@ mc9xgate_elf_${EMULATION_NAME}_before_allocation (void)
   if (link_info.relocatable)
     return;
 
-  ret = elf32_mc9xgate_setup_section_lists (link_info.output_bfd, &link_info);
+  ret = elf32_xgate_setup_section_lists (link_info.output_bfd, &link_info);
   if (ret != 0 && no_trampoline == 0)
     {
       if (ret < 0)
@@ -82,10 +82,10 @@ mc9xgate_elf_${EMULATION_NAME}_before_allocation (void)
 	}
 
       /* Call into the BFD backend to do the real work.  */
-      if (!elf32_mc9xgate_size_stubs (link_info.output_bfd,
+      if (!elf32_xgate_size_stubs (link_info.output_bfd,
 				     stub_file->the_bfd,
 				     &link_info,
-				     &mc9xgateelf_add_stub_section))
+				     &xgateelf_add_stub_section))
 	{
 	  einfo ("%X%P: can not size stub section: %E\n");
 	  return;
@@ -108,12 +108,12 @@ mc9xgate_elf_${EMULATION_NAME}_before_allocation (void)
   /* Check the length to see if it was defined in the script.  */
   if (region->length != 0)
     {
-      struct mc9xgate_page_info *pinfo;
+      struct xgate_page_info *pinfo;
       unsigned i;
 
       /* Get default values  */
-      mc9xgate_elf_get_bank_parameters (&link_info);
-      pinfo = &mc9xgate_elf_hash_table (&link_info)->pinfo;
+      xgate_elf_get_bank_parameters (&link_info);
+      pinfo = &xgate_elf_hash_table (&link_info)->pinfo;
 
       /* And override them with the region definition.  */
       pinfo->bank_size = region->length;
@@ -140,7 +140,7 @@ mc9xgate_elf_${EMULATION_NAME}_before_allocation (void)
    fake input file to hold the stub sections.  */
 
 static void
-mc9xgateelf_create_output_section_statements (void)
+xgateelf_create_output_section_statements (void)
 {
   stub_file = lang_add_input_file ("linker stubs",
 				   lang_input_file_is_fake_enum,
@@ -246,7 +246,7 @@ hook_in_stub (struct hook_stub_info *info, lang_statement_union_type **lp)
 /* TODO make sure this function is named correctly */
 
 static asection *
-mc9xgateelf_add_stub_section (const char *stub_sec_name,
+xgateelf_add_stub_section (const char *stub_sec_name,
 			     asection *tramp_section)
 {
   asection *stub_sec;
@@ -289,7 +289,7 @@ mc9xgateelf_add_stub_section (const char *stub_sec_name,
 /* For the 68HC12 we use this opportunity to build linker stubs.  */
 
 static void
-mc9xgateelf_after_allocation (void)
+xgateelf_after_allocation (void)
 {
   /* Now build the linker stubs.  */
   if (stub_file->the_bfd->sections != NULL)
@@ -298,14 +298,14 @@ mc9xgateelf_after_allocation (void)
 	 stubs with the correct symbol addresses.  Since there could have
 	 been relaxation, the symbol addresses that were found during
 	 first call may no longer be correct.  */
-      if (!elf32_mc9xgate_size_stubs (link_info.output_bfd,
+      if (!elf32_xgate_size_stubs (link_info.output_bfd,
 				     stub_file->the_bfd,
 				     &link_info, 0))
 	{
 	  einfo ("%X%P: can not size stub section: %E\n");
 	  return;
 	}
-      if (!elf32_mc9xgate_build_stubs (link_info.output_bfd, &link_info))
+      if (!elf32_xgate_build_stubs (link_info.output_bfd, &link_info))
 	einfo ("%X%P: can not build stubs: %E\n");
     }
 
@@ -318,20 +318,20 @@ mc9xgateelf_after_allocation (void)
 
 static void (*real_func) (lang_input_statement_type *);
 
-static void mc9xgate_for_each_input_file_wrapper (lang_input_statement_type *l)
+static void xgate_for_each_input_file_wrapper (lang_input_statement_type *l)
 {
   if (l != stub_file)
     (*real_func) (l);
 }
 
 static void
-mc9xgate_lang_for_each_input_file (void (*func) (lang_input_statement_type *))
+xgate_lang_for_each_input_file (void (*func) (lang_input_statement_type *))
 {
   real_func = func;
-  lang_for_each_input_file (&mc9xgate_for_each_input_file_wrapper);
+  lang_for_each_input_file (&xgate_for_each_input_file_wrapper);
 }
 
-#define lang_for_each_input_file mc9xgate_lang_for_each_input_file
+#define lang_for_each_input_file xgate_lang_for_each_input_file
 
 EOF
 
@@ -370,6 +370,6 @@ PARSE_AND_LIST_ARGS_CASES='
 
 # Put these extra m68hc11elf routines in ld_${EMULATION_NAME}_emulation
 #
-LDEMUL_BEFORE_ALLOCATION=mc9xgate_elf_${EMULATION_NAME}_before_allocation
-LDEMUL_AFTER_ALLOCATION=mc9xgateelf_after_allocation
-LDEMUL_CREATE_OUTPUT_SECTION_STATEMENTS=mc9xgateelf_create_output_section_statements
+LDEMUL_BEFORE_ALLOCATION=xgate_elf_${EMULATION_NAME}_before_allocation
+LDEMUL_AFTER_ALLOCATION=xgateelf_after_allocation
+LDEMUL_CREATE_OUTPUT_SECTION_STATEMENTS=xgateelf_create_output_section_statements

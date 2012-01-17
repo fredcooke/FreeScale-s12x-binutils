@@ -26,7 +26,6 @@
    in elf_set_mach_from_flags
    */
 
-#include <malloc.h>
 #include "sysdep.h"
 #include "bfd.h"
 #include "bfdlink.h"
@@ -51,6 +50,8 @@ static struct bfd_link_hash_table* xgate_elf_bfd_link_hash_table_create
 (bfd*);
 
 static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
+
+#define ELF_TARGET_ID           XGATE_ELF_DATA
 
 /* Use REL instead of RELA to save space */
 #define USE_REL	1
@@ -1117,7 +1118,7 @@ elf32_xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
       input_bfd = input_bfd->link_next, bfd_indx++)
     {
     Elf_Internal_Shdr *symtab_hdr;
-    Elf_Internal_Sym *local_syms;
+    //Elf_Internal_Sym *local_syms;
     struct elf_link_hash_entry ** sym_hashes;
 
     sym_hashes = elf_sym_hashes (input_bfd);
@@ -1719,17 +1720,21 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
       stub_name = h->root.root.string;
       }
 
-    if (sec != NULL && elf_discarded_section (sec))
-      {
+//    if (sec != NULL && elf_discarded_section (sec))
+//      {
       //printf("\n zeroing contenst section");
       /* For relocs against symbols from removed linkonce sections,
 	     or sections discarded by a linker script, we just want the
 	     section contents zeroed.  Avoid any special processing.  */
-      _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
-      rel->r_info = 0;
-      rel->r_addend = 0;
-      continue;
-      }
+//      _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
+//      rel->r_info = 0;
+//      rel->r_addend = 0;
+//      continue;
+//      }
+
+    if (sec != NULL && elf_discarded_section (sec))
+        RELOC_AGAINST_DISCARDED_SECTION(info, input_bfd, input_section, rel,
+            relend, howto, contents);
 
     if (info->relocatable)
       {

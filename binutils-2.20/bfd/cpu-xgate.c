@@ -1,4 +1,4 @@
-/* BFD support for the Motorola 68HC12 processor
+/* BFD support for the Freescale XGATE processor
    Copyright 1999, 2000, 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -22,32 +22,15 @@
 #include "bfd.h"
 #include "libbfd.h"
 
-
-//const bfd_arch_info_type bfd_mc9s12x_info =
-//{
-//    16, /* 16 bits in a word */
-//    32, /* 16 bits in an address */
-//    8,  /* 8 bits in a byte */
-//    bfd_arch_mc9s12x,
-//    bfd_mach_mc9s12x, /* TODO figure out if this should be 0 */
-//    "mc9s12x",
-//    "mc9s12x:mc9xgate",
-//    4, /* section alignment power */
-//   TRUE,
-//   bfd_default_compatible,
-//    bfd_default_scan,
-//    0,
-//};
-
-const bfd_arch_info_type bfd_mc9xgate_arch =
+const bfd_arch_info_type bfd_xgate_arch =
 {
     16, /* 16 bits in a word */
     32, /* 16 bits in an address */
     8,  /* 8 bits in a byte */
-    bfd_arch_mc9xgate, //bfd_arch_mc9xgate,
-    bfd_mach_mc9xgate, /* TODO figure out if this should be 0 */
-    "mc9xgate",
-    "mc9xgate",
+    bfd_arch_xgate, //bfd_arch_mc9xgate,
+    bfd_mach_xgate, /* TODO figure out if this should be 0 */
+    "xgate",
+    "xgate",
     4, /* section alignment power */
     TRUE,
     bfd_default_compatible,

@@ -1,4 +1,4 @@
-/* mc9xgate.h -- Motorola XGATE opcode list
+/* xgate.h -- Motorola XGATE opcode list
    Copyright 1999, 2000, 2002, 2005, 2007 Free Software Foundation, Inc.
    Written by Sean Keys (skeys@ipdatasys.com)
 
@@ -19,14 +19,14 @@
    Free Software Foundation, 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA. */
 
-#ifndef _OPCODE_MC9XGATE_H
-#define _OPCODE_MC9XGATE_H
+#ifndef _OPCODE_XGATE_H
+#define _OPCODE_XGATE_H
 
 /* XGATE CCR flag definitions */
-#define MC9XGATE_N_BIT   0x08	/* XGN - Sign Flag */
-#define MC9XGATE_Z_BIT   0x04	/* XGZ - Zero Flag */
-#define MC9XGATE_V_BIT   0x02	/* XGV - Overflow Flag */
-#define MC9XGATE_C_BIT   0x01	/* XGC - Carry Flag */
+#define XGATE_N_BIT   0x08	/* XGN - Sign Flag */
+#define XGATE_Z_BIT   0x04	/* XGZ - Zero Flag */
+#define XGATE_V_BIT   0x02	/* XGV - Overflow Flag */
+#define XGATE_C_BIT   0x01	/* XGC - Carry Flag */
 
 /*              Access Detail Notation
 V — Vector fetch: always an aligned word read, lasts for at least one RISC core cycle
@@ -37,61 +37,61 @@ w — 8-bit data write: lasts for at least one RISC core cycle
 W — 16-bit data write: lasts for at least one RISC core cycle
 A — Alignment cycle: no read or write, lasts for zero or one RISC core cycles
 f — Free cycle: no read or write, lasts for one RISC core cycles */
-#define MC9XGATE_CYCLE_V	0x01
-#define MC9XGATE_CYCLE_P	0x02
-#define MC9XGATE_CYCLE_r	0x04
-#define MC9XGATE_CYCLE_R	0x08
-#define MC9XGATE_CYCLE_w	0x10
-#define MC9XGATE_CYCLE_W	0x20
-#define MC9XGATE_CYCLE_A	0x40
-#define MC9XGATE_CYCLE_f	0x80
+#define XGATE_CYCLE_V	0x01
+#define XGATE_CYCLE_P	0x02
+#define XGATE_CYCLE_r	0x04
+#define XGATE_CYCLE_R	0x08
+#define XGATE_CYCLE_w	0x10
+#define XGATE_CYCLE_W	0x20
+#define XGATE_CYCLE_A	0x40
+#define XGATE_CYCLE_f	0x80
 
 /* Opcode format abbreviations */
-#define MC9XGATE_INH		0x0001  /* inherent */
-#define MC9XGATE_I		0x0002  /* 3-bit immediate address */
-#define MC9XGATE_R_I		0x0004  /* register followed by 4/8-bit immediate value */
-#define MC9XGATE_R_R		0x0008  /* register followed by a register */
-#define MC9XGATE_R_R_R		0x0010  /* register followed by two registers */
-#define MC9XGATE_R		0x0020  /* single register */
-#define MC9XGATE_PC		0x0040  /* pc relative 10 or 11 bit */
-#define MC9XGATE_R_C		0x0080  /* general register followed by ccr register */
-#define MC9XGATE_C_R		0x0100  /* ccr register followed by a general register */
-#define MC9XGATE_R_P		0x0200  /* general register followed by pc register */
-#define MC9XGATE_R_R_I		0x0400  /* two general registers followed by an immediate value */
-#define MC9XGATE_PCREL		0x0800  /* immediate value that is relative to the current pc */
+#define XGATE_INH		0x0001  /* inherent */
+#define XGATE_I		0x0002  /* 3-bit immediate address */
+#define XGATE_R_I		0x0004  /* register followed by 4/8-bit immediate value */
+#define XGATE_R_R		0x0008  /* register followed by a register */
+#define XGATE_R_R_R		0x0010  /* register followed by two registers */
+#define XGATE_R		0x0020  /* single register */
+#define XGATE_PC		0x0040  /* pc relative 10 or 11 bit */
+#define XGATE_R_C		0x0080  /* general register followed by ccr register */
+#define XGATE_C_R		0x0100  /* ccr register followed by a general register */
+#define XGATE_R_P		0x0200  /* general register followed by pc register */
+#define XGATE_R_R_I		0x0400  /* two general registers followed by an immediate value */
+#define XGATE_PCREL		0x0800  /* immediate value that is relative to the current pc */
 
-/* XGATE operand formats as stored in the MC9XGATE_opcode table.
+/* XGATE operand formats as stored in the XGATE_opcode table.
    They are only used by GAS to recognize operands.  */
-#define MC9XGATE_OP_INH		 ""
-#define MC9XGATE_OP_TRI		 "r,r,r"
-#define MC9XGATE_OP_DYA		 "r,r"
-#define MC9XGATE_OP_IMM16        "r,if"
-#define MC9XGATE_OP_IMM8	 "r,i8"
-#define MC9XGATE_OP_IMM8m	 "r,m8"
-#define MC9XGATE_OP_IMM4         "r,i4"
-#define MC9XGATE_OP_IMM3	 "i3"
-#define MC9XGATE_OP_MON		 "r"
-#define MC9XGATE_OP_MON_R_C	 "r,c"
-#define MC9XGATE_OP_MON_C_R	 "c,r"
-#define MC9XGATE_OP_MON_R_P	 "r,p"
-#define MC9XGATE_OP_IDR		 "r,r,+"
-#define MC9XGATE_OP_IDO5	 "r,r,i5"
-#define MC9XGATE_OP_REL9	 "b9"
-#define MC9XGATE_OP_REL10	 "ba"
-#define MC9XGATE_OP_DYA_MON	 "=r,r"
+#define XGATE_OP_INH		 ""
+#define XGATE_OP_TRI		 "r,r,r"
+#define XGATE_OP_DYA		 "r,r"
+#define XGATE_OP_IMM16        "r,if"
+#define XGATE_OP_IMM8	 "r,i8"
+#define XGATE_OP_IMM8m	 "r,m8"
+#define XGATE_OP_IMM4         "r,i4"
+#define XGATE_OP_IMM3	 "i3"
+#define XGATE_OP_MON		 "r"
+#define XGATE_OP_MON_R_C	 "r,c"
+#define XGATE_OP_MON_C_R	 "c,r"
+#define XGATE_OP_MON_R_P	 "r,p"
+#define XGATE_OP_IDR		 "r,r,+"
+#define XGATE_OP_IDO5	 "r,r,i5"
+#define XGATE_OP_REL9	 "b9"
+#define XGATE_OP_REL10	 "ba"
+#define XGATE_OP_DYA_MON	 "=r,r"
 /* macro definitions */
-#define MC9XGATE_OP_IMM16mADD    "r,if; addl addh"
-#define MC9XGATE_OP_IMM16mAND    "r,if; andl andh"
-#define MC9XGATE_OP_IMM16mCPC    "r,if; cmpl cpch"
-#define MC9XGATE_OP_IMM16mSUB    "r,if; subl subh"
-#define MC9XGATE_OP_IMM16mLDW    "r,if; ldl ldh"
+#define XGATE_OP_IMM16mADD    "r,if; addl addh"
+#define XGATE_OP_IMM16mAND    "r,if; andl andh"
+#define XGATE_OP_IMM16mCPC    "r,if; cmpl cpch"
+#define XGATE_OP_IMM16mSUB    "r,if; subl subh"
+#define XGATE_OP_IMM16mLDW    "r,if; ldl ldh"
 
 /* todo used by the linker check to see if all are necessary */
-#define MC9XGATE_BANK_VIRT 0x010000
-#define MC9XGATE_BANK_MASK 0x00003fff
-#define MC9XGATE_BANK_BASE 0x00008000
-#define MC9XGATE_BANK_SHIFT 14
-#define MC9XGATE_BANK_PAGE_MASK 0x0ff
+#define XGATE_BANK_VIRT 0x010000
+#define XGATE_BANK_MASK 0x00003fff
+#define XGATE_BANK_BASE 0x00008000
+#define XGATE_BANK_SHIFT 14
+#define XGATE_BANK_PAGE_MASK 0x0ff
 
 /* CPU identification.  */
 #define cpumc9xgate 0x06  /* was 0x4 somewhere it is bit-wised to 0x06 otherwise objdump will see it as UNKNOWN*/
@@ -108,7 +108,7 @@ struct mcu_type_s
 };
 
 /* The opcode table definitions */
-struct mc9xgate_opcode
+struct xgate_opcode
 {
   char* name;                   /* Op-code name */
   char* constraints;            /* constraint chars */
@@ -126,7 +126,7 @@ struct mc9xgate_opcode
 
 /* The opcode table.  The table contains all the opcodes (all pages).
    You can't rely on the order.  */
-extern const struct mc9xgate_opcode mc9xgate_opcodes[];
-extern const int mc9xgate_num_opcodes;
+extern const struct xgate_opcode xgate_opcodes[];
+extern const int xgate_num_opcodes;
 
-#endif /* _OPCODE_MC9XGATE_H */
+#endif /* _OPCODE_XGATE_H */

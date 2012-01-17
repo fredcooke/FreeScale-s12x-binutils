@@ -27,13 +27,13 @@
 #include "opintl.h"
 #include "libiberty.h"
 #include "ansidecl.h"
-#include "opcode/mc9xgate.h"
+#include "opcode/xgate.h"
 
-#define MC9XGATE_TWO_BYTES      02 /* two bytes */
-#define MC9XGATE_NINE_BITS      0x1FF
-#define MC9XGATE_TEN_BITS       0x3FF
-#define MC9XGATE_NINE_SIGNBIT   0x100
-#define MC9XGATE_TEN_SIGNBIT    0x200
+#define XGATE_TWO_BYTES      02 /* two bytes */
+#define XGATE_NINE_BITS      0x1FF
+#define XGATE_TEN_BITS       0x3FF
+#define XGATE_NINE_SIGNBIT   0x100
+#define XGATE_TEN_SIGNBIT    0x200
 
 /* Prototypes for local functions.  */
 static int
@@ -42,7 +42,7 @@ static int
 read_memory(bfd_vma, bfd_byte*, int, struct disassemble_info*);
 static int
 ripBits(unsigned int *operandBitsRemaining, int numBitsRequested,
-    struct mc9xgate_opcode *opcodePTR, unsigned int memory);
+    struct xgate_opcode *opcodePTR, unsigned int memory);
 
 /* statics */
 static unsigned int *operMasks;
@@ -59,7 +59,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
   char *s = 0;
   long bytesRead = 0;
   int i = 0;
-  struct mc9xgate_opcode *opcodePTR = mc9xgate_opcodes;
+  struct xgate_opcode *opcodePTR = (struct xgate_opcode*) xgate_opcodes;
   unsigned int *operMaskPTR = 0;
   unsigned int *operMaskRegPTR = 0;
   unsigned int operandBits = 0;
@@ -67,16 +67,16 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
   signed int relAddr = 0;
   signed int operandOne = 0;
   signed int operandTwo = 0;
-  signed int operandThree = 0;
+  //signed int operandThree = 0;
   int found = 0;
   bfd_byte buffer[4];
 
   /* initialize our array of opcode masks and check them against our constant table */
   if(!initialized){
       //todo struct mask pointers
-      operMasks =  xmalloc(sizeof(unsigned int) * mc9xgate_num_opcodes);
-      operMasksRegisterBits =  xmalloc(sizeof(unsigned int) * mc9xgate_num_opcodes);
-      for(i = 0, operMaskPTR = operMasks, operMaskRegPTR = operMasksRegisterBits; i < mc9xgate_num_opcodes; i++, operMaskRegPTR++, opcodePTR++, operMaskPTR++){
+      operMasks =  xmalloc(sizeof(unsigned int) * xgate_num_opcodes);
+      operMasksRegisterBits =  xmalloc(sizeof(unsigned int) * xgate_num_opcodes);
+      for(i = 0, operMaskPTR = operMasks, operMaskRegPTR = operMasksRegisterBits; i < xgate_num_opcodes; i++, operMaskRegPTR++, opcodePTR++, operMaskPTR++){
           unsigned int bin = 0;
           unsigned int mask = 0;
           for(s = opcodePTR->format; *s; s++){
@@ -96,7 +96,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
       initialized = 1;
   }
    /* read 16 bits */
-  status = read_memory(memaddr, buffer, MC9XGATE_TWO_BYTES, info);
+  status = read_memory(memaddr, buffer, XGATE_TWO_BYTES, info);
   if (status == 0)
     {
       raw_code = buffer[0];
@@ -110,8 +110,10 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
       //    return 2;
       //  }
       /* todo since we have macros and alias codes make this print all possible matches instead of just the first */
-      for (i = 0, opcodePTR = mc9xgate_opcodes, operMaskPTR = operMasks, operMaskRegPTR =
-          operMasksRegisterBits; i < mc9xgate_num_opcodes;
+      for (i = 0,
+          opcodePTR = (struct xgate_opcode*) xgate_opcodes,
+          operMaskPTR = operMasks,
+          operMaskRegPTR =  operMasksRegisterBits; i < xgate_num_opcodes;
           i++, operMaskPTR++, operMaskRegPTR++, opcodePTR++)
         {
           if ((raw_code & *operMaskPTR) == opcodePTR->bin_opcode)
@@ -133,34 +135,34 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
           bytesRead = opcodePTR->size;
           operandBits = ~(*operMaskPTR) & 0xFFFF;
           (*info->fprintf_func)(info->stream, "%s", opcodePTR->name);
-          int operand = 0;
-          int operandSize = 0;
+          //int operand = 0;
+          //int operandSize = 0;
           /*  First we compare the shorthand format of the constraints. If we still are unable to pinpoint the operands
            we analyze the opcodes constraint string. */
           switch (opcodePTR->sh_format)
             {
-          case MC9XGATE_R_C:
+          case XGATE_R_C:
             (*info->fprintf_func)(info->stream, " R%x, CCR",
                 (raw_code >> 8) & 0x7);
             break;
-          case MC9XGATE_C_R:
+          case XGATE_C_R:
             (*info->fprintf_func)(info->stream, " CCR, R%x",
                 (raw_code >> 8) & 0x7);
             break;
-          case MC9XGATE_R_P:
+          case XGATE_R_P:
             (*info->fprintf_func)(info->stream, " R%x, PC",
                 (raw_code >> 8) & 0x7);
             break;
-          case MC9XGATE_INH:
+          case XGATE_INH:
             break;
-          case MC9XGATE_R_R_R:
-            if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_TRI))
+          case XGATE_R_R_R:
+            if (!strcmp(opcodePTR->constraints, XGATE_OP_TRI))
               {
                 (*info->fprintf_func)(info->stream, " R%x, R%x, R%x",
                     (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7,
                     (raw_code >> 2) & 0x7);
               }
-            else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_IDR))
+            else if (!strcmp(opcodePTR->constraints, XGATE_OP_IDR))
               {
                 if (raw_code & 0x01)
                   {
@@ -187,15 +189,15 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                     opcodePTR->constraints);
               }
             break;
-          case MC9XGATE_R_R:
-            if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_DYA_MON))
+          case XGATE_R_R:
+            if (!strcmp(opcodePTR->constraints, XGATE_OP_DYA_MON))
               {
                 operandOne = ripBits(operMaskRegPTR, 3, opcodePTR, raw_code);
                 operandTwo = ripBits(operMaskRegPTR, 3, opcodePTR, raw_code);
                 (*info->fprintf_func)(info->stream, " R%x, R%x", operandOne,
                     operandTwo);
               }
-            else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_DYA))
+            else if (!strcmp(opcodePTR->constraints, XGATE_OP_DYA))
               {
                 operandOne = ripBits(operMaskRegPTR, 3, opcodePTR, raw_code);
                 operandTwo = ripBits(operMaskRegPTR, 3, opcodePTR, raw_code);
@@ -208,21 +210,21 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                     opcodePTR->constraints);
               }
             break;
-          case MC9XGATE_R_R_I:
+          case XGATE_R_R_I:
             (*info->fprintf_func)(info->stream, " R%x, (R%x, #0x%x)",
                 (raw_code >> 8) & 0x7, (raw_code >> 5) & 0x7, raw_code & 0x1f);
             break;
-          case MC9XGATE_R:
+          case XGATE_R:
             operandOne = ripBits(operMaskRegPTR, 3, opcodePTR, raw_code);
             (*info->fprintf_func)(info->stream, " R%x", operandOne);
             break;
-          case MC9XGATE_I | MC9XGATE_PCREL:
-            if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL9))
+          case XGATE_I | XGATE_PCREL:
+            if (!strcmp(opcodePTR->constraints, XGATE_OP_REL9))
               {
                 /* if address is negative handle it accordingly */
-                if (raw_code & MC9XGATE_NINE_SIGNBIT)
+                if (raw_code & XGATE_NINE_SIGNBIT)
                   {
-                    relAddr = MC9XGATE_NINE_BITS >> 1; //clip sign bit
+                    relAddr = XGATE_NINE_BITS >> 1; //clip sign bit
                     relAddr = ~relAddr; //make into a negative
                     relAddr |= (raw_code & 0xFF) + 1; //apply our value
                     relAddr <<= 1; //multiply by two as per xgate processor docs
@@ -236,12 +238,12 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                 (*info->fprintf_func)(info->stream, "  Absolute: ");
                 (*info->print_address_func)(memaddr + relAddr, info);
               }
-            else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_REL10))
+            else if (!strcmp(opcodePTR->constraints, XGATE_OP_REL10))
               {
                 /* if address is negative handle it accordingly */
-                if (raw_code & MC9XGATE_TEN_SIGNBIT)
+                if (raw_code & XGATE_TEN_SIGNBIT)
                   {
-                    relAddr = MC9XGATE_TEN_BITS >> 1; //clip sign bit
+                    relAddr = XGATE_TEN_BITS >> 1; //clip sign bit
                     relAddr = ~relAddr; //make into a negative
                     relAddr |= (raw_code & 0x1FF) + 1; //apply our value
                     relAddr <<= 1; //multiply by two as per xgate processor docs
@@ -261,13 +263,13 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                     " Can't disassemble for mode) %s", opcodePTR->constraints);
               }
             break;
-          case MC9XGATE_R_I:
-            if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_IMM4))
+          case XGATE_R_I:
+            if (!strcmp(opcodePTR->constraints, XGATE_OP_IMM4))
               {
                 (*info->fprintf_func)(info->stream, " R%x, #0x%02x",
                     (raw_code >> 8) & 0x7, (raw_code >> 4) & 0xF);
               }
-            else if (!strcmp(opcodePTR->constraints, MC9XGATE_OP_IMM8))
+            else if (!strcmp(opcodePTR->constraints, XGATE_OP_IMM8))
               {
                 (*info->fprintf_func)(info->stream, " R%x, #0x%02x",
                     (raw_code >> 8) & 0x7, raw_code & 0xff);
@@ -278,7 +280,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                     " Can't disassemble for mode) %s", opcodePTR->constraints);
               }
             break;
-          case MC9XGATE_I:
+          case XGATE_I:
             (*info->fprintf_func)(info->stream, " #0x%x",
                 (raw_code >> 8) & 0x7);
             break;
@@ -298,7 +300,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
 }
 
 int
-print_insn_mc9xgate (bfd_vma memaddr, struct disassemble_info* info)
+print_insn_xgate (bfd_vma memaddr, struct disassemble_info* info)
 {
   return print_insn (memaddr, info);
 }
@@ -319,12 +321,12 @@ read_memory (bfd_vma memaddr, bfd_byte* buffer, int size,
 
 static int
 ripBits(unsigned int *operandBitsRemaining, int numBitsRequested,
-    struct mc9xgate_opcode *opcodePTR, unsigned int memory)
+    struct xgate_opcode *opcodePTR, unsigned int memory)
 {
   unsigned int currentBit;
   int operand;
   int numBitsFound;
-  for(operand = 0, numBitsFound = 0, currentBit = 1 << (opcodePTR->size * 8) - 1; (numBitsFound < numBitsRequested) && currentBit; currentBit >>= 1) {
+  for(operand = 0, numBitsFound = 0, currentBit = 1 << ((opcodePTR->size * 8) - 1); (numBitsFound < numBitsRequested) && currentBit; currentBit >>= 1) {
       if(currentBit & *operandBitsRemaining) {
          *operandBitsRemaining &= ~(currentBit); /* consume the current bit */
          operand <<= 1; /* make room for our next bit */

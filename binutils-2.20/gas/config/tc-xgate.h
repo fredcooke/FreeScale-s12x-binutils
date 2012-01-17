@@ -1,4 +1,4 @@
-/* tc-mc9xgate.h -- Header file for tc-mc9xgate.c.
+/* tc-xgate.h -- Header file for tc-xgate.c.
    Copyright 1999, 2000, 2001, 2002, 2003, 2005, 2007
    Free Software Foundation, Inc.
 
@@ -19,8 +19,9 @@
    Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
    02110-1301, USA.  */
 
-#define TC_MC9XGATE
+#define TC_XGATE
 //#define TC_M68HC12
+#define cpuxgate 1
 
 struct fix;
 
@@ -33,30 +34,30 @@ struct fix;
 #define NO_PSEUDO_DOT 1
 
 /* The target BFD architecture.  */
-#define TARGET_ARCH (mc9xgate_arch ())
-extern enum bfd_architecture mc9xgate_arch (void);
+#define TARGET_ARCH (xgate_arch ())
+extern enum bfd_architecture xgate_arch (void);
 
-#define TARGET_MACH (mc9xgate_mach ())
-extern int mc9xgate_mach (void);
+#define TARGET_MACH (xgate_mach ())
+extern int xgate_mach (void);
 
-#define TARGET_FORMAT (mc9xgate_arch_format ())
-extern const char *mc9xgate_arch_format (void);
+#define TARGET_FORMAT (xgate_arch_format ())
+extern const char *xgate_arch_format (void);
 
 #define LISTING_WORD_SIZE 1	/* A word is 1 bytes */
 #define LISTING_LHS_WIDTH 4	/* One word on the first line */
 #define LISTING_LHS_WIDTH_SECOND 4	/* One word on the second line */
 #define LISTING_LHS_CONT_LINES 4	/* And 4 lines max */
-#define LISTING_HEADER mc9xgate_listing_header ()
-extern const char *mc9xgate_listing_header (void);
+#define LISTING_HEADER xgate_listing_header ()
+extern const char *xgate_listing_header (void);
 
 /* Permit temporary numeric labels.  */
 #define LOCAL_LABELS_FB 1
 
-#define tc_init_after_args mc9xgate_init_after_args
-extern void mc9xgate_init_after_args (void);
+#define tc_init_after_args xgate_init_after_args
+extern void xgate_init_after_args (void);
 
-#define md_parse_long_option mc9xgate_parse_long_option
-extern int mc9xgate_parse_long_option (char *);
+#define md_parse_long_option xgate_parse_long_option
+extern int xgate_parse_long_option (char *);
 
 #define DWARF2_LINE_MIN_INSN_LENGTH 1
 
@@ -80,8 +81,8 @@ extern struct relax_type md_relax_table[];
  ((FRAGP)->fr_symbol != NULL				\
   && S_GET_SEGMENT ((FRAGP)->fr_symbol) == (SEG)	\
   ? relax_frag (SEG, FRAGP, STRETCH)			\
-  : mc9xgate_relax_frag (SEG, FRAGP, STRETCH))
-extern long mc9xgate_relax_frag (segT, fragS*, long);
+  : xgate_relax_frag (SEG, FRAGP, STRETCH))
+extern long xgate_relax_frag (segT, fragS*, long);
 
 #define TC_HANDLES_FX_DONE
 
@@ -94,17 +95,17 @@ extern long mc9xgate_relax_frag (segT, fragS*, long);
    visible symbols can be overridden.  */
 #define EXTERN_FORCE_RELOC 0
 
-#define TC_FORCE_RELOCATION(fix) tc_mc9xgate_force_relocation (fix)
-extern int tc_mc9xgate_force_relocation (struct fix *);
+#define TC_FORCE_RELOCATION(fix) tc_xgate_force_relocation (fix)
+extern int tc_xgate_force_relocation (struct fix *);
 
-#define tc_fix_adjustable(X) tc_mc9xgate_fix_adjustable(X)
-extern int tc_mc9xgate_fix_adjustable (struct fix *);
+#define tc_fix_adjustable(X) tc_xgate_fix_adjustable(X)
+extern int tc_xgate_fix_adjustable (struct fix *);
 
 #define md_operand(x)
 
-#define elf_tc_final_processing	mc9xgate_elf_final_processing
-extern void mc9xgate_elf_final_processing (void);
+#define elf_tc_final_processing	xgate_elf_final_processing
+extern void xgate_elf_final_processing (void);
 
-#define tc_print_statistics(FILE) mc9xgate_print_statistics (FILE)
-extern void mc9xgate_print_statistics (FILE *);
+#define tc_print_statistics(FILE) xgate_print_statistics (FILE)
+extern void xgate_print_statistics (FILE *);
 

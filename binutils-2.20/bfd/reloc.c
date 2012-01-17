@@ -4488,7 +4488,6 @@ ENUMX
   BFD_RELOC_IA64_LTOFF_DTPREL22
 ENUMDOC
   Intel IA64 Relocations.
-
 ENUM
   BFD_RELOC_M68HC11_HI8
 ENUMDOC
@@ -4545,7 +4544,6 @@ ENUM
 ENUMDOC
   Motorola 68HC12 reloc.
   This is the 5 bits of a value.
-
 ENUM
   BFD_RELOC_MC9S12X_HI8
 ENUMDOC
@@ -4602,22 +4600,18 @@ ENUM
 ENUMDOC
   Motorola MC9S12X reloc.
   This is the 5 bits of a value.
-
 ENUM
   BFD_RELOC_MC9S12X_PCREL_9
 ENUMDOC
 	TEXT HERE
-
 ENUM
   BFD_RELOC_MC9S12X_PCREL_10
 ENUMDOC
 	TEXT HERE
-
 ENUM
   BFD_RELOC_MC9S12X_IMM8_LO
 ENUMDOC
 	TEXT HERE
-
 ENUM
   BFD_RELOC_MC9S12X_IMM8_HI
 ENUMDOC
@@ -4630,93 +4624,88 @@ ENUM
   BFD_RELOC_MC9S12X_IMM4
 ENUMDOC
 	TEXT HERE
-
 ENUM
-  BFD_RELOC_MC9XGATE_HI8
+  BFD_RELOC_XGATE_HI8
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is the 8 bit high part of an absolute address.
 ENUM
-  BFD_RELOC_MC9XGATE_LO8
+  BFD_RELOC_XGATE_LO8
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is the 8 bit low part of an absolute address.
 ENUM
-  BFD_RELOC_MC9XGATE_3B
+  BFD_RELOC_XGATE_3B
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is the 3 bit of a value.
 ENUM
-  BFD_RELOC_MC9XGATE_RL_JUMP
+  BFD_RELOC_XGATE_RL_JUMP
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This reloc marks the beginning of a jump/call instruction.
   It is used for linker relaxation to correctly identify beginning
   of instruction and change some branches to use PC-relative
   addressing mode.
 ENUM
-  BFD_RELOC_MC9XGATE_RL_GROUP
+  BFD_RELOC_XGATE_RL_GROUP
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This reloc marks a group of several instructions that gcc generates
   and for which the linker relaxation pass can modify and/or remove
   some of them.
 ENUM
-  BFD_RELOC_MC9XGATE_LO16
+  BFD_RELOC_XGATE_LO16
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is the 16-bit lower part of an address.  It is used for 'call'
   instruction to specify the symbol address without any special
   transformation (due to memory bank window).
 ENUM
-  BFD_RELOC_MC9XGATE_PAGE
+  BFD_RELOC_XGATE_PAGE
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is a 8-bit reloc that specifies the page number of an address.
   It is used by 'call' instruction to specify the page number of
   the symbol.
 ENUM
-  BFD_RELOC_MC9XGATE_24
+  BFD_RELOC_XGATE_24
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is a 24-bit reloc that represents the address with a 16-bit
   value and a 8-bit page number.  The symbol address is transformed
   to follow the 16K memory bank of MC9S12X (seen as mapped in the window).
 ENUM
-  BFD_RELOC_MC9XGATE_5B
+  BFD_RELOC_XGATE_5B
 ENUMDOC
-  Motorola MC9XGATE reloc.
+  Motorola XGATE reloc.
   This is the 5 bits of a value.
-
 ENUM
-  BFD_RELOC_MC9XGATE_PCREL_9
-ENUMDOC
-	TEXT HERE
-
-ENUM
-  BFD_RELOC_MC9XGATE_PCREL_10
-ENUMDOC
-	TEXT HERE
-
-ENUM
-  BFD_RELOC_MC9XGATE_IMM8_LO
-ENUMDOC
-	TEXT HERE
-
-ENUM
-  BFD_RELOC_MC9XGATE_IMM8_HI
+  BFD_RELOC_XGATE_PCREL_9
 ENUMDOC
 	TEXT HERE
 ENUM
-  BFD_RELOC_MC9XGATE_IMM3
+  BFD_RELOC_XGATE_PCREL_10
 ENUMDOC
 	TEXT HERE
 ENUM
-  BFD_RELOC_MC9XGATE_IMM4
+  BFD_RELOC_XGATE_IMM8_LO
 ENUMDOC
 	TEXT HERE
 ENUM
-  BFD_RELOC_MC9XGATE_IMM5
+  BFD_RELOC_XGATE_IMM8_HI
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_XGATE_IMM3
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_XGATE_IMM4
+ENUMDOC
+	TEXT HERE
+ENUM
+  BFD_RELOC_XGATE_IMM5
 ENUMDOC
 	TEXT HERE
 ENUM

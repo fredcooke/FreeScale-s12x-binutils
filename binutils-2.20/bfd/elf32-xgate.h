@@ -1,5 +1,6 @@
-/* Motorola 68HC11/68HC12-specific support for 32-bit ELF
+/* Freescale XGATE-specific support for 32-bit ELF
    Copyright 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+
    Contributed by Stephane Carrez (stcarrez@nerim.fr)
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -19,30 +20,30 @@
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.  */
 
-#ifndef _ELF32_MC9XGATE_H
-#define _ELF32_MC9XGATE_H
+#ifndef _ELF32_XGATE_H
+#define _ELF32_XGATE_H
 
 #include "elf-bfd.h"
 #include "bfdlink.h"
-#include "elf/mc9xgate.h"
+#include "elf/xgate.h"
 
 /* Name of symbols exported by MC9S12X linker when there is a memory
    bank window.  */
-#define BFD_MC9XGATE_BANK_START_NAME   "__bank_start"
-#define BFD_MC9XGATE_BANK_SIZE_NAME    "__bank_size"
-#define BFD_MC9XGATE_BANK_VIRTUAL_NAME "__bank_virtual"
+#define BFD_XGATE_BANK_START_NAME   "__bank_start"
+#define BFD_XGATE_BANK_SIZE_NAME    "__bank_size"
+#define BFD_XGATE_BANK_VIRTUAL_NAME "__bank_virtual"
 
 /* Set and control ELF flags in ELF header.  */
-extern bfd_boolean _bfd_mc9xgate_elf_merge_private_bfd_data (bfd*,bfd*);
-extern bfd_boolean _bfd_mc9xgate_elf_set_private_flags (bfd*,flagword);
-extern bfd_boolean _bfd_mc9xgate_elf_print_private_bfd_data (bfd*, void*);
+extern bfd_boolean _bfd_xgate_elf_merge_private_bfd_data (bfd*,bfd*);
+extern bfd_boolean _bfd_xgate_elf_set_private_flags (bfd*,flagword);
+extern bfd_boolean _bfd_xgate_elf_print_private_bfd_data (bfd*, void*);
 
 /* This hash entry is used to record a trampoline that must be generated
    to call a far function using a normal calling convention ('jsr').
    The trampoline is used when a pointer to a far function is used.
    It takes care of installing the proper memory bank as well as creating
    the 'call/rtc' calling convention.  */
-struct elf32_mc9xgate_stub_hash_entry {
+struct elf32_xgate_stub_hash_entry {
 
   /* Base hash table entry structure.  */
   struct bfd_hash_entry root;
@@ -86,7 +87,7 @@ struct elf32_mc9xgate_stub_hash_entry {
    For 68HC11 this is board specific (implemented by external hardware).
 
 */
-struct mc9xgate_page_info
+struct xgate_page_info
 {
   bfd_vma bank_virtual;
   bfd_vma bank_physical;
@@ -98,10 +99,10 @@ struct mc9xgate_page_info
   bfd_vma trampoline_addr;
 };
 
-struct mc9xgate_elf_link_hash_table
+struct xgate_elf_link_hash_table
 {
   struct elf_link_hash_table root;
-  struct mc9xgate_page_info pinfo;
+  struct xgate_page_info pinfo;
 
   /* The stub hash table.  */
   struct bfd_hash_table* stub_hash_table;
@@ -129,47 +130,47 @@ struct mc9xgate_elf_link_hash_table
 
 /* Get the Sparc64 ELF linker hash table from a link_info structure.  */
 
-#define mc9xgate_elf_hash_table(p) \
-  ((struct mc9xgate_elf_link_hash_table *) ((p)->hash))
+#define xgate_elf_hash_table(p) \
+  ((struct xgate_elf_link_hash_table *) ((p)->hash))
 
 /* Create a 68HC11/68HC12 ELF linker hash table.  */
 
-extern struct mc9xgate_elf_link_hash_table* mc9xgate_elf_hash_table_create
+extern struct xgate_elf_link_hash_table* xgate_elf_hash_table_create
   (bfd*);
-extern void mc9xgate_elf_bfd_link_hash_table_free (struct bfd_link_hash_table*);
+extern void xgate_elf_bfd_link_hash_table_free (struct bfd_link_hash_table*);
 
-extern void mc9xgate_elf_get_bank_parameters (struct bfd_link_info*);
+extern void xgate_elf_get_bank_parameters (struct bfd_link_info*);
 
 /* Return 1 if the address is in banked memory.
    This can be applied to a virtual address and to a physical address.  */
-extern int mc9xgate_addr_is_banked (struct mc9xgate_page_info*, bfd_vma);
+extern int xgate_addr_is_banked (struct xgate_page_info*, bfd_vma);
 
 /* Return the physical address seen by the processor, taking
    into account banked memory.  */
-extern bfd_vma mc9xgate_phys_addr (struct mc9xgate_page_info*, bfd_vma);
+extern bfd_vma xgate_phys_addr (struct xgate_page_info*, bfd_vma);
 
 /* Return the page number corresponding to an address in banked memory.  */
-extern bfd_vma mc9xgate_phys_page (struct mc9xgate_page_info*, bfd_vma);
+extern bfd_vma xgate_phys_page (struct xgate_page_info*, bfd_vma);
 
-bfd_reloc_status_type mc9xgate_elf_ignore_reloc
+bfd_reloc_status_type xgate_elf_ignore_reloc
   (bfd *abfd, arelent *reloc_entry,
    asymbol *symbol, void *data, asection *input_section,
    bfd *output_bfd, char **error_message);
-bfd_reloc_status_type mc9xgate_elf_special_reloc
+bfd_reloc_status_type xgate_elf_special_reloc
   (bfd *abfd, arelent *reloc_entry,
     asymbol *symbol, void *data, asection *input_section,
     bfd *output_bfd, char **error_message);
 
-bfd_boolean elf32_mc9xgate_check_relocs
+bfd_boolean elf32_xgate_check_relocs
   (bfd * abfd, struct bfd_link_info * info,
    asection * sec, const Elf_Internal_Rela * relocs);
-bfd_boolean elf32_mc9xgate_relocate_section
+bfd_boolean elf32_xgate_relocate_section
   (bfd *output_bfd, struct bfd_link_info *info,
    bfd *input_bfd, asection *input_section,
    bfd_byte *contents, Elf_Internal_Rela *relocs,
    Elf_Internal_Sym *local_syms, asection **local_sections);
 
-bfd_boolean elf32_mc9xgate_add_symbol_hook
+bfd_boolean elf32_xgate_add_symbol_hook
   (bfd *abfd, struct bfd_link_info *info,
    Elf_Internal_Sym *sym, const char **namep,
    flagword *flagsp, asection **secp,
@@ -177,13 +178,13 @@ bfd_boolean elf32_mc9xgate_add_symbol_hook
 
 /* Tweak the OSABI field of the elf header.  */
 
-extern void elf32_mc9xgate_post_process_headers (bfd*, struct bfd_link_info*);
+extern void elf32_xgate_post_process_headers (bfd*, struct bfd_link_info*);
 
-int elf32_mc9xgate_setup_section_lists (bfd *, struct bfd_link_info *);
+int elf32_xgate_setup_section_lists (bfd *, struct bfd_link_info *);
 
-bfd_boolean elf32_mc9xgate_size_stubs
+bfd_boolean elf32_xgate_size_stubs
   (bfd *, bfd *, struct bfd_link_info *,
    asection * (*) (const char *, asection *));
 
-bfd_boolean elf32_mc9xgate_build_stubs (bfd* abfd, struct bfd_link_info *);
+bfd_boolean elf32_xgate_build_stubs (bfd* abfd, struct bfd_link_info *);
 #endif
