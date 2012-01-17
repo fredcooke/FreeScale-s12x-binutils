@@ -1,6 +1,6 @@
 // elfcpp.h -- main header file for elfcpp    -*- C++ -*-
 
-// Copyright 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of elfcpp.
@@ -129,10 +129,9 @@ enum ELFOSABI
   ELFOSABI_NONE = 0,
   ELFOSABI_HPUX = 1,
   ELFOSABI_NETBSD = 2,
-  // ELFOSABI_LINUX is not listed in the ELF standard.
+  ELFOSABI_GNU = 3,
+  // ELFOSABI_LINUX is an alias for ELFOSABI_GNU.
   ELFOSABI_LINUX = 3,
-  // ELFOSABI_HURD is not listed in the ELF standard.
-  ELFOSABI_HURD = 4,
   ELFOSABI_SOLARIS = 6,
   ELFOSABI_AIX = 7,
   ELFOSABI_IRIX = 8,
@@ -269,8 +268,7 @@ enum EM
   EM_UNICORE = 110,
   EM_ALTERA_NIOS2 = 113,
   EM_CRX = 114,
-  EM_MC9S12X = 190,
-  EM_MC9XGATE = 191,
+  EM_XGATE = 115,
   // The Morph MT.
   EM_MT = 0x2530,
   // DLX.
@@ -302,6 +300,15 @@ enum EM
   // Old Xtensa objects used 0xabc7 (EM_XTENSA is correct).
   // Old MN10300 objects used 0xbeef (EM_MN10300 is correct).
   // Old MN10200 objects used 0xdead (EM_MN10200 is correct).
+};
+
+// A special value found in the Ehdr e_phnum field.
+
+enum
+{
+  // Number of program segments stored in sh_info field of first
+  // section headre.
+  PN_XNUM = 0xffff
 };
 
 // Special section indices.
@@ -358,6 +365,9 @@ enum SHT
   // The remaining values are not in the standard.
   // Incremental build data.
   SHT_GNU_INCREMENTAL_INPUTS = 0x6fff4700,
+  SHT_GNU_INCREMENTAL_SYMTAB = 0x6fff4701,
+  SHT_GNU_INCREMENTAL_RELOCS = 0x6fff4702,
+  SHT_GNU_INCREMENTAL_GOT_PLT = 0x6fff4703,
   // Object attributes.
   SHT_GNU_ATTRIBUTES = 0x6ffffff5,
   // GNU style dynamic hash table.
@@ -392,7 +402,7 @@ enum SHT
 
   // Link editor is to sort the entries in this section based on the
   // address specified in the associated symbol table entry.
-  SHT_ORDERED = 0x7fffffff,
+  SHT_ORDERED = 0x7fffffff
 };
 
 // The valid bit flags found in the Shdr sh_flags field.
@@ -516,7 +526,7 @@ enum STT
 
   // ARM: a THUMB function.  This is not defined in ARM ELF Specification but
   // used by the GNU tool-chain.
-  STT_ARM_TFUNC = 13,
+  STT_ARM_TFUNC = 13
 };
 
 inline STB
@@ -658,7 +668,11 @@ enum DT
   DT_FINI_ARRAYSZ = 28,
   DT_RUNPATH = 29,
   DT_FLAGS = 30,
+
+  // This is used to mark a range of dynamic tags.  It is not really
+  // a tag value.
   DT_ENCODING = 32,
+
   DT_PREINIT_ARRAY = 32,
   DT_PREINIT_ARRAYSZ = 33,
   DT_LOOS = 0x6000000d,
@@ -753,7 +767,7 @@ enum DF_1
   DF_1_INTERPOSE = 0x400,
   DF_1_NODEFLIB = 0x800,
   DF_1_NODUMP = 0x1000,
-  DF_1_CONLFAT = 0x2000,
+  DF_1_CONLFAT = 0x2000
 };
 
 // Version numbers which appear in the vd_version field of a Verdef
@@ -773,6 +787,7 @@ const int VER_NEED_CURRENT = 1;
 
 const int VER_FLG_BASE = 0x1;
 const int VER_FLG_WEAK = 0x2;
+const int VER_FLG_INFO = 0x4;
 
 // Special constants found in the SHT_GNU_versym entries.
 

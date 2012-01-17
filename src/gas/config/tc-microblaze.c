@@ -1,6 +1,6 @@
 /* tc-microblaze.c -- Assemble code for Xilinx MicroBlaze
 
-   Copyright 2009 Free Software Foundation.
+   Copyright 2009, 2010 Free Software Foundation.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -160,8 +160,6 @@ microblaze_s_lcomm (int xxx ATTRIBUTE_UNUSED)
   offsetT size;
   symbolS *symbolP;
   offsetT align;
-  segT old_sec;
-  int old_subsec;
   char *pfrag;
   int align2;
   segT current_seg = now_seg;
@@ -227,8 +225,6 @@ microblaze_s_lcomm (int xxx ATTRIBUTE_UNUSED)
     }
 
   /* Allocate_bss.  */
-  old_sec = now_seg;
-  old_subsec = now_subseg;
   if (align)
     {
       /* Convert to a power of 2 alignment.  */
@@ -801,7 +797,7 @@ md_assemble (char * str)
   unsigned reg2;
   unsigned reg3;
   unsigned isize;
-  unsigned int imm, temp;
+  unsigned int immed, temp;
   expressionS exp;
   char name[20];
 
@@ -811,11 +807,13 @@ md_assemble (char * str)
 
   /* Find the op code end.  */
   for (op_start = op_end = str;
-       * op_end && nlen < 20 && !is_end_of_line [(int)*op_end] && *op_end != ' ';
+       *op_end && !is_end_of_line[(unsigned char) *op_end] && *op_end != ' ';
        op_end++)
     {
       name[nlen] = op_start[nlen];
       nlen++;
+      if (nlen == sizeof (name) - 1)
+	break;
     }
 
   name [nlen] = 0;
@@ -943,12 +941,12 @@ md_assemble (char * str)
 			     exp.X_add_symbol,
 			     exp.X_add_number,
 			     opc);
-	  imm = 0;
+	  immed = 0;
         }
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
 
       if (streq (name, "lmi") || streq (name, "smi"))
@@ -971,7 +969,7 @@ md_assemble (char * str)
           inst  = opcode->bit_sequence;
           inst |= (reg1 << RD_LOW) & RD_MASK;
           inst |= (reg2 << RA_LOW) & RA_MASK;
-          inst |= (imm << IMM_LOW) & IMM_MASK;
+          inst |= (immed << IMM_LOW) & IMM_MASK;
 
           for (i = 0; i < count - 1; i++)
 	    {
@@ -980,17 +978,17 @@ md_assemble (char * str)
               output[2] = INST_BYTE2 (inst);
               output[3] = INST_BYTE3 (inst);
               output = frag_more (isize);
-              imm = imm + 4;
+              immed = immed + 4;
               reg1++;
               inst = opcode->bit_sequence;
               inst |= (reg1 << RD_LOW) & RD_MASK;
               inst |= (reg2 << RA_LOW) & RA_MASK;
-              inst |= (imm << IMM_LOW) & IMM_MASK;
+              inst |= (immed << IMM_LOW) & IMM_MASK;
             }
 	}
       else
 	{
-          temp = imm & 0xFFFF8000;
+          temp = immed & 0xFFFF8000;
           if ((temp != 0) && (temp != 0xFFFF8000))
 	    {
               /* Needs an immediate inst.  */
@@ -1002,7 +1000,7 @@ md_assemble (char * str)
                 }
 
               inst1 = opcode1->bit_sequence;
-              inst1 |= ((imm & 0xFFFF0000) >> 16) & IMM_MASK;
+              inst1 |= ((immed & 0xFFFF0000) >> 16) & IMM_MASK;
               output[0] = INST_BYTE0 (inst1);
               output[1] = INST_BYTE1 (inst1);
               output[2] = INST_BYTE2 (inst1);
@@ -1011,7 +1009,7 @@ md_assemble (char * str)
 	    }
 	  inst |= (reg1 << RD_LOW) & RD_MASK;
 	  inst |= (reg2 << RA_LOW) & RA_MASK;
-	  inst |= (imm << IMM_LOW) & IMM_MASK;
+	  inst |= (immed << IMM_LOW) & IMM_MASK;
 	}
       break;
 
@@ -1046,17 +1044,17 @@ md_assemble (char * str)
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
 
-      if (imm != (imm % 32))
+      if (immed != (immed % 32))
 	{
           as_warn (_("Shift value > 32. using <value %% 32>"));
-          imm = imm % 32;
+          immed = immed % 32;
         }
       inst |= (reg1 << RD_LOW) & RD_MASK;
       inst |= (reg2 << RA_LOW) & RA_MASK;
-      inst |= (imm << IMM_LOW) & IMM5_MASK;
+      inst |= (immed << IMM_LOW) & IMM5_MASK;
       break;
 
     case INST_TYPE_R1_R2:
@@ -1122,11 +1120,11 @@ md_assemble (char * str)
           reg1 = 0;
         }
       if (strcmp (op_end, ""))
-        op_end = parse_reg (op_end + 1, &imm);  /* Get rfslN.  */
+        op_end = parse_reg (op_end + 1, &immed);  /* Get rfslN.  */
       else
 	{
           as_fatal (_("Error in statement syntax"));
-          imm = 0;
+          immed = 0;
         }
 
       /* Check for spl registers.  */
@@ -1134,7 +1132,7 @@ md_assemble (char * str)
         as_fatal (_("Cannot use special register with this instruction"));
 
       inst |= (reg1 << RD_LOW) & RD_MASK;
-      inst |= (imm << IMM_LOW) & RFSL_MASK;
+      inst |= (immed << IMM_LOW) & RFSL_MASK;
       output = frag_more (isize);
       break;
 
@@ -1161,10 +1159,10 @@ md_assemble (char * str)
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
       inst |= (reg1 << RD_LOW) & RD_MASK;
-      inst |= (imm << IMM_LOW) & IMM15_MASK;
+      inst |= (immed << IMM_LOW) & IMM15_MASK;
       break;
 
     case INST_TYPE_R1_RFSL:
@@ -1176,11 +1174,11 @@ md_assemble (char * str)
           reg1 = 0;
         }
       if (strcmp (op_end, ""))
-        op_end = parse_reg (op_end + 1, &imm);  /* Get rfslN.  */
+        op_end = parse_reg (op_end + 1, &immed);  /* Get rfslN.  */
       else
 	{
           as_fatal (_("Error in statement syntax"));
-          imm = 0;
+          immed = 0;
         }
 
       /* Check for spl registers.  */
@@ -1188,22 +1186,22 @@ md_assemble (char * str)
         as_fatal (_("Cannot use special register with this instruction"));
 
       inst |= (reg1 << RA_LOW) & RA_MASK;
-      inst |= (imm << IMM_LOW) & RFSL_MASK;
+      inst |= (immed << IMM_LOW) & RFSL_MASK;
       output = frag_more (isize);
       break;
 
     case INST_TYPE_RFSL:
       if (strcmp (op_end, ""))
-        op_end = parse_reg (op_end + 1, &imm);  /* Get rfslN.  */
+        op_end = parse_reg (op_end + 1, &immed);  /* Get rfslN.  */
       else
 	{
           as_fatal (_("Error in statement syntax"));
-          imm = 0;
+          immed = 0;
         }
       /* Check for spl registers.  */
       if (check_spl_reg (&reg1))
         as_fatal (_("Cannot use special register with this instruction"));
-      inst |= (imm << IMM_LOW) & RFSL_MASK;
+      inst |= (immed << IMM_LOW) & RFSL_MASK;
       output = frag_more (isize);
       break;
 
@@ -1259,35 +1257,35 @@ md_assemble (char * str)
         }
 
       if (reg2 == REG_MSR)
-        imm = opcode->immval_mask | REG_MSR_MASK;
+        immed = opcode->immval_mask | REG_MSR_MASK;
       else if (reg2 == REG_PC)
-        imm = opcode->immval_mask | REG_PC_MASK;
+        immed = opcode->immval_mask | REG_PC_MASK;
       else if (reg2 == REG_EAR)
-        imm = opcode->immval_mask | REG_EAR_MASK;
+        immed = opcode->immval_mask | REG_EAR_MASK;
       else if (reg2 == REG_ESR)
-        imm = opcode->immval_mask | REG_ESR_MASK;
+        immed = opcode->immval_mask | REG_ESR_MASK;
       else if (reg2 == REG_FSR)
-        imm = opcode->immval_mask | REG_FSR_MASK;
+        immed = opcode->immval_mask | REG_FSR_MASK;
       else if (reg2 == REG_BTR)
-        imm = opcode->immval_mask | REG_BTR_MASK;
+        immed = opcode->immval_mask | REG_BTR_MASK;
       else if (reg2 == REG_EDR)
-        imm = opcode->immval_mask | REG_EDR_MASK;
+        immed = opcode->immval_mask | REG_EDR_MASK;
       else if (reg2 == REG_PID)
-        imm = opcode->immval_mask | REG_PID_MASK;
+        immed = opcode->immval_mask | REG_PID_MASK;
       else if (reg2 == REG_ZPR)
-        imm = opcode->immval_mask | REG_ZPR_MASK;
+        immed = opcode->immval_mask | REG_ZPR_MASK;
       else if (reg2 == REG_TLBX)
-        imm = opcode->immval_mask | REG_TLBX_MASK;
+        immed = opcode->immval_mask | REG_TLBX_MASK;
       else if (reg2 == REG_TLBLO)
-        imm = opcode->immval_mask | REG_TLBLO_MASK;
+        immed = opcode->immval_mask | REG_TLBLO_MASK;
       else if (reg2 == REG_TLBHI)
-        imm = opcode->immval_mask | REG_TLBHI_MASK;
+        immed = opcode->immval_mask | REG_TLBHI_MASK;
       else if (reg2 >= (REG_PVR+MIN_PVR_REGNUM) && reg2 <= (REG_PVR+MAX_PVR_REGNUM))
-	imm = opcode->immval_mask | REG_PVR_MASK | reg2;
+	immed = opcode->immval_mask | REG_PVR_MASK | reg2;
       else
         as_fatal (_("invalid value for special purpose register"));
       inst |= (reg1 << RD_LOW) & RD_MASK;
-      inst |= (imm << IMM_LOW) & IMM_MASK;
+      inst |= (immed << IMM_LOW) & IMM_MASK;
       output = frag_more (isize);
       break;
 
@@ -1308,35 +1306,35 @@ md_assemble (char * str)
         }
 
       if (reg1 == REG_MSR)
-        imm = opcode->immval_mask | REG_MSR_MASK;
+        immed = opcode->immval_mask | REG_MSR_MASK;
       else if (reg1 == REG_PC)
-        imm = opcode->immval_mask | REG_PC_MASK;
+        immed = opcode->immval_mask | REG_PC_MASK;
       else if (reg1 == REG_EAR)
-        imm = opcode->immval_mask | REG_EAR_MASK;
+        immed = opcode->immval_mask | REG_EAR_MASK;
       else if (reg1 == REG_ESR)
-        imm = opcode->immval_mask | REG_ESR_MASK;
+        immed = opcode->immval_mask | REG_ESR_MASK;
       else if (reg1 == REG_FSR)
-        imm = opcode->immval_mask | REG_FSR_MASK;
+        immed = opcode->immval_mask | REG_FSR_MASK;
       else if (reg1 == REG_BTR)
-        imm = opcode->immval_mask | REG_BTR_MASK;
+        immed = opcode->immval_mask | REG_BTR_MASK;
       else if (reg1 == REG_EDR)
-        imm = opcode->immval_mask | REG_EDR_MASK;
+        immed = opcode->immval_mask | REG_EDR_MASK;
       else if (reg1 == REG_PID)
-        imm = opcode->immval_mask | REG_PID_MASK;
+        immed = opcode->immval_mask | REG_PID_MASK;
       else if (reg1 == REG_ZPR)
-        imm = opcode->immval_mask | REG_ZPR_MASK;
+        immed = opcode->immval_mask | REG_ZPR_MASK;
       else if (reg1 == REG_TLBX)
-        imm = opcode->immval_mask | REG_TLBX_MASK;
+        immed = opcode->immval_mask | REG_TLBX_MASK;
       else if (reg1 == REG_TLBLO)
-        imm = opcode->immval_mask | REG_TLBLO_MASK;
+        immed = opcode->immval_mask | REG_TLBLO_MASK;
       else if (reg1 == REG_TLBHI)
-        imm = opcode->immval_mask | REG_TLBHI_MASK;
+        immed = opcode->immval_mask | REG_TLBHI_MASK;
       else if (reg1 == REG_TLBSX)
-        imm = opcode->immval_mask | REG_TLBSX_MASK;
+        immed = opcode->immval_mask | REG_TLBSX_MASK;
       else
         as_fatal (_("invalid value for special purpose register"));
       inst |= (reg2 << RA_LOW) & RA_MASK;
-      inst |= (imm << IMM_LOW) & IMM_MASK;
+      inst |= (immed << IMM_LOW) & IMM_MASK;
       output = frag_more (isize);
       break;
 
@@ -1432,15 +1430,15 @@ md_assemble (char * str)
 			     exp.X_add_symbol,
 			     exp.X_add_number,
 			     opc);
-	  imm = 0;
+	  immed = 0;
 	}
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
 
-      temp = imm & 0xFFFF8000;
+      temp = immed & 0xFFFF8000;
       if ((temp != 0) && (temp != 0xFFFF8000))
 	{
           /* Needs an immediate inst.  */
@@ -1452,7 +1450,7 @@ md_assemble (char * str)
             }
 
           inst1 = opcode1->bit_sequence;
-          inst1 |= ((imm & 0xFFFF0000) >> 16) & IMM_MASK;
+          inst1 |= ((immed & 0xFFFF0000) >> 16) & IMM_MASK;
           output[0] = INST_BYTE0 (inst1);
           output[1] = INST_BYTE1 (inst1);
           output[2] = INST_BYTE2 (inst1);
@@ -1461,7 +1459,7 @@ md_assemble (char * str)
         }
 
       inst |= (reg1 << RA_LOW) & RA_MASK;
-      inst |= (imm << IMM_LOW) & IMM_MASK;
+      inst |= (immed << IMM_LOW) & IMM_MASK;
       break;
 
     case INST_TYPE_RD_IMM:
@@ -1499,15 +1497,15 @@ md_assemble (char * str)
 			     exp.X_add_symbol,
 			     exp.X_add_number,
 			     opc);
-          imm = 0;
+          immed = 0;
 	}
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
 
-      temp = imm & 0xFFFF8000;
+      temp = immed & 0xFFFF8000;
       if ((temp != 0) && (temp != 0xFFFF8000))
 	{
           /* Needs an immediate inst.  */
@@ -1519,7 +1517,7 @@ md_assemble (char * str)
             }
 
           inst1 = opcode1->bit_sequence;
-          inst1 |= ((imm & 0xFFFF0000) >> 16) & IMM_MASK;
+          inst1 |= ((immed & 0xFFFF0000) >> 16) & IMM_MASK;
           output[0] = INST_BYTE0 (inst1);
           output[1] = INST_BYTE1 (inst1);
           output[2] = INST_BYTE2 (inst1);
@@ -1528,7 +1526,7 @@ md_assemble (char * str)
         }
 
       inst |= (reg1 << RD_LOW) & RD_MASK;
-      inst |= (imm << IMM_LOW) & IMM_MASK;
+      inst |= (immed << IMM_LOW) & IMM_MASK;
       break;
 
     case INST_TYPE_R2:
@@ -1572,16 +1570,16 @@ md_assemble (char * str)
 			     exp.X_add_symbol,
 			     exp.X_add_number,
 			     opc);
-          imm = 0;
+          immed = 0;
         }
       else
 	{
           output = frag_more (isize);
-          imm = exp.X_add_number;
+          immed = exp.X_add_number;
         }
 
 
-      temp = imm & 0xFFFF8000;
+      temp = immed & 0xFFFF8000;
       if ((temp != 0) && (temp != 0xFFFF8000))
 	{
           /* Needs an immediate inst.  */
@@ -1593,14 +1591,14 @@ md_assemble (char * str)
             }
 
           inst1 = opcode1->bit_sequence;
-          inst1 |= ((imm & 0xFFFF0000) >> 16) & IMM_MASK;
+          inst1 |= ((immed & 0xFFFF0000) >> 16) & IMM_MASK;
           output[0] = INST_BYTE0 (inst1);
           output[1] = INST_BYTE1 (inst1);
           output[2] = INST_BYTE2 (inst1);
           output[3] = INST_BYTE3 (inst1);
           output = frag_more (isize);
         }
-      inst |= (imm << IMM_LOW) & IMM_MASK;
+      inst |= (immed << IMM_LOW) & IMM_MASK;
       break;
 
     case INST_TYPE_NONE:
@@ -1800,6 +1798,7 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED,
       fixP = fix_new (fragP, fragP->fr_fix, INST_WORD_SIZE * 2, fragP->fr_symbol,
 	              fragP->fr_offset, TRUE, BFD_RELOC_MICROBLAZE_64_PLT);
       /* fixP->fx_plt = 1; */
+      (void) fixP;
       fragP->fr_fix += INST_WORD_SIZE * 2;
       fragP->fr_var = 0;
       break;

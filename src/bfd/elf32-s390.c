@@ -1,6 +1,6 @@
 /* IBM S/390-specific support for 32-bit ELF
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2011 Free Software Foundation, Inc.
    Contributed by Carl B. Pedersen and Martin Schwidefsky.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -693,13 +693,13 @@ struct elf_s390_obj_tdata
 #define is_s390_elf(bfd) \
   (bfd_get_flavour (bfd) == bfd_target_elf_flavour \
    && elf_tdata (bfd) != NULL \
-   && elf_object_id (bfd) == S390_ELF_TDATA)
+   && elf_object_id (bfd) == S390_ELF_DATA)
 
 static bfd_boolean
 elf_s390_mkobject (bfd *abfd)
 {
   return bfd_elf_allocate_object (abfd, sizeof (struct elf_s390_obj_tdata),
-				  S390_ELF_TDATA);
+				  S390_ELF_DATA);
 }
 
 static bfd_boolean
@@ -737,7 +737,8 @@ struct elf_s390_link_hash_table
 /* Get the s390 ELF linker hash table from a link_info structure.  */
 
 #define elf_s390_hash_table(p) \
-  ((struct elf_s390_link_hash_table *) ((p)->hash))
+  (elf_hash_table_id ((struct elf_link_hash_table *) ((p)->hash)) \
+  == S390_ELF_DATA ? ((struct elf_s390_link_hash_table *) ((p)->hash)) : NULL)
 
 /* Create an entry in an s390 ELF linker hash table.  */
 
@@ -786,7 +787,8 @@ elf_s390_link_hash_table_create (abfd)
     return NULL;
 
   if (!_bfd_elf_link_hash_table_init (&ret->elf, abfd, link_hash_newfunc,
-				      sizeof (struct elf_s390_link_hash_entry)))
+				      sizeof (struct elf_s390_link_hash_entry),
+				      S390_ELF_DATA))
     {
       free (ret);
       return NULL;
@@ -1694,12 +1696,6 @@ allocate_dynrelocs (h, inf)
   if (h->root.type == bfd_link_hash_indirect)
     return TRUE;
 
-  if (h->root.type == bfd_link_hash_warning)
-    /* When warning symbols are created, they **replace** the "real"
-       entry in the hash table, thus we never get to see the real
-       symbol in a hash traversal.  So look at it now.  */
-    h = (struct elf_link_hash_entry *) h->root.u.i.link;
-
   info = (struct bfd_link_info *) inf;
   htab = elf_s390_hash_table (info);
 
@@ -1919,9 +1915,6 @@ readonly_dynrelocs (h, inf)
 {
   struct elf_s390_link_hash_entry *eh;
   struct elf_s390_dyn_relocs *p;
-
-  if (h->root.type == bfd_link_hash_warning)
-    h = (struct elf_link_hash_entry *) h->root.u.i.link;
 
   eh = (struct elf_s390_link_hash_entry *) h;
   for (p = eh->dyn_relocs; p != NULL; p = p->next)
@@ -2290,15 +2283,8 @@ elf_s390_relocate_section (output_bfd, info, input_bfd, input_section,
 	}
 
       if (sec != NULL && elf_discarded_section (sec))
-	{
-	  /* For relocs against symbols from removed linkonce sections,
-	     or sections discarded by a linker script, we just want the
-	     section contents zeroed.  Avoid any special processing.  */
-	  _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
-	  rel->r_info = 0;
-	  rel->r_addend = 0;
-	  continue;
-	}
+	RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
+					 rel, relend, howto, contents);
 
       if (info->relocatable)
 	continue;
@@ -2876,7 +2862,7 @@ elf_s390_relocate_section (output_bfd, info, input_bfd, input_section,
 	  continue;
 
 	case R_390_TLS_LDO32:
-	  if (info->shared)
+	  if (info->shared || (input_section->flags & SEC_DEBUGGING))
 	    relocation -= dtpoff_base (info);
 	  else
 	    /* When converting LDO to LE, we must negate.  */
@@ -3010,7 +2996,9 @@ elf_s390_relocate_section (output_bfd, info, input_bfd, input_section,
 	 not process them.  */
       if (unresolved_reloc
 	  && !((input_section->flags & SEC_DEBUGGING) != 0
-	       && h->def_dynamic))
+	       && h->def_dynamic)
+	  && _bfd_elf_section_offset (output_bfd, info, input_section,
+				      rel->r_offset) != (bfd_vma) -1)
 	(*_bfd_error_handler)
 	  (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
 	   input_bfd,
@@ -3460,7 +3448,7 @@ elf_s390_grok_prstatus (abfd, note)
 	elf_tdata (abfd)->core_signal = bfd_get_16 (abfd, note->descdata + 12);
 
 	/* pr_pid */
-	elf_tdata (abfd)->core_pid = bfd_get_32 (abfd, note->descdata + 24);
+	elf_tdata (abfd)->core_lwpid = bfd_get_32 (abfd, note->descdata + 24);
 
 	/* pr_reg */
 	offset = 72;
@@ -3483,10 +3471,18 @@ elf_s390_plt_sym_val (bfd_vma i, const asection *plt,
   return plt->vma + PLT_FIRST_ENTRY_SIZE + i * PLT_ENTRY_SIZE;
 }
 
+static bfd_boolean
+elf32_s390_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
+{
+  elf_elfheader (obfd)->e_flags |= elf_elfheader (ibfd)->e_flags;
+  return TRUE;
+}
+
 
 #define TARGET_BIG_SYM	bfd_elf32_s390_vec
 #define TARGET_BIG_NAME	"elf32-s390"
 #define ELF_ARCH	bfd_arch_s390
+#define ELF_TARGET_ID	S390_ELF_DATA
 #define ELF_MACHINE_CODE EM_S390
 #define ELF_MACHINE_ALT1 EM_S390_OLD
 #define ELF_MAXPAGESIZE 0x1000
@@ -3505,6 +3501,8 @@ elf_s390_plt_sym_val (bfd_vma i, const asection *plt,
 #define bfd_elf32_bfd_link_hash_table_create  elf_s390_link_hash_table_create
 #define bfd_elf32_bfd_reloc_type_lookup	      elf_s390_reloc_type_lookup
 #define bfd_elf32_bfd_reloc_name_lookup elf_s390_reloc_name_lookup
+
+#define bfd_elf32_bfd_merge_private_bfd_data  elf32_s390_merge_private_bfd_data
 
 #define elf_backend_adjust_dynamic_symbol     elf_s390_adjust_dynamic_symbol
 #define elf_backend_check_relocs	      elf_s390_check_relocs

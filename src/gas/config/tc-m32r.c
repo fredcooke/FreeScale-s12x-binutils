@@ -406,11 +406,11 @@ md_show_usage (FILE *stream)
   fprintf (stream, _("\
   -ignore-parallel-conflicts            do not check parallel instructions\n"));
   fprintf (stream, _("\
-                                         fo contraint violations\n"));
+                                         for constraint violations\n"));
   fprintf (stream, _("\
   -no-ignore-parallel-conflicts         check parallel instructions for\n"));
   fprintf (stream, _("\
-                                         contraint violations\n"));
+                                         constraint violations\n"));
   fprintf (stream, _("\
   -Ip                     synonym for -ignore-parallel-conflicts\n"));
   fprintf (stream, _("\
@@ -570,7 +570,7 @@ debug_sym (int ignore ATTRIBUTE_UNUSED)
   char delim;
   char *end_name;
   symbolS *symbolP;
-  sym_linkS *link;
+  sym_linkS *lnk;
 
   name = input_line_pointer;
   delim = get_symbol_end ();
@@ -589,10 +589,10 @@ debug_sym (int ignore ATTRIBUTE_UNUSED)
 
   else
     {
-      link = (sym_linkS *) xmalloc (sizeof (sym_linkS));
-      link->symbol = symbolP;
-      link->next = debug_sym_link;
-      debug_sym_link = link;
+      lnk = (sym_linkS *) xmalloc (sizeof (sym_linkS));
+      lnk->symbol = symbolP;
+      lnk->next = debug_sym_link;
+      debug_sym_link = lnk;
       symbol_get_obj (symbolP)->local = 1;
     }
 

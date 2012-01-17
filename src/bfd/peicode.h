@@ -884,7 +884,11 @@ pe_ILF_build_a_bfd (bfd *           abfd,
       if (import_name_type != IMPORT_NAME)
 	{
 	  char c = symbol[0];
-	  if (c == '_' || c == '@' || c == '?')
+	  
+	  /* Check that we don't remove for targets with empty
+	     USER_LABEL_PREFIX the leading underscore.  */
+	  if ((c == '_' && abfd->xvec->symbol_leading_char != 0)
+	      || c == '@' || c == '?')
 	    symbol++;
 	}
       
@@ -1002,7 +1006,9 @@ pe_ILF_build_a_bfd (bfd *           abfd,
 
   abfd->iostream = (void *) vars.bim;
   abfd->flags |= BFD_IN_MEMORY /* | HAS_LOCALS */;
+  abfd->iovec = &_bfd_memory_iovec;
   abfd->where = 0;
+  abfd->origin = 0;
   obj_sym_filepos (abfd) = 0;
 
   /* Now create a symbol describing the imported value.  */

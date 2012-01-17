@@ -1,6 +1,7 @@
 /* tc-ppc.c -- Assemble for the PowerPC or POWER (RS/6000)
    Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support.
 
    This file is part of GAS, the GNU Assembler.
@@ -33,6 +34,11 @@
 
 #ifdef TE_PE
 #include "coff/pe.h"
+#endif
+
+#ifdef OBJ_XCOFF
+#include "coff/xcoff.h"
+#include "libxcoff.h"
 #endif
 
 /* This is the assembler for the PowerPC or POWER (RS/6000) chips.  */
@@ -104,10 +110,12 @@ static void ppc_ec (int);
 static void ppc_ef (int);
 static void ppc_es (int);
 static void ppc_csect (int);
+static void ppc_dwsect (int);
 static void ppc_change_csect (symbolS *, offsetT);
 static void ppc_function (int);
 static void ppc_extern (int);
 static void ppc_lglobl (int);
+static void ppc_ref (int);
 static void ppc_section (int);
 static void ppc_named_section (int);
 static void ppc_stabx (int);
@@ -179,9 +187,19 @@ const char ppc_symbol_chars[] = "%[";
 /* The dwarf2 data alignment, adjusted for 32 or 64 bit.  */
 int ppc_cie_data_alignment;
 
+/* More than this number of nops in an alignment op gets a branch
+   instead.  */
+unsigned long nop_limit = 4;
+
 /* The type of processor we are assembling for.  This is one or more
    of the PPC_OPCODE flags defined in opcode/ppc.h.  */
 ppc_cpu_t ppc_cpu = 0;
+
+/* Flags set on encountering toc relocs.  */
+enum {
+  has_large_toc_reloc = 1,
+  has_small_toc_reloc = 2
+} toc_reloc_types;
 
 /* The target specific pseudo-ops which we support.  */
 
@@ -203,6 +221,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "bi",	ppc_biei,	0 },
   { "bs",	ppc_bs,		0 },
   { "csect",	ppc_csect,	0 },
+  { "dwsect",	ppc_dwsect,	0 },
   { "data",	ppc_section,	'd' },
   { "eb",	ppc_eb,		0 },
   { "ec",	ppc_ec,		0 },
@@ -212,6 +231,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "extern",	ppc_extern,	0 },
   { "function",	ppc_function,	0 },
   { "lglobl",	ppc_lglobl,	0 },
+  { "ref",	ppc_ref,	0 },
   { "rename",	ppc_rename,	0 },
   { "section",	ppc_named_section, 0 },
   { "stabx",	ppc_stabx,	0 },
@@ -877,7 +897,7 @@ static const struct pd_reg cr_names[] =
    expression.  */
 
 int
-ppc_parse_name (const char *name, expressionS *expr)
+ppc_parse_name (const char *name, expressionS *exp)
 {
   int val;
 
@@ -891,8 +911,8 @@ ppc_parse_name (const char *name, expressionS *expr)
   if (val < 0)
     return 0;
 
-  expr->X_op = O_constant;
-  expr->X_add_number = val;
+  exp->X_op = O_constant;
+  exp->X_add_number = val;
 
   return 1;
 }
@@ -970,6 +990,28 @@ static symbolS *ppc_current_block;
    cause BFD to set the section number of a symbol to N_DEBUG.  */
 static asection *ppc_coff_debug_section;
 
+/* Structure to set the length field of the dwarf sections.  */
+struct dw_subsection {
+  /* Subsections are simply linked.  */
+  struct dw_subsection *link;
+
+  /* The subsection number.  */
+  subsegT subseg;
+
+  /* Expression to compute the length of the section.  */
+  expressionS end_exp;
+};
+
+static struct dw_section {
+  /* Corresponding section.  */
+  segT sect;
+
+  /* Simply linked list of subsections with a label.  */
+  struct dw_subsection *list_subseg;
+
+  /* The anonymous subsection.  */
+  struct dw_subsection *anon_subseg;
+} dw_sections[XCOFF_DWSECT_NBR_NAMES];
 #endif /* OBJ_XCOFF */
 
 #ifdef TE_PE
@@ -1010,7 +1052,9 @@ const char *const md_shortopts = "b:l:usm:K:VQ:";
 #else
 const char *const md_shortopts = "um:";
 #endif
+#define OPTION_NOPS (OPTION_MD_BASE + 0)
 const struct option md_longopts[] = {
+  {"nops", required_argument, NULL, OPTION_NOPS},
   {NULL, no_argument, NULL, 0}
 };
 const size_t md_longopts_size = sizeof (md_longopts);
@@ -1110,7 +1154,7 @@ md_parse_option (int c, char *arg)
       else if (strcmp (arg, "emb") == 0)
 	ppc_flags |= EF_PPC_EMB;
 
-      /* -mlittle/-mbig set the endianess.  */
+      /* -mlittle/-mbig set the endianness.  */
       else if (strcmp (arg, "little") == 0
 	       || strcmp (arg, "little-endian") == 0)
 	{
@@ -1164,6 +1208,15 @@ md_parse_option (int c, char *arg)
       break;
 #endif
 
+    case OPTION_NOPS:
+      {
+	char *end;
+	nop_limit = strtoul (optarg, &end, 0);
+	if (*end)
+	  as_bad (_("--nops needs a numeric argument"));
+      }
+      break;
+
     default:
       return 0;
     }
@@ -1176,57 +1229,63 @@ md_show_usage (FILE *stream)
 {
   fprintf (stream, _("\
 PowerPC options:\n\
--a32			generate ELF32/XCOFF32\n\
--a64			generate ELF64/XCOFF64\n\
--u			ignored\n\
--mpwrx, -mpwr2		generate code for POWER/2 (RIOS2)\n\
--mpwr			generate code for POWER (RIOS1)\n\
--m601			generate code for PowerPC 601\n\
+-a32                    generate ELF32/XCOFF32\n\
+-a64                    generate ELF64/XCOFF64\n\
+-u                      ignored\n\
+-mpwrx, -mpwr2          generate code for POWER/2 (RIOS2)\n\
+-mpwr                   generate code for POWER (RIOS1)\n\
+-m601                   generate code for PowerPC 601\n\
 -mppc, -mppc32, -m603, -m604\n\
-			generate code for PowerPC 603/604\n\
--m403			generate code for PowerPC 403\n\
--m405			generate code for PowerPC 405\n\
--m440			generate code for PowerPC 440\n\
--m464			generate code for PowerPC 464\n\
--m476			generate code for PowerPC 476\n\
+                        generate code for PowerPC 603/604\n\
+-m403                   generate code for PowerPC 403\n\
+-m405                   generate code for PowerPC 405\n\
+-m440                   generate code for PowerPC 440\n\
+-m464                   generate code for PowerPC 464\n\
+-m476                   generate code for PowerPC 476\n\
 -m7400, -m7410, -m7450, -m7455\n\
-			generate code for PowerPC 7400/7410/7450/7455\n\
--m750cl			generate code for PowerPC 750cl\n"));
+                        generate code for PowerPC 7400/7410/7450/7455\n\
+-m750cl                 generate code for PowerPC 750cl\n"));
   fprintf (stream, _("\
--mppc64, -m620		generate code for PowerPC 620/625/630\n\
--mppc64bridge		generate code for PowerPC 64, including bridge insns\n\
--mbooke			generate code for 32-bit PowerPC BookE\n\
--ma2			generate code for A2 architecture\n\
--mpower4		generate code for Power4 architecture\n\
--mpower5		generate code for Power5 architecture\n\
--mpower6		generate code for Power6 architecture\n\
--mpower7		generate code for Power7 architecture\n\
--mcell			generate code for Cell Broadband Engine architecture\n\
--mcom			generate code Power/PowerPC common instructions\n\
--many			generate code for any architecture (PWR/PWRX/PPC)\n"));
+-mppc64, -m620          generate code for PowerPC 620/625/630\n\
+-mppc64bridge           generate code for PowerPC 64, including bridge insns\n\
+-mbooke                 generate code for 32-bit PowerPC BookE\n\
+-ma2                    generate code for A2 architecture\n\
+-mpower4, -mpwr4        generate code for Power4 architecture\n\
+-mpower5, -mpwr5, -mpwr5x\n\
+                        generate code for Power5 architecture\n\
+-mpower6, -mpwr6        generate code for Power6 architecture\n\
+-mpower7, -mpwr7        generate code for Power7 architecture\n\
+-mcell                  generate code for Cell Broadband Engine architecture\n\
+-mcom                   generate code Power/PowerPC common instructions\n\
+-many                   generate code for any architecture (PWR/PWRX/PPC)\n"));
   fprintf (stream, _("\
--maltivec		generate code for AltiVec\n\
--mvsx			generate code for Vector-Scalar (VSX) instructions\n\
--me300			generate code for PowerPC e300 family\n\
--me500, -me500x2	generate code for Motorola e500 core complex\n\
+-maltivec               generate code for AltiVec\n\
+-mvsx                   generate code for Vector-Scalar (VSX) instructions\n\
+-me300                  generate code for PowerPC e300 family\n\
+-me500, -me500x2        generate code for Motorola e500 core complex\n\
 -me500mc,               generate code for Freescale e500mc core complex\n\
--mspe			generate code for Motorola SPE instructions\n\
--mregnames		Allow symbolic names for registers\n\
--mno-regnames		Do not allow symbolic names for registers\n"));
+-me500mc64,             generate code for Freescale e500mc64 core complex\n\
+-mspe                   generate code for Motorola SPE instructions\n\
+-mtitan                 generate code for AppliedMicro Titan core complex\n\
+-mregnames              Allow symbolic names for registers\n\
+-mno-regnames           Do not allow symbolic names for registers\n"));
 #ifdef OBJ_ELF
   fprintf (stream, _("\
--mrelocatable		support for GCC's -mrelocatble option\n\
--mrelocatable-lib	support for GCC's -mrelocatble-lib option\n\
--memb			set PPC_EMB bit in ELF flags\n\
--mlittle, -mlittle-endian, -l, -le\n\
-			generate code for a little endian machine\n\
--mbig, -mbig-endian, -b, -be\n\
-			generate code for a big endian machine\n\
--msolaris		generate code for Solaris\n\
--mno-solaris		do not generate code for Solaris\n\
--V			print assembler version number\n\
--Qy, -Qn		ignored\n"));
+-mrelocatable           support for GCC's -mrelocatble option\n\
+-mrelocatable-lib       support for GCC's -mrelocatble-lib option\n\
+-memb                   set PPC_EMB bit in ELF flags\n\
+-mlittle, -mlittle-endian, -le\n\
+                        generate code for a little endian machine\n\
+-mbig, -mbig-endian, -be\n\
+                        generate code for a big endian machine\n\
+-msolaris               generate code for Solaris\n\
+-mno-solaris            do not generate code for Solaris\n\
+-K PIC                  set EF_PPC_RELOCATABLE_LIB in ELF flags\n\
+-V                      print assembler version number\n\
+-Qy, -Qn                ignored\n"));
 #endif
+  fprintf (stream, _("\
+-nops=count             when aligning, more than COUNT nops uses a branch\n"));
 }
 
 /* Set ppc_cpu if it is not already set.  */
@@ -1237,19 +1296,19 @@ ppc_set_cpu (void)
   const char *default_os  = TARGET_OS;
   const char *default_cpu = TARGET_CPU;
 
-  if ((ppc_cpu & ~PPC_OPCODE_ANY) == 0)
+  if ((ppc_cpu & ~(ppc_cpu_t) PPC_OPCODE_ANY) == 0)
     {
       if (ppc_obj64)
-	ppc_cpu |= PPC_OPCODE_PPC | PPC_OPCODE_CLASSIC | PPC_OPCODE_64;
+	ppc_cpu |= PPC_OPCODE_PPC | PPC_OPCODE_64;
       else if (strncmp (default_os, "aix", 3) == 0
 	       && default_os[3] >= '4' && default_os[3] <= '9')
-	ppc_cpu |= PPC_OPCODE_COMMON | PPC_OPCODE_32;
+	ppc_cpu |= PPC_OPCODE_COMMON;
       else if (strncmp (default_os, "aix3", 4) == 0)
-	ppc_cpu |= PPC_OPCODE_POWER | PPC_OPCODE_32;
+	ppc_cpu |= PPC_OPCODE_POWER;
       else if (strcmp (default_cpu, "rs6000") == 0)
-	ppc_cpu |= PPC_OPCODE_POWER | PPC_OPCODE_32;
+	ppc_cpu |= PPC_OPCODE_POWER;
       else if (strncmp (default_cpu, "powerpc", 7) == 0)
-	ppc_cpu |= PPC_OPCODE_PPC | PPC_OPCODE_CLASSIC | PPC_OPCODE_32;
+	ppc_cpu |= PPC_OPCODE_PPC;
       else
 	as_fatal (_("Unknown default cpu = %s, os = %s"),
 		  default_cpu, default_os);
@@ -1288,6 +1347,8 @@ ppc_mach (void)
     return bfd_mach_ppc64;
   else if (ppc_arch () == bfd_arch_rs6000)
     return bfd_mach_rs6k;
+  else if (ppc_cpu & PPC_OPCODE_TITAN)
+    return bfd_mach_ppc_titan;
   else
     return bfd_mach_ppc;
 }
@@ -1302,14 +1363,16 @@ ppc_target_format (void)
   return "xcoff-powermac";
 #else
 #  ifdef TE_AIX5
-    return (ppc_obj64 ? "aix5coff64-rs6000" : "aixcoff-rs6000");
+  return (ppc_obj64 ? "aix5coff64-rs6000" : "aixcoff-rs6000");
 #  else
-    return (ppc_obj64 ? "aixcoff64-rs6000" : "aixcoff-rs6000");
+  return (ppc_obj64 ? "aixcoff64-rs6000" : "aixcoff-rs6000");
 #  endif
 #endif
 #endif
 #ifdef OBJ_ELF
-# ifdef TE_VXWORKS
+# ifdef TE_FreeBSD
+  return (ppc_obj64 ? "elf64-powerpc-freebsd" : "elf32-powerpc-freebsd");
+# elif defined (TE_VXWORKS)
   return "elf32-powerpc-vxworks";
 # else
   return (target_big_endian
@@ -1460,11 +1523,7 @@ ppc_setup_opcodes (void)
 	      }
 	}
 
-      if ((op->flags & ppc_cpu & ~(PPC_OPCODE_32 | PPC_OPCODE_64)) != 0
-	  && ((op->flags & (PPC_OPCODE_32 | PPC_OPCODE_64)) == 0
-	      || ((op->flags & (PPC_OPCODE_32 | PPC_OPCODE_64))
-		  == (ppc_cpu & (PPC_OPCODE_32 | PPC_OPCODE_64)))
-	      || (ppc_cpu & PPC_OPCODE_64_BRIDGE) != 0)
+      if ((ppc_cpu & op->flags) != 0
 	  && !(ppc_cpu & op->deprecated))
 	{
 	  const char *retval;
@@ -1472,11 +1531,6 @@ ppc_setup_opcodes (void)
 	  retval = hash_insert (ppc_hash, op->name, (void *) op);
 	  if (retval != NULL)
 	    {
-	      /* Ignore Power duplicates for -m601.  */
-	      if ((ppc_cpu & PPC_OPCODE_601) != 0
-		  && (op->flags & PPC_OPCODE_POWER) != 0)
-		continue;
-
 	      as_bad (_("duplicate instruction %s"),
 		      op->name);
 	      bad_insn = TRUE;
@@ -1494,7 +1548,7 @@ ppc_setup_opcodes (void)
   macro_end = powerpc_macros + powerpc_num_macros;
   for (macro = powerpc_macros; macro < macro_end; macro++)
     {
-      if ((macro->flags & ppc_cpu) != 0)
+      if ((macro->flags & ppc_cpu) != 0 || (ppc_cpu & PPC_OPCODE_ANY) != 0)
 	{
 	  const char *retval;
 
@@ -1624,7 +1678,7 @@ static unsigned long
 ppc_insert_operand (unsigned long insn,
 		    const struct powerpc_operand *operand,
 		    offsetT val,
-		    ppc_cpu_t ppc_cpu,
+		    ppc_cpu_t cpu,
 		    char *file,
 		    unsigned int line)
 {
@@ -1683,7 +1737,7 @@ ppc_insert_operand (unsigned long insn,
       const char *errmsg;
 
       errmsg = NULL;
-      insn = (*operand->insert) (insn, (long) val, ppc_cpu, &errmsg);
+      insn = (*operand->insert) (insn, (long) val, cpu, &errmsg);
       if (errmsg != (const char *) NULL)
 	as_bad_where (file, line, "%s", errmsg);
     }
@@ -1936,6 +1990,7 @@ ppc_elf_cons (int nbytes /* 1=.byte, 2=.word, 4=.long, 8=.llong */)
 	      int offset;
 
 	      p = frag_more (nbytes);
+	      memset (p, 0, nbytes);
 	      offset = 0;
 	      if (target_big_endian)
 		offset = nbytes - size;
@@ -2160,6 +2215,7 @@ ppc_frob_file_before_adjust (void)
 
   toc = bfd_get_section_by_name (stdoutput, ".toc");
   if (toc != NULL
+      && toc_reloc_types != has_large_toc_reloc
       && bfd_section_size (stdoutput, toc) > 0x10000)
     as_warn (_("TOC section size exceeds 64k"));
 
@@ -2381,7 +2437,6 @@ md_assemble (char *str)
 	{
 	  unsigned int opcount;
 	  unsigned int num_operands_expected;
-	  unsigned int i;
 
 	  /* There is an optional operand.  Count the number of
 	     commas in the input line.  */
@@ -2732,8 +2787,15 @@ md_assemble (char *str)
 		  break;
 
 		case BFD_RELOC_PPC_TLS:
-		  insn = ppc_insert_operand (insn, operand, ppc_obj64 ? 13 : 2,
-					     ppc_cpu, (char *) NULL, 0);
+		  if (!_bfd_elf_ppc_at_tls_transform (opcode->opcode, 0))
+		    as_bad (_("@tls may not be used with \"%s\" operands"),
+			    opcode->name);
+		  else if (operand->shift != 11)
+		    as_bad (_("@tls may only be used in last operand"));
+		  else
+		    insn = ppc_insert_operand (insn, operand,
+					       ppc_obj64 ? 13 : 2,
+					       ppc_cpu, (char *) NULL, 0);
 		  break;
 
 		  /* We'll only use the 32 (or 64) bit form of these relocations
@@ -2767,6 +2829,20 @@ md_assemble (char *str)
 		    default:
 		      break;
 		    }
+		}
+
+	      switch (reloc)
+		{
+		case BFD_RELOC_PPC_TOC16:
+		  toc_reloc_types |= has_small_toc_reloc;
+		  break;
+		case BFD_RELOC_PPC64_TOC16_LO:
+		case BFD_RELOC_PPC64_TOC16_HI:
+		case BFD_RELOC_PPC64_TOC16_HA:
+		  toc_reloc_types |= has_large_toc_reloc;
+		  break;
+		default:
+		  break;
 		}
 
 	      if (ppc_obj64
@@ -2878,7 +2954,10 @@ md_assemble (char *str)
       if (*str != endc
 	  && (endc != ',' || *str != '\0'))
 	{
-	  as_bad (_("syntax error; found `%c' but expected `%c'"), *str, endc);
+	  if (*str == '\0')
+	    as_bad (_("syntax error; end of line, expected `%c'"), endc);
+	  else
+	    as_bad (_("syntax error; found `%c', expected `%c'"), *str, endc);
 	  break;
 	}
 
@@ -2894,7 +2973,7 @@ md_assemble (char *str)
 
 #ifdef OBJ_ELF
   /* Do we need/want a APUinfo section? */
-  if ((ppc_cpu & PPC_OPCODE_E500MC) != 0)
+  if ((ppc_cpu & (PPC_OPCODE_E500 | PPC_OPCODE_E500MC)) != 0)
     {
       /* These are all version "1".  */
       if (opcode->flags & PPC_OPCODE_SPE)
@@ -3075,26 +3154,7 @@ ppc_macro (char *str, const struct powerpc_macro *macro)
 }
 
 #ifdef OBJ_ELF
-/* For ELF, add support for SHF_EXCLUDE and SHT_ORDERED.  */
-
-bfd_vma
-ppc_section_letter (int letter, char **ptr_msg)
-{
-  if (letter == 'e')
-    return SHF_EXCLUDE;
-
-  *ptr_msg = _("Bad .section directive: want a,e,w,x,M,S,G,T in string");
-  return -1;
-}
-
-bfd_vma
-ppc_section_word (char *str, size_t len)
-{
-  if (len == 7 && strncmp (str, "exclude", 7) == 0)
-    return SHF_EXCLUDE;
-
-  return -1;
-}
+/* For ELF, add support for SHT_ORDERED.  */
 
 int
 ppc_section_type (char *str, size_t len)
@@ -3106,13 +3166,10 @@ ppc_section_type (char *str, size_t len)
 }
 
 int
-ppc_section_flags (flagword flags, bfd_vma attr, int type)
+ppc_section_flags (flagword flags, bfd_vma attr ATTRIBUTE_UNUSED, int type)
 {
   if (type == SHT_ORDERED)
     flags |= SEC_ALLOC | SEC_LOAD | SEC_SORT_ENTRIES;
-
-  if (attr & SHF_EXCLUDE)
-    flags |= SEC_EXCLUDE;
 
   return flags;
 }
@@ -3453,6 +3510,158 @@ ppc_change_csect (symbolS *sym, offsetT align)
   ppc_current_csect = sym;
 }
 
+static void
+ppc_change_debug_section (unsigned int idx, subsegT subseg)
+{
+  segT sec;
+  flagword oldflags;
+  const struct xcoff_dwsect_name *dw = &xcoff_dwsect_names[idx];
+
+  sec = subseg_new (dw->name, subseg);
+  oldflags = bfd_get_section_flags (stdoutput, sec);
+  if (oldflags == SEC_NO_FLAGS)
+    {
+      /* Just created section.  */
+      gas_assert (dw_sections[idx].sect == NULL);
+
+      bfd_set_section_flags (stdoutput, sec, SEC_DEBUGGING);
+      bfd_set_section_alignment (stdoutput, sec, 0);
+      dw_sections[idx].sect = sec;
+    }
+
+  /* Not anymore in a csect.  */
+  ppc_current_csect = NULL;
+}
+
+/* The .dwsect pseudo-op.  Defines a DWARF section.  Syntax is:
+     .dwsect flag [, opt-label ]
+*/
+
+static void
+ppc_dwsect (int ignore ATTRIBUTE_UNUSED)
+{
+  offsetT flag;
+  symbolS *opt_label;
+  const struct xcoff_dwsect_name *dw;
+  struct dw_subsection *subseg;
+  struct dw_section *dws;
+  int i;
+
+  /* Find section.  */
+  flag = get_absolute_expression ();
+  dw = NULL;
+  for (i = 0; i < XCOFF_DWSECT_NBR_NAMES; i++)
+    if (xcoff_dwsect_names[i].flag == flag)
+      {
+        dw = &xcoff_dwsect_names[i];
+        break;
+      }
+
+  /* Parse opt-label.  */
+  if (*input_line_pointer == ',')
+    {
+      const char *label;
+      char c;
+
+      ++input_line_pointer;
+
+      label = input_line_pointer;
+      c = get_symbol_end ();
+      opt_label = symbol_find_or_make (label);
+      *input_line_pointer = c;
+    }
+  else
+    opt_label = NULL;
+
+  demand_empty_rest_of_line ();
+
+  /* Return now in case of unknown subsection.  */
+  if (dw == NULL)
+    {
+      as_bad (_("No known dwarf XCOFF section for flag 0x%08x\n"),
+              (unsigned)flag);
+      return;
+    }
+
+  /* Find the subsection.  */
+  dws = &dw_sections[i];
+  subseg = NULL;
+  if (opt_label != NULL && S_IS_DEFINED (opt_label))
+    {
+      /* Sanity check (note that in theory S_GET_SEGMENT mustn't be null).  */
+      if (dws->sect == NULL || S_GET_SEGMENT (opt_label) != dws->sect)
+        {
+          as_bad (_("label %s was not defined in this dwarf section"),
+                  S_GET_NAME (opt_label));
+          subseg = dws->anon_subseg;
+          opt_label = NULL;
+        }
+      else
+        subseg = symbol_get_tc (opt_label)->u.dw;
+    }
+
+  if (subseg != NULL)
+    {
+      /* Switch to the subsection.  */
+      ppc_change_debug_section (i, subseg->subseg);
+    }
+  else
+    {
+      /* Create a new dw subsection.  */
+      subseg = (struct dw_subsection *)
+        xmalloc (sizeof (struct dw_subsection));
+
+      if (opt_label == NULL)
+        {
+          /* The anonymous one.  */
+          subseg->subseg = 0;
+          subseg->link = NULL;
+          dws->anon_subseg = subseg;
+        }
+      else
+        {
+          /* A named one.  */
+          if (dws->list_subseg != NULL)
+            subseg->subseg = dws->list_subseg->subseg + 1;
+          else
+            subseg->subseg = 1;
+
+          subseg->link = dws->list_subseg;
+          dws->list_subseg = subseg;
+          symbol_get_tc (opt_label)->u.dw = subseg;
+        }
+
+      ppc_change_debug_section (i, subseg->subseg);
+
+      if (dw->def_size)
+        {
+          /* Add the length field.  */
+          expressionS *exp = &subseg->end_exp;
+          int sz;
+
+          if (opt_label != NULL)
+            symbol_set_value_now (opt_label);
+
+          /* Add the length field.  Note that according to the AIX assembler
+             manual, the size of the length field is 4 for powerpc32 but
+             12 for powerpc64.  */
+          if (ppc_obj64)
+            {
+              /* Write the 64bit marker.  */
+              md_number_to_chars (frag_more (4), -1, 4);
+            }
+
+          exp->X_op = O_subtract;
+          exp->X_op_symbol = symbol_temp_new_now ();
+          exp->X_add_symbol = symbol_temp_make ();
+
+          sz = ppc_obj64 ? 8 : 4;
+          exp->X_add_number = -sz;
+          emit_expr (exp, sz);
+        }
+    }
+}
+
 /* This function handles the .text and .data pseudo-ops.  These
    pseudo-ops aren't really used by XCOFF; we implement them for the
    convenience of people who aren't used to XCOFF.  */
@@ -3548,6 +3757,58 @@ ppc_lglobl (int ignore ATTRIBUTE_UNUSED)
   *input_line_pointer = endc;
 
   symbol_get_tc (sym)->output = 1;
+
+  demand_empty_rest_of_line ();
+}
+
+/* The .ref pseudo-op.  It takes a list of symbol names and inserts R_REF
+   relocations at the beginning of the current csect.
+
+   (In principle, there's no reason why the relocations _have_ to be at
+   the beginning.  Anywhere in the csect would do.  However, inserting
+   at the beginning is what the native assmebler does, and it helps to
+   deal with cases where the .ref statements follow the section contents.)
+
+   ??? .refs don't work for empty .csects.  However, the native assembler
+   doesn't report an error in this case, and neither yet do we.  */
+
+static void
+ppc_ref (int ignore ATTRIBUTE_UNUSED)
+{
+  char *name;
+  char c;
+
+  if (ppc_current_csect == NULL)
+    {
+      as_bad (_(".ref outside .csect"));
+      ignore_rest_of_line ();
+      return;
+    }
+
+  do
+    {
+      name = input_line_pointer;
+      c = get_symbol_end ();
+
+      fix_at_start (symbol_get_frag (ppc_current_csect), 0,
+		    symbol_find_or_make (name), 0, FALSE, BFD_RELOC_NONE);
+
+      *input_line_pointer = c;
+      SKIP_WHITESPACE ();
+      c = *input_line_pointer;
+      if (c == ',')
+	{
+	  input_line_pointer++;
+	  SKIP_WHITESPACE ();
+	  if (is_end_of_line[(unsigned char) *input_line_pointer])
+	    {
+	      as_bad (_("missing symbol name"));
+	      ignore_rest_of_line ();
+	      return;
+	    }
+	}
+    }
+  while (c == ',');
 
   demand_empty_rest_of_line ();
 }
@@ -3670,28 +3931,30 @@ ppc_stabx (int ignore ATTRIBUTE_UNUSED)
 
   symbol_get_tc (sym)->output = 1;
 
-  if (S_GET_STORAGE_CLASS (sym) == C_STSYM) {
+  if (S_GET_STORAGE_CLASS (sym) == C_STSYM)
+    {
+      /* In this case :
 
-    symbol_get_tc (sym)->within = ppc_current_block;
+         .bs name
+         .stabx	"z",arrays_,133,0
+         .es
 
-    /* In this case :
+         .comm arrays_,13768,3
 
-       .bs name
-       .stabx	"z",arrays_,133,0
-       .es
+         resolve_symbol_value will copy the exp's "within" into sym's when the
+         offset is 0.  Since this seems to be corner case problem,
+         only do the correction for storage class C_STSYM.  A better solution
+         would be to have the tc field updated in ppc_symbol_new_hook.  */
 
-       .comm arrays_,13768,3
+      if (exp.X_op == O_symbol)
+        {
+          if (ppc_current_block == NULL)
+            as_bad (_(".stabx of storage class stsym must be within .bs/.es"));
 
-       resolve_symbol_value will copy the exp's "within" into sym's when the
-       offset is 0.  Since this seems to be corner case problem,
-       only do the correction for storage class C_STSYM.  A better solution
-       would be to have the tc field updated in ppc_symbol_new_hook.  */
-
-    if (exp.X_op == O_symbol)
-      {
-	symbol_get_tc (exp.X_add_symbol)->within = ppc_current_block;
-      }
-  }
+          symbol_get_tc (sym)->within = ppc_current_block;
+          symbol_get_tc (exp.X_add_symbol)->within = ppc_current_block;
+        }
+    }
 
   if (exp.X_op != O_symbol
       || ! S_IS_EXTERNAL (exp.X_add_symbol)
@@ -3772,25 +4035,23 @@ ppc_function (int ignore ATTRIBUTE_UNUSED)
 
   if (*input_line_pointer == ',')
     {
-      expressionS ignore;
+      expressionS exp;
 
       /* Ignore the third argument.  */
       ++input_line_pointer;
-      expression (&ignore);
+      expression (& exp);
       if (*input_line_pointer == ',')
 	{
 	  /* Ignore the fourth argument.  */
 	  ++input_line_pointer;
-	  expression (&ignore);
+	  expression (& exp);
 	  if (*input_line_pointer == ',')
 	    {
 	      /* The fifth argument is the function size.  */
 	      ++input_line_pointer;
-	      symbol_get_tc (ext_sym)->size = symbol_new ("L0\001",
-							  absolute_section,
-							  (valueT) 0,
-							  &zero_address_frag);
-	      pseudo_set (symbol_get_tc (ext_sym)->size);
+	      symbol_get_tc (ext_sym)->u.size = symbol_new
+                ("L0\001", absolute_section,(valueT) 0, &zero_address_frag);
+	      pseudo_set (symbol_get_tc (ext_sym)->u.size);
 	    }
 	}
     }
@@ -4150,6 +4411,33 @@ ppc_vbyte (int dummy ATTRIBUTE_UNUSED)
 
   ++input_line_pointer;
   cons (byte_count);
+}
+
+void
+ppc_xcoff_end (void)
+{
+  int i;
+
+  for (i = 0; i < XCOFF_DWSECT_NBR_NAMES; i++)
+    {
+      struct dw_section *dws = &dw_sections[i];
+      struct dw_subsection *dwss;
+
+      if (dws->anon_subseg)
+        {
+          dwss = dws->anon_subseg;
+          dwss->link = dws->list_subseg;
+        }
+      else
+        dwss = dws->list_subseg;
+
+      for (; dwss != NULL; dwss = dwss->link)
+        if (dwss->end_exp.X_add_symbol != NULL)
+          {
+            subseg_set (dws->sect, dwss->subseg);
+            symbol_set_value_now (dwss->end_exp.X_add_symbol);
+          }
+    }
 }
 
 #endif /* OBJ_XCOFF */
@@ -4978,7 +5266,8 @@ ppc_symbol_new_hook (symbolS *sym)
   tc->real_name = NULL;
   tc->subseg = 0;
   tc->align = 0;
-  tc->size = NULL;
+  tc->u.size = NULL;
+  tc->u.dw = NULL;
   tc->within = NULL;
 
   if (ppc_stab_symbol)
@@ -5065,6 +5354,7 @@ ppc_frob_label (symbolS *sym)
       symbol_append (sym, symbol_get_tc (ppc_current_csect)->within,
 		     &symbol_rootP, &symbol_lastP);
       symbol_get_tc (ppc_current_csect)->within = sym;
+      symbol_get_tc (sym)->within = ppc_current_csect;
     }
 
 #ifdef OBJ_ELF
@@ -5136,11 +5426,11 @@ ppc_frob_symbol (symbolS *sym)
       if (ppc_last_function != (symbolS *) NULL)
 	as_bad (_("two .function pseudo-ops with no intervening .ef"));
       ppc_last_function = sym;
-      if (symbol_get_tc (sym)->size != (symbolS *) NULL)
+      if (symbol_get_tc (sym)->u.size != (symbolS *) NULL)
 	{
-	  resolve_symbol_value (symbol_get_tc (sym)->size);
+	  resolve_symbol_value (symbol_get_tc (sym)->u.size);
 	  SA_SET_SYM_FSIZE (sym,
-			    (long) S_GET_VALUE (symbol_get_tc (sym)->size));
+			    (long) S_GET_VALUE (symbol_get_tc (sym)->u.size));
 	}
     }
   else if (S_GET_STORAGE_CLASS (sym) == C_FCN
@@ -5324,13 +5614,22 @@ ppc_frob_symbol (symbolS *sym)
   else if (S_GET_STORAGE_CLASS (sym) == C_STSYM)
     {
       symbolS *block;
-      symbolS *csect;
+      valueT base;
 
-      /* The value is the offset from the enclosing csect.  */
       block = symbol_get_tc (sym)->within;
-      csect = symbol_get_tc (block)->within;
-      resolve_symbol_value (csect);
-      S_SET_VALUE (sym, S_GET_VALUE (sym) - S_GET_VALUE (csect));
+      if (block)
+        {
+          /* The value is the offset from the enclosing csect.  */
+          symbolS *csect;
+
+          csect = symbol_get_tc (block)->within;
+          resolve_symbol_value (csect);
+          base = S_GET_VALUE (csect);
+        }
+      else
+        base = 0;
+
+      S_SET_VALUE (sym, S_GET_VALUE (sym) - base);
     }
   else if (S_GET_STORAGE_CLASS (sym) == C_BINCL
 	   || S_GET_STORAGE_CLASS (sym) == C_EINCL)
@@ -5397,6 +5696,10 @@ void
 ppc_frob_section (asection *sec)
 {
   static bfd_vma vma = 0;
+
+  /* Dwarf sections start at 0.  */
+  if (bfd_get_section_flags (NULL, sec) & SEC_DEBUGGING)
+    return;
 
   vma = md_section_align (sec, vma);
   bfd_set_section_vma (stdoutput, sec, vma);
@@ -5493,6 +5796,10 @@ ppc_fix_adjustable (fixS *fix)
   if (symseg == absolute_section)
     return 0;
 
+  /* Always adjust symbols in debugging sections.  */
+  if (bfd_get_section_flags (stdoutput, symseg) & SEC_DEBUGGING)
+    return 1;
+
   if (ppc_toc_csect != (symbolS *) NULL
       && fix->fx_addsy != ppc_toc_csect
       && symseg == data_section
@@ -5537,55 +5844,17 @@ ppc_fix_adjustable (fixS *fix)
 	  || (ppc_after_toc_frag != NULL
 	      && val >= ppc_after_toc_frag->fr_address)))
     {
-      symbolS *csect;
-      symbolS *next_csect;
+      symbolS *csect = tc->within;
 
-      if (symseg == text_section)
-	csect = ppc_text_csects;
-      else if (symseg == data_section)
-	csect = ppc_data_csects;
-      else
-	abort ();
+      /* If the symbol was not declared by a label (eg: a section symbol),
+         use the section instead of the csect.  This doesn't happen in
+         normal AIX assembly code.  */
+      if (csect == NULL)
+        csect = seg_info (symseg)->sym;
 
-      /* Skip the initial dummy symbol.  */
-      csect = symbol_get_tc (csect)->next;
+      fix->fx_offset += val - symbol_get_frag (csect)->fr_address;
+      fix->fx_addsy = csect;
 
-      if (csect != (symbolS *) NULL)
-	{
-	  while ((next_csect = symbol_get_tc (csect)->next) != (symbolS *) NULL
-		 && (symbol_get_frag (next_csect)->fr_address <= val))
-	    {
-	      /* If the csect address equals the symbol value, then we
-		 have to look through the full symbol table to see
-		 whether this is the csect we want.  Note that we will
-		 only get here if the csect has zero length.  */
-	      if (symbol_get_frag (csect)->fr_address == val
-		  && S_GET_VALUE (csect) == val)
-		{
-		  symbolS *scan;
-
-		  for (scan = symbol_next (csect);
-		       scan != NULL;
-		       scan = symbol_next (scan))
-		    {
-		      if (symbol_get_tc (scan)->subseg != 0)
-			break;
-		      if (scan == fix->fx_addsy)
-			break;
-		    }
-
-		  /* If we found the symbol before the next csect
-		     symbol, then this is the csect we want.  */
-		  if (scan == fix->fx_addsy)
-		    break;
-		}
-
-	      csect = next_csect;
-	    }
-
-	  fix->fx_offset += val - symbol_get_frag (csect)->fr_address;
-	  fix->fx_addsy = csect;
-	}
       return 0;
     }
 
@@ -5627,6 +5896,13 @@ ppc_force_relocation (fixS *fix)
   return generic_force_reloc (fix);
 }
 
+void
+ppc_new_dot_label (symbolS *sym)
+{
+  /* Anchor this label to the current csect for relocations.  */
+  symbol_get_tc (sym)->within = ppc_current_csect;
+}
+
 #endif /* OBJ_XCOFF */
 
 #ifdef OBJ_ELF
@@ -5665,6 +5941,8 @@ ppc_fix_adjustable (fixS *fix)
 	  && fix->fx_r_type != BFD_RELOC_LO16_GOTOFF
 	  && fix->fx_r_type != BFD_RELOC_HI16_GOTOFF
 	  && fix->fx_r_type != BFD_RELOC_HI16_S_GOTOFF
+	  && fix->fx_r_type != BFD_RELOC_PPC64_GOT16_DS
+	  && fix->fx_r_type != BFD_RELOC_PPC64_GOT16_LO_DS
 	  && fix->fx_r_type != BFD_RELOC_GPREL16
 	  && fix->fx_r_type != BFD_RELOC_VTABLE_INHERIT
 	  && fix->fx_r_type != BFD_RELOC_VTABLE_ENTRY
@@ -5687,6 +5965,31 @@ ppc_handle_align (struct frag *fragP)
       char *dest = fragP->fr_literal + fragP->fr_fix;
 
       fragP->fr_var = 4;
+
+      if (count > 4 * nop_limit && count < 0x2000000)
+	{
+	  struct frag *rest;
+
+	  /* Make a branch, then follow with nops.  Insert another
+	     frag to handle the nops.  */
+	  md_number_to_chars (dest, 0x48000000 + count, 4);
+	  count -= 4;
+	  if (count == 0)
+	    return;
+
+	  rest = xmalloc (SIZEOF_STRUCT_FRAG + 4);
+	  memcpy (rest, fragP, SIZEOF_STRUCT_FRAG);
+	  fragP->fr_next = rest;
+	  fragP = rest;
+	  rest->fr_address += rest->fr_fix + 4;
+	  rest->fr_fix = 0;
+	  /* If we leave the next frag as rs_align_code we'll come here
+	     again, resulting in a bunch of branches rather than a
+	     branch followed by nops.  */
+	  rest->fr_type = rs_align;
+	  dest = rest->fr_literal;
+	}
+
       md_number_to_chars (dest, 0x60000000, 4);
 
       if ((ppc_cpu & PPC_OPCODE_POWER6) != 0
@@ -6024,6 +6327,11 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 	  md_number_to_chars (fixP->fx_frag->fr_literal + fixP->fx_where,
 			      PPC_HA (value), 2);
 	  break;
+
+#ifdef OBJ_XCOFF
+	case BFD_RELOC_NONE:
+	  break;
+#endif
 
 #ifdef OBJ_ELF
 	case BFD_RELOC_PPC64_HIGHER:

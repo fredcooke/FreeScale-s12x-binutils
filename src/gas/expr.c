@@ -1,6 +1,6 @@
 /* expr.c -operands, expressions-
    Copyright 1987, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
@@ -45,7 +45,6 @@ static valueT generic_bignum_to_int64 (void);
 #endif
 static void integer_constant (int radix, expressionS * expressionP);
 static void mri_char_constant (expressionS *);
-static void current_location (expressionS *);
 static void clean_up_expression (expressionS * expressionP);
 static segT operand (expressionS *, enum expr_mode);
 static operatorT operatorf (int *);
@@ -173,7 +172,7 @@ expr_build_dot (void)
   expressionS e;
 
   current_location (&e);
-  return make_expr_symbol (&e);
+  return symbol_clone_if_forward_ref (make_expr_symbol (&e));
 }
 
 /* Build any floating-point literal here.
@@ -695,7 +694,7 @@ mri_char_constant (expressionS *expressionP)
 /* Return an expression representing the current location.  This
    handles the magic symbol `.'.  */
 
-static void
+void
 current_location (expressionS *expressionp)
 {
   if (now_seg == absolute_section)
@@ -706,7 +705,7 @@ current_location (expressionS *expressionp)
   else
     {
       expressionp->X_op = O_symbol;
-      expressionp->X_add_symbol = symbol_temp_new_now ();
+      expressionp->X_add_symbol = &dot_symbol;
       expressionp->X_add_number = 0;
     }
 }
@@ -960,10 +959,7 @@ operand (expressionS *expressionP, enum expr_mode mode)
 #endif
     case '(':
       /* Didn't begin with digit & not a name.  */
-      if (mode != expr_defer)
-	segment = expression (expressionP);
-      else
-	segment = deferred_expression (expressionP);
+      segment = expr (0, expressionP, mode);
       /* expression () will pass trailing whitespace.  */
       if ((c == '(' && *input_line_pointer != ')')
 	  || (c == '[' && *input_line_pointer != ']'))
@@ -1057,6 +1053,15 @@ operand (expressionS *expressionP, enum expr_mode mode)
 	      {
 		for (i = 0; i < expressionP->X_add_number; ++i)
 		  generic_bignum[i] = ~generic_bignum[i];
+
+		/* Extend the bignum to at least the size of .octa.  */
+		if (expressionP->X_add_number < SIZE_OF_LARGE_NUMBER)
+		  {
+		    expressionP->X_add_number = SIZE_OF_LARGE_NUMBER;
+		    for (; i < expressionP->X_add_number; ++i)
+		      generic_bignum[i] = ~(LITTLENUM_TYPE) 0;
+		  }
+
 		if (c == '-')
 		  for (i = 0; i < expressionP->X_add_number; ++i)
 		    {
@@ -1067,14 +1072,12 @@ operand (expressionS *expressionP, enum expr_mode mode)
 	      }
 	    else if (c == '!')
 	      {
-		int nonzero = 0;
 		for (i = 0; i < expressionP->X_add_number; ++i)
-		  {
-		    if (generic_bignum[i])
-		      nonzero = 1;
-		    generic_bignum[i] = 0;
-		  }
-		generic_bignum[0] = nonzero;
+		  if (generic_bignum[i] != 0)
+		    break;
+		expressionP->X_add_number = i >= expressionP->X_add_number;
+		expressionP->X_op = O_constant;
+		expressionP->X_unsigned = 1;
 	      }
 	  }
 	else if (expressionP->X_op != O_illegal
@@ -1319,7 +1322,9 @@ operand (expressionS *expressionP, enum expr_mode mode)
 	  /* If we have an absolute symbol or a reg, then we know its
 	     value now.  */
 	  segment = S_GET_SEGMENT (symbolP);
-	  if (mode != expr_defer && segment == absolute_section)
+	  if (mode != expr_defer
+	      && segment == absolute_section
+	      && !S_FORCE_RELOC (symbolP, 0))
 	    {
 	      expressionP->X_op = O_constant;
 	      expressionP->X_add_number = S_GET_VALUE (symbolP);
@@ -1367,8 +1372,13 @@ operand (expressionS *expressionP, enum expr_mode mode)
   if (expressionP->X_add_symbol)
     symbol_mark_used (expressionP->X_add_symbol);
 
-  expressionP->X_add_symbol = symbol_clone_if_forward_ref (expressionP->X_add_symbol);
-  expressionP->X_op_symbol = symbol_clone_if_forward_ref (expressionP->X_op_symbol);
+  if (mode != expr_defer)
+    {
+      expressionP->X_add_symbol
+	= symbol_clone_if_forward_ref (expressionP->X_add_symbol);
+      expressionP->X_op_symbol
+	= symbol_clone_if_forward_ref (expressionP->X_op_symbol);
+    }
 
   switch (expressionP->X_op)
     {
@@ -1587,13 +1597,13 @@ operatorf (int *num_chars)
   if (is_name_beginner (c))
     {
       char *name = input_line_pointer;
-      char c = get_symbol_end ();
+      char ec = get_symbol_end ();
 
-      ret = md_operator (name, 2, &c);
+      ret = md_operator (name, 2, &ec);
       switch (ret)
 	{
 	case O_absent:
-	  *input_line_pointer = c;
+	  *input_line_pointer = ec;
 	  input_line_pointer = name;
 	  break;
 	case O_uminus:
@@ -1603,7 +1613,7 @@ operatorf (int *num_chars)
 	  ret = O_illegal;
 	  /* FALLTHROUGH */
 	default:
-	  *input_line_pointer = c;
+	  *input_line_pointer = ec;
 	  *num_chars = input_line_pointer - name;
 	  input_line_pointer = name;
 	  return ret;
@@ -1740,6 +1750,7 @@ expr (int rankarg,		/* Larger # is higher rank.  */
 
       input_line_pointer += op_chars;	/* -> after operator.  */
 
+      right.X_md = 0;
       rightseg = expr (op_rank[(int) op_left], &right, mode);
       if (right.X_op == O_absent)
 	{
@@ -1828,7 +1839,9 @@ expr (int rankarg,		/* Larger # is higher rank.  */
 #ifdef md_allow_local_subtract
 	       && md_allow_local_subtract (resultP, & right, rightseg)
 #endif
-	       && (SEG_NORMAL (rightseg)
+	       && ((SEG_NORMAL (rightseg)
+		    && !S_FORCE_RELOC (resultP->X_add_symbol, 0)
+		    && !S_FORCE_RELOC (right.X_add_symbol, 0))
 		   || right.X_add_symbol == resultP->X_add_symbol)
 	       && frag_offset_fixed_p (symbol_get_frag (resultP->X_add_symbol),
 				       symbol_get_frag (right.X_add_symbol),
@@ -1942,7 +1955,10 @@ expr (int rankarg,		/* Larger # is higher rank.  */
 	  else if (op_left == O_subtract)
 	    {
 	      resultP->X_add_number -= right.X_add_number;
-	      if (retval == rightseg && SEG_NORMAL (retval))
+	      if (retval == rightseg
+		  && SEG_NORMAL (retval)
+		  && !S_FORCE_RELOC (resultP->X_add_symbol, 0)
+		  && !S_FORCE_RELOC (right.X_add_symbol, 0))
 		{
 		  retval = absolute_section;
 		  rightseg = absolute_section;
@@ -1962,16 +1978,27 @@ expr (int rankarg,		/* Larger # is higher rank.  */
 
       if (retval != rightseg)
 	{
-	  if (! SEG_NORMAL (retval))
-	    {
-	      if (retval != undefined_section || SEG_NORMAL (rightseg))
-		retval = rightseg;
-	    }
-	  else if (SEG_NORMAL (rightseg)
+	  if (retval == undefined_section)
+	    ;
+	  else if (rightseg == undefined_section)
+	    retval = rightseg;
+	  else if (retval == expr_section)
+	    ;
+	  else if (rightseg == expr_section)
+	    retval = rightseg;
+	  else if (retval == reg_section)
+	    ;
+	  else if (rightseg == reg_section)
+	    retval = rightseg;
+	  else if (rightseg == absolute_section)
+	    ;
+	  else if (retval == absolute_section)
+	    retval = rightseg;
 #ifdef DIFF_EXPR_OK
-		   && op_left != O_subtract
+	  else if (op_left == O_subtract)
+	    ;
 #endif
-		   )
+	  else
 	    as_bad (_("operation combines symbols in different segments"));
 	}
 
@@ -1997,6 +2024,7 @@ resolve_expression (expressionS *expressionP)
   /* Help out with CSE.  */
   valueT final_val = expressionP->X_add_number;
   symbolS *add_symbol = expressionP->X_add_symbol;
+  symbolS *orig_add_symbol = add_symbol;
   symbolS *op_symbol = expressionP->X_op_symbol;
   operatorT op = expressionP->X_op;
   valueT left, right;
@@ -2078,6 +2106,7 @@ resolve_expression (expressionS *expressionP)
 	      left = right;
 	      seg_left = seg_right;
 	      add_symbol = op_symbol;
+	      orig_add_symbol = expressionP->X_op_symbol;
 	      op = O_symbol;
 	      break;
 	    }
@@ -2122,18 +2151,19 @@ resolve_expression (expressionS *expressionP)
 	    {
 	      if (op == O_bit_exclusive_or || op == O_bit_inclusive_or)
 		{
-		  if (seg_right != absolute_section || right != 0)
+		  if (!(seg_right == absolute_section && right == 0))
 		    {
 		      seg_left = seg_right;
 		      left = right;
 		      add_symbol = op_symbol;
+		      orig_add_symbol = expressionP->X_op_symbol;
 		    }
 		  op = O_symbol;
 		  break;
 		}
 	      else if (op == O_left_shift || op == O_right_shift)
 		{
-		  if (seg_left != absolute_section || left != 0)
+		  if (!(seg_left == absolute_section && left == 0))
 		    {
 		      op = O_symbol;
 		      break;
@@ -2149,6 +2179,7 @@ resolve_expression (expressionS *expressionP)
 	      seg_left = seg_right;
 	      left = right;
 	      add_symbol = op_symbol;
+	      orig_add_symbol = expressionP->X_op_symbol;
 	      op = O_symbol;
 	      break;
 	    }
@@ -2158,11 +2189,11 @@ resolve_expression (expressionS *expressionP)
 	      op = O_symbol;
 	      break;
 	    }
-	  else if (left != right
-		   || ((seg_left != reg_section || seg_right != reg_section)
-		       && (seg_left != undefined_section
-			   || seg_right != undefined_section
-			   || add_symbol != op_symbol)))
+	  else if (!(left == right
+		     && ((seg_left == reg_section && seg_right == reg_section)
+			 || (seg_left == undefined_section
+			     && seg_right == undefined_section
+			     && add_symbol == op_symbol))))
 	    return 0;
 	  else if (op == O_bit_and || op == O_bit_inclusive_or)
 	    {
@@ -2233,7 +2264,7 @@ resolve_expression (expressionS *expressionP)
 	op = O_constant;
       else if (seg_left == reg_section && final_val == 0)
 	op = O_register;
-      else if (add_symbol != expressionP->X_add_symbol)
+      else if (!symbol_same_p (add_symbol, orig_add_symbol))
 	final_val += left;
       expressionP->X_add_symbol = add_symbol;
     }

@@ -35,7 +35,7 @@ SYMBOL TABLE:
 0+80094 l    d  \.text	0+ \.text
 0+820b0 l    d  \.tdata	0+ \.tdata
 0+820bc l    d  \.got	0+ \.got
-0+820bc l     O \.got	0+ \.hidden _GLOBAL_OFFSET_TABLE_
+0+820bc l     O \.got	0+ _GLOBAL_OFFSET_TABLE_
 0+ g       \.tdata	0+4 \.hidden x
 0+80098 g     F \.text	0+6 tlsdsofn2
 0+8 g       \.tdata	0+4 \.hidden x2
@@ -64,7 +64,7 @@ Disassembly of section \.text:
    80098:	6fae 1800 0000      	move\.d 18 <x2\+0x10>,\$r10
 #...
 000800a0 <tlsdsofn>:
-   800a0:	6fae f4ff ffff      	move\.d 0xfffffff4,\$r10
+   800a0:	6fae 0000 0000      	move\.d 0 <x>,\$r10
 #...
 000800a8 <tlsdsofn10>:
    800a8:	6fae 1400 0000      	move\.d 14 <x2\+0xc>,\$r10

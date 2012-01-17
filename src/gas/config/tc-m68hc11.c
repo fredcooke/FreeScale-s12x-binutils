@@ -1,5 +1,5 @@
 /* tc-m68hc11.c -- Assembler code for the Motorola 68HC11 & 68HC12.
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010
    Free Software Foundation, Inc.
    Written by Stephane Carrez (stcarrez@nerim.fr)
 
@@ -263,7 +263,7 @@ const pseudo_typeS md_pseudo_table[] = {
   /* The following pseudo-ops are supported for MRI compatibility.  */
   {"fcb", cons, 1},
   {"fdb", cons, 2},
-  {"fqb", cons, 4},  
+  {"fqb", cons, 4},
   {"fcc", stringer, 8 + 1},
   {"rmb", s_space, 0},
 
@@ -371,8 +371,8 @@ md_show_usage (FILE *stream)
   get_default_target ();
   fprintf (stream, _("\
 Motorola 68HC11/68HC12/68HCS12 options:\n\
-  -m68hc11 | -m68hc12 |\n\
-  -m68hcs12               specify the processor [default %s]\n\
+  -m68hc11 | -m68hc12 | -m9hcs12x|\n\
+  -m9hcs12x               specify the processor [default %s]\n\
   -mshort                 use 16-bit int ABI (default)\n\
   -mlong                  use 32-bit int ABI\n\
   -mshort-double          use 32-bit double ABI\n\
@@ -405,7 +405,7 @@ get_default_target (void)
     {
       if (strcmp (target->name, "elf32-m68hc12") == 0)
 	{
-	  current_architecture = cpu9hcs12x;
+	  current_architecture = cpu6812;
 	  default_cpu = "9hcs12x";
 	}
       else if (strcmp (target->name, "elf32-m68hc11") == 0)
@@ -499,7 +499,7 @@ md_parse_option (int c, char *arg)
       else if (strcasecmp (arg, "68hcs12") == 0)
 	current_architecture = cpu6812 | cpu6812s;
       else if (strcasecmp (arg, "9hcs12x") == 0)
-        current_architecture = cpu6812 | cpu6812s | cpu9hcs12x;
+    current_architecture = cpu6812 | cpu6812s | cpu9hcs12x;
       else
 	as_bad (_("Option `%s' is not recognized."), arg);
       break;
@@ -561,10 +561,6 @@ md_begin (void)
 						       m68hc11_opcode));
   m68hc11_sorted_opcodes = opcodes;
   num_opcodes = 0;
-  //printf("\n seize of root structure %d",sizeof (struct m68hc11_opcode));
-  //printf("\n size of opcodes %d \n",m68hc11_num_opcodes);  //comes back as 775
-  //printf("\nCurrent arch is %d default cpu is %s\n",current_architecture, default_cpu);  //returns 1
-
   for (i = 0; i < m68hc11_num_opcodes; i++)
     {
       if (m68hc11_opcodes[i].arch & current_architecture)
@@ -574,10 +570,9 @@ md_begin (void)
 	      && opcodes[num_opcodes].format & M6811_OP_JUMP_REL
 	      && !(opcodes[num_opcodes].format & M6811_OP_BITMASK))
 	    {
-
+	      num_opcodes++;
 	      opcodes[num_opcodes] = m68hc11_opcodes[i];
 	    }
-	//  //printf("\n current arch from structure is -> %c",opcodes[num_opcodes].arch);
 	  num_opcodes++;
 	  for (j = 0; alias_opcodes[j].name != 0; j++)
 	    if (strcmp (m68hc11_opcodes[i].name, alias_opcodes[j].name) == 0)
@@ -587,17 +582,10 @@ md_begin (void)
 		num_opcodes++;
 		break;
 	      }
-	 }
+	}
     }
-
-
-  //printf("\n number of OPcodes %d\n",num_opcodes);  //TODO remove this line when done!!!
-  //print_opcode_list();
-
   qsort (opcodes, num_opcodes, sizeof (struct m68hc11_opcode),
          (int (*) (const void*, const void*)) cmp_opcode);
-
-
 
   opc = (struct m68hc11_opcode_def *)
     xmalloc (num_opcodes * sizeof (struct m68hc11_opcode_def));
@@ -1478,11 +1466,9 @@ fixup24 (expressionS *oper, int mode, int opmode ATTRIBUTE_UNUSED)
     }
   else if (oper->X_op != O_register)
     {
-      fixS *fixp;
-
       /* Now create a 24-bit fixup.  */
-      fixp = fix_new_exp (frag_now, f - frag_now->fr_literal, 3,
-			  oper, FALSE, BFD_RELOC_M68HC11_24);
+      fix_new_exp (frag_now, f - frag_now->fr_literal, 3,
+		   oper, FALSE, BFD_RELOC_M68HC11_24);
       number_to_chars_bigendian (f, 0, 3);
     }
   else
@@ -1532,8 +1518,6 @@ build_jump_insn (struct m68hc11_opcode *opcode, operand operands[],
   unsigned char code;
   char *f;
   unsigned long n;
-  fragS *frag;
-  int where;
 
   /* The relative branch conversion is not supported for
      brclr and brset.  */
@@ -1554,9 +1538,6 @@ build_jump_insn (struct m68hc11_opcode *opcode, operand operands[],
 	  && (!check_range (n, opcode->format) &&
 	      (jmp_mode == 1 || flag_fixed_branches == 0))))
     {
-      frag = frag_now;
-      where = frag_now_fix ();
-
       fix_new (frag_now, frag_now_fix (), 0,
                &abs_symbol, 0, 1, BFD_RELOC_M68HC11_RL_JUMP);
 
@@ -1614,9 +1595,6 @@ build_jump_insn (struct m68hc11_opcode *opcode, operand operands[],
     }
   else if (opcode->format & M6812_OP_JUMP_REL16)
     {
-      frag = frag_now;
-      where = frag_now_fix ();
-
       fix_new (frag_now, frag_now_fix (), 0,
                &abs_symbol, 0, 1, BFD_RELOC_M68HC11_RL_JUMP);
 
@@ -1627,19 +1605,16 @@ build_jump_insn (struct m68hc11_opcode *opcode, operand operands[],
     }
   else
     {
-      char *opcode;
+      char *op;
 
-      frag = frag_now;
-      where = frag_now_fix ();
-      
       fix_new (frag_now, frag_now_fix (), 0,
                &abs_symbol, 0, 1, BFD_RELOC_M68HC11_RL_JUMP);
 
       /* Branch offset must fit in 8-bits, don't do some relax.  */
       if (jmp_mode == 0 && flag_fixed_branches)
 	{
-	  opcode = m68hc11_new_insn (1);
-	  number_to_chars_bigendian (opcode, code, 1);
+	  op = m68hc11_new_insn (1);
+	  number_to_chars_bigendian (op, code, 1);
 	  fixup8 (&operands[0].exp, M6811_OP_JUMP_REL, M6811_OP_JUMP_REL);
 	}
 
@@ -1647,31 +1622,31 @@ build_jump_insn (struct m68hc11_opcode *opcode, operand operands[],
       else if (code == M6811_BSR || code == M6811_BRA || code == M6812_BSR)
 	{
           /* Allocate worst case storage.  */
-	  opcode = m68hc11_new_insn (3);
-	  number_to_chars_bigendian (opcode, code, 1);
-	  number_to_chars_bigendian (opcode + 1, 0, 1);
+	  op = m68hc11_new_insn (3);
+	  number_to_chars_bigendian (op, code, 1);
+	  number_to_chars_bigendian (op + 1, 0, 1);
 	  frag_variant (rs_machine_dependent, 1, 1,
                         ENCODE_RELAX (STATE_PC_RELATIVE, STATE_UNDF),
                         operands[0].exp.X_add_symbol, (offsetT) n,
-                        opcode);
+                        op);
 	}
       else if (current_architecture & cpu6812)
 	{
-	  opcode = m68hc11_new_insn (2);
-	  number_to_chars_bigendian (opcode, code, 1);
-	  number_to_chars_bigendian (opcode + 1, 0, 1);
+	  op = m68hc11_new_insn (2);
+	  number_to_chars_bigendian (op, code, 1);
+	  number_to_chars_bigendian (op + 1, 0, 1);
 	  frag_var (rs_machine_dependent, 2, 2,
 		    ENCODE_RELAX (STATE_CONDITIONAL_BRANCH_6812, STATE_UNDF),
-		    operands[0].exp.X_add_symbol, (offsetT) n, opcode);
+		    operands[0].exp.X_add_symbol, (offsetT) n, op);
 	}
       else
 	{
-	  opcode = m68hc11_new_insn (2);
-	  number_to_chars_bigendian (opcode, code, 1);
-	  number_to_chars_bigendian (opcode + 1, 0, 1);
+	  op = m68hc11_new_insn (2);
+	  number_to_chars_bigendian (op, code, 1);
+	  number_to_chars_bigendian (op + 1, 0, 1);
 	  frag_var (rs_machine_dependent, 3, 3,
 		    ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_UNDF),
-		    operands[0].exp.X_add_symbol, (offsetT) n, opcode);
+		    operands[0].exp.X_add_symbol, (offsetT) n, op);
 	}
     }
 }
@@ -2431,11 +2406,13 @@ md_assemble (char *str)
   /* Find the opcode end and get the opcode in 'name'.  The opcode is forced
      lower case (the opcode table only has lower case op-codes).  */
   for (op_start = op_end = (unsigned char *) str;
-       *op_end && nlen < 20 && !is_end_of_line[*op_end] && *op_end != ' ';
+       *op_end && !is_end_of_line[*op_end] && *op_end != ' ';
        op_end++)
     {
       name[nlen] = TOLOWER (op_start[nlen]);
       nlen++;
+      if (nlen == sizeof (name) - 1)
+	break;
     }
   name[nlen] = 0;
 
@@ -3049,12 +3026,10 @@ md_estimate_size_before_relax (fragS *fragP, asection *segment)
                 }
               else
                 {
-                   fixS* fixp;
-
                    fragP->fr_opcode[0] = fragP->fr_opcode[0] << 3;
                    fragP->fr_opcode[0] |= 0xe2;
-                   fixp = fix_new (fragP, fragP->fr_fix, 2, fragP->fr_symbol,
-                                   fragP->fr_offset, 1, BFD_RELOC_16_PCREL);
+                   fix_new (fragP, fragP->fr_fix, 2, fragP->fr_symbol,
+			    fragP->fr_offset, 1, BFD_RELOC_16_PCREL);
                    fragP->fr_fix += 2;
                 }
 	      break;
@@ -3197,7 +3172,6 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 {
   char *where;
   long value = * valP;
-  int op_type;
 
   if (fixP->fx_addsy == (symbolS *) NULL)
     fixP->fx_done = 1;
@@ -3205,8 +3179,6 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
   /* We don't actually support subtracting a symbol.  */
   if (fixP->fx_subsy != (symbolS *) NULL)
     as_bad_where (fixP->fx_file, fixP->fx_line, _("Expression too complex."));
-
-  op_type = fixP->fx_r_type;
 
   /* Patch the instruction with the resolved operand.  Elf relocation
      info will also be generated to take care of linker/loader fixups.
@@ -3300,7 +3272,7 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 void
 m68hc11_elf_final_processing (void)
 {
-  if (current_architecture & (cpu6812s | cpu9hcs12x))
+  if (current_architecture & cpu6812s)
     elf_flags |= EF_M68HCS12_MACH;
   elf_elfheader (stdoutput)->e_flags &= ~EF_M68HC11_ABI;
   elf_elfheader (stdoutput)->e_flags |= elf_flags;

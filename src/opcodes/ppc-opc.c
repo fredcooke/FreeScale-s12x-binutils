@@ -1,6 +1,7 @@
 /* ppc-opc.c -- PowerPC opcode list
    Copyright 1994, 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Written by Ian Lance Taylor, Cygnus Support
 
    This file is part of the GNU opcodes library.
@@ -57,6 +58,7 @@ static long extract_mbe (unsigned long, ppc_cpu_t, int *);
 static unsigned long insert_mb6 (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_mb6 (unsigned long, ppc_cpu_t, int *);
 static long extract_nb (unsigned long, ppc_cpu_t, int *);
+static unsigned long insert_nbi (unsigned long, long, ppc_cpu_t, const char **);
 static unsigned long insert_nsi (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_nsi (unsigned long, ppc_cpu_t, int *);
 static unsigned long insert_ral (unsigned long, long, ppc_cpu_t, const char **);
@@ -65,6 +67,7 @@ static unsigned long insert_raq (unsigned long, long, ppc_cpu_t, const char **);
 static unsigned long insert_ras (unsigned long, long, ppc_cpu_t, const char **);
 static unsigned long insert_rbs (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_rbs (unsigned long, ppc_cpu_t, int *);
+static unsigned long insert_rbx (unsigned long, long, ppc_cpu_t, const char **);
 static unsigned long insert_sh6 (unsigned long, long, ppc_cpu_t, const char **);
 static long extract_sh6 (unsigned long, ppc_cpu_t, int *);
 static unsigned long insert_spr (unsigned long, long, ppc_cpu_t, const char **);
@@ -268,13 +271,21 @@ const struct powerpc_operand powerpc_operands[] =
 #define FRA_MASK (0x1f << 16)
   { 0x1f, 16, NULL, NULL, PPC_OPERAND_FPR },
 
+  /* The FRAp field of DFP instructions.  */
+#define FRAp FRA + 1
+  { 0x1e, 16, NULL, NULL, PPC_OPERAND_FPR },
+
   /* The FRB field in an X or A form instruction.  */
-#define FRB FRA + 1
+#define FRB FRAp + 1
 #define FRB_MASK (0x1f << 11)
   { 0x1f, 11, NULL, NULL, PPC_OPERAND_FPR },
 
+  /* The FRBp field of DFP instructions.  */
+#define FRBp FRB + 1
+  { 0x1e, 11, NULL, NULL, PPC_OPERAND_FPR },
+
   /* The FRC field in an A form instruction.  */
-#define FRC FRB + 1
+#define FRC FRBp + 1
 #define FRC_MASK (0x1f << 6)
   { 0x1f, 6, NULL, NULL, PPC_OPERAND_FPR },
 
@@ -284,8 +295,14 @@ const struct powerpc_operand powerpc_operands[] =
 #define FRT FRS
   { 0x1f, 21, NULL, NULL, PPC_OPERAND_FPR },
 
+  /* The FRSp field of stfdp or the FRTp field of lfdp and DFP
+     instructions.  */
+#define FRSp FRS + 1
+#define FRTp FRSp
+  { 0x1e, 21, NULL, NULL, PPC_OPERAND_FPR },
+
   /* The FXM field in an XFX instruction.  */
-#define FXM FRS + 1
+#define FXM FRSp + 1
   { 0xff, 12, insert_fxm, extract_fxm, 0 },
 
   /* Power4 version for mfcr.  */
@@ -344,9 +361,14 @@ const struct powerpc_operand powerpc_operands[] =
 #define NB MB6 + 1
   { 0x1f, 11, NULL, extract_nb, PPC_OPERAND_PLUS1 },
 
+  /* The NBI field in an lswi instruction, which has special value
+     restrictions.  The value 32 is stored as 0.  */
+#define NBI NB + 1
+  { 0x1f, 11, insert_nbi, extract_nb, PPC_OPERAND_PLUS1 },
+
   /* The NSI field in a D form instruction.  This is the same as the
      SI field, only negated.  */
-#define NSI NB + 1
+#define NSI NBI + 1
   { 0xffff, 0, insert_nsi, extract_nsi,
       PPC_OPERAND_NEGATIVE | PPC_OPERAND_SIGNED },
 
@@ -359,9 +381,10 @@ const struct powerpc_operand powerpc_operands[] =
 #define RA0 RA + 1
   { 0x1f, 16, NULL, NULL, PPC_OPERAND_GPR_0 },
 
-  /* The RA field in the DQ form lq instruction, which has special
+  /* The RA field in the DQ form lq or an lswx instruction, which have special
      value restrictions.  */
 #define RAQ RA0 + 1
+#define RAX RAQ
   { 0x1f, 16, insert_raq, NULL, PPC_OPERAND_GPR_0 },
 
   /* The RA field in a D or X form instruction which is an updating
@@ -381,7 +404,8 @@ const struct powerpc_operand powerpc_operands[] =
 #define RAS RAM + 1
   { 0x1f, 16, insert_ras, NULL, PPC_OPERAND_GPR_0 },
 
-  /* The RA field of the tlbwe instruction, which is optional.  */
+  /* The RA field of the tlbwe, dccci and iccci instructions,
+     which are optional.  */
 #define RAOPT RAS + 1
   { 0x1f, 16, NULL, NULL, PPC_OPERAND_GPR | PPC_OPERAND_OPTIONAL },
 
@@ -396,10 +420,19 @@ const struct powerpc_operand powerpc_operands[] =
 #define RBS RB + 1
   { 0x1f, 11, insert_rbs, extract_rbs, PPC_OPERAND_FAKE },
 
+  /* The RB field in an lswx instruction, which has special value
+     restrictions.  */
+#define RBX RBS + 1
+  { 0x1f, 11, insert_rbx, NULL, PPC_OPERAND_GPR },
+
+  /* The RB field of the dccci and iccci instructions, which are optional.  */
+#define RBOPT RBX + 1
+  { 0x1f, 11, NULL, NULL, PPC_OPERAND_GPR | PPC_OPERAND_OPTIONAL },
+
   /* The RS field in a D, DS, X, XFX, XS, M, MD or MDS form
      instruction or the RT field in a D, DS, X, XFX or XO form
      instruction.  */
-#define RS RBS + 1
+#define RS RBOPT + 1
 #define RT RS
 #define RT_MASK (0x1f << 21)
   { 0x1f, 21, NULL, NULL, PPC_OPERAND_GPR },
@@ -715,13 +748,15 @@ extract_bba (unsigned long insn,
    extract_bdp always occur in pairs.  One or the other will always
    be valid.  */
 
+#define ISA_V2 (PPC_OPCODE_POWER4 | PPC_OPCODE_E500MC | PPC_OPCODE_TITAN)
+
 static unsigned long
 insert_bdm (unsigned long insn,
 	    long value,
 	    ppc_cpu_t dialect,
 	    const char **errmsg ATTRIBUTE_UNUSED)
 {
-  if ((dialect & PPC_OPCODE_POWER4) == 0)
+  if ((dialect & ISA_V2) == 0)
     {
       if ((value & 0x8000) != 0)
 	insn |= 1 << 21;
@@ -741,7 +776,7 @@ extract_bdm (unsigned long insn,
 	     ppc_cpu_t dialect,
 	     int *invalid)
 {
-  if ((dialect & PPC_OPCODE_POWER4) == 0)
+  if ((dialect & ISA_V2) == 0)
     {
       if (((insn & (1 << 21)) == 0) != ((insn & (1 << 15)) == 0))
 	*invalid = 1;
@@ -766,7 +801,7 @@ insert_bdp (unsigned long insn,
 	    ppc_cpu_t dialect,
 	    const char **errmsg ATTRIBUTE_UNUSED)
 {
-  if ((dialect & PPC_OPCODE_POWER4) == 0)
+  if ((dialect & ISA_V2) == 0)
     {
       if ((value & 0x8000) == 0)
 	insn |= 1 << 21;
@@ -786,7 +821,7 @@ extract_bdp (unsigned long insn,
 	     ppc_cpu_t dialect,
 	     int *invalid)
 {
-  if ((dialect & PPC_OPCODE_POWER4) == 0)
+  if ((dialect & ISA_V2) == 0)
     {
       if (((insn & (1 << 21)) == 0) == ((insn & (1 << 15)) == 0))
 	*invalid = 1;
@@ -801,52 +836,41 @@ extract_bdp (unsigned long insn,
   return ((insn & 0xfffc) ^ 0x8000) - 0x8000;
 }
 
-/* Check for legal values of a BO field.  */
-
-static int
-valid_bo (long value, ppc_cpu_t dialect, int extract)
+static inline int
+valid_bo_pre_v2 (long value)
 {
-  if ((dialect & PPC_OPCODE_POWER4) == 0)
-    {
-      int valid;
-      /* Certain encodings have bits that are required to be zero.
-	 These are (z must be zero, y may be anything):
-	     001zy
-	     011zy
-	     1z00y
-	     1z01y
-	     1z1zz
-      */
-      switch (value & 0x14)
-	{
-	default:
-	case 0:
-	  valid = 1;
-	  break;
-	case 0x4:
-	  valid = (value & 0x2) == 0;
-	  break;
-	case 0x10:
-	  valid = (value & 0x8) == 0;
-	  break;
-	case 0x14:
-	  valid = value == 0x14;
-	  break;
-	}
-      /* When disassembling with -Many, accept power4 encodings too.  */
-      if (valid
-	  || (dialect & PPC_OPCODE_ANY) == 0
-	  || !extract)
-	return valid;
-    }
+  /* Certain encodings have bits that are required to be zero.
+     These are (z must be zero, y may be anything):
+	 0000y 
+	 0001y 
+	 001zy
+	 0100y 
+	 0101y 
+	 011zy
+	 1z00y
+	 1z01y
+	 1z1zz
+  */
+  if ((value & 0x14) == 0)
+    return 1;
+  else if ((value & 0x14) == 0x4)
+    return (value & 0x2) == 0;
+  else if ((value & 0x14) == 0x10)
+    return (value & 0x8) == 0;
+  else
+    return value == 0x14;
+}
 
+static inline int
+valid_bo_post_v2 (long value)
+{
   /* Certain encodings have bits that are required to be zero.
      These are (z must be zero, a & t may be anything):
 	 0000z
 	 0001z
+	 001at
 	 0100z
 	 0101z
-	 001at
 	 011at
 	 1a00t
 	 1a01t
@@ -860,6 +884,24 @@ valid_bo (long value, ppc_cpu_t dialect, int extract)
     return 1;
 }
 
+/* Check for legal values of a BO field.  */
+
+static int
+valid_bo (long value, ppc_cpu_t dialect, int extract)
+{
+  int valid_y = valid_bo_pre_v2 (value);
+  int valid_at = valid_bo_post_v2 (value);
+
+  /* When disassembling with -Many, accept either encoding on the
+     second pass through opcodes.  */
+  if (extract && dialect == ~(ppc_cpu_t) PPC_OPCODE_ANY)
+    return valid_y || valid_at;
+  if ((dialect & ISA_V2) == 0)
+    return valid_y;
+  else
+    return valid_at;
+}
+
 /* The BO field in a B form instruction.  Warn about attempts to set
    the field to an illegal value.  */
 
@@ -871,6 +913,8 @@ insert_bo (unsigned long insn,
 {
   if (!valid_bo (value, dialect, 0))
     *errmsg = _("invalid conditional option");
+  else if (PPC_OP (insn) == 19 && (insn & 0x400) && ! (value & 4))
+    *errmsg = _("invalid counter access");
   return insn | ((value & 0x1f) << 21);
 }
 
@@ -899,6 +943,8 @@ insert_boe (unsigned long insn,
 {
   if (!valid_bo (value, dialect, 0))
     *errmsg = _("invalid conditional option");
+  else if (PPC_OP (insn) == 19 && (insn & 0x400) && ! (value & 4))
+    *errmsg = _("invalid counter access");
   else if ((value & 1) != 0)
     *errmsg = _("attempt to set y bit when using + or - modifier");
 
@@ -1114,6 +1160,26 @@ extract_nb (unsigned long insn,
   return ret;
 }
 
+/* The NB field in an lswi instruction, which has special value
+   restrictions.  The value 32 is stored as 0.  */
+
+static unsigned long
+insert_nbi (unsigned long insn,
+	    long value,
+	    ppc_cpu_t dialect ATTRIBUTE_UNUSED,
+	    const char **errmsg ATTRIBUTE_UNUSED)
+{
+  long rtvalue = (insn & RT_MASK) >> 21;
+  long ravalue = (insn & RA_MASK) >> 16;
+
+  if (value == 0)
+    value = 32;
+  if (rtvalue + (value + 3) / 4 > (rtvalue > ravalue ? ravalue + 32
+						     : ravalue))
+    *errmsg = _("address register in load range");
+  return insn | ((value & 0x1f) << 11);
+}
+
 /* The NSI field in a D form instruction.  This is the same as the SI
    field, only negated.  The extraction function always marks it as
    invalid, since we never want to recognize an instruction which uses
@@ -1167,7 +1233,7 @@ insert_ram (unsigned long insn,
   return insn | ((value & 0x1f) << 16);
 }
 
-/* The RA field in the DQ form lq instruction, which has special
+/* The RA field in the DQ form lq or an lswx instruction, which have special
    value restrictions.  */
 
 static unsigned long
@@ -1221,6 +1287,22 @@ extract_rbs (unsigned long insn,
   if (((insn >> 21) & 0x1f) != ((insn >> 11) & 0x1f))
     *invalid = 1;
   return 0;
+}
+
+/* The RB field in an lswx instruction, which has special value
+   restrictions.  */
+
+static unsigned long
+insert_rbx (unsigned long insn,
+	    long value,
+	    ppc_cpu_t dialect ATTRIBUTE_UNUSED,
+	    const char **errmsg)
+{
+  long rtvalue = (insn & RT_MASK) >> 21;
+
+  if (value == rtvalue)
+    *errmsg = _("source and target register operands must be different");
+  return insn | ((value & 0x1f) << 11);
 }
 
 /* The SH field in an MD form instruction.  This is split.  */
@@ -1776,6 +1858,9 @@ extract_dm (unsigned long insn,
 /* An XL_MASK with the BO, BI and BB fields fixed.  */
 #define XLBOBIBB_MASK (XL_MASK | BO_MASK | BI_MASK | BB_MASK)
 
+/* An X form mbar instruction with MO field.  */
+#define XMBAR(op, xop, mo) (X ((op), (xop)) | ((((unsigned long)(mo)) & 1) << 21))
+
 /* An XO form instruction.  */
 #define XO(op, xop, oe, rc) \
   (OP (op) | ((((unsigned long)(xop)) & 0x1ff) << 1) | ((((unsigned long)(oe)) & 1) << 10) | (((unsigned long)(rc)) & 1))
@@ -1900,8 +1985,9 @@ extract_dm (unsigned long insn,
 #define POWER6	PPC_OPCODE_POWER6
 #define POWER7	PPC_OPCODE_POWER7
 #define CELL	PPC_OPCODE_CELL
-#define PPC32	PPC_OPCODE_32 | PPC_OPCODE_PPC
-#define PPC64	PPC_OPCODE_64 | PPC_OPCODE_PPC
+#define PPC64	PPC_OPCODE_64 | PPC_OPCODE_64_BRIDGE
+#define NON32	(PPC_OPCODE_64 | PPC_OPCODE_POWER4	\
+		 | PPC_OPCODE_EFS | PPC_OPCODE_E500MC | PPC_OPCODE_TITAN)
 #define PPC403	PPC_OPCODE_403
 #define PPC405	PPC_OPCODE_405
 #define PPC440	PPC_OPCODE_440
@@ -1915,16 +2001,15 @@ extract_dm (unsigned long insn,
 #define PPCVSX	PPC_OPCODE_VSX
 #define POWER	PPC_OPCODE_POWER
 #define POWER2	PPC_OPCODE_POWER | PPC_OPCODE_POWER2
-#define PPCPWR2 PPC_OPCODE_PPC | PPC_OPCODE_POWER | PPC_OPCODE_POWER2
-#define POWER32 PPC_OPCODE_POWER | PPC_OPCODE_32
+#define PWR2COM PPC_OPCODE_POWER | PPC_OPCODE_POWER2 | PPC_OPCODE_COMMON
+#define PPCPWR2 PPC_OPCODE_PPC | PPC_OPCODE_POWER | PPC_OPCODE_POWER2 | PPC_OPCODE_COMMON
 #define COM	PPC_OPCODE_POWER | PPC_OPCODE_PPC | PPC_OPCODE_COMMON
-#define COM32	PPC_OPCODE_POWER | PPC_OPCODE_PPC | PPC_OPCODE_COMMON | PPC_OPCODE_32
 #define M601	PPC_OPCODE_POWER | PPC_OPCODE_601
 #define PWRCOM	PPC_OPCODE_POWER | PPC_OPCODE_601 | PPC_OPCODE_COMMON
 #define MFDEC1	PPC_OPCODE_POWER
-#define MFDEC2	PPC_OPCODE_PPC | PPC_OPCODE_601 | PPC_OPCODE_BOOKE
+#define MFDEC2	PPC_OPCODE_PPC | PPC_OPCODE_601 | PPC_OPCODE_BOOKE | PPC_OPCODE_TITAN
 #define BOOKE	PPC_OPCODE_BOOKE
-#define CLASSIC PPC_OPCODE_CLASSIC
+#define NO371	PPC_OPCODE_BOOKE | PPC_OPCODE_EFS
 #define PPCE300 PPC_OPCODE_E300
 #define PPCSPE	PPC_OPCODE_SPE
 #define PPCISEL PPC_OPCODE_ISEL
@@ -1935,18 +2020,22 @@ extract_dm (unsigned long insn,
 #define PPCRFMCI	PPC_OPCODE_RFMCI
 #define E500MC  PPC_OPCODE_E500MC
 #define PPCA2	PPC_OPCODE_A2
+#define TITAN   PPC_OPCODE_TITAN  
+#define MULHW   PPC_OPCODE_405 | PPC_OPCODE_440 | TITAN
+#define E500	PPC_OPCODE_E500
 
 /* The opcode table.
 
    The format of the opcode table is:
 
-   NAME		OPCODE		MASK	     FLAGS	{OPERANDS}
+   NAME		OPCODE		MASK	     FLAGS	ANTI		{OPERANDS}
 
    NAME is the name of the instruction.
    OPCODE is the instruction opcode.
    MASK is the opcode mask; this is used to tell the disassembler
      which bits in the actual opcode must match OPCODE.
-   FLAGS are flags indicated what processors support the instruction.
+   FLAGS are flags indicating which processors support the instruction.
+   ANTI indicates which processors don't support the instruction.
    OPERANDS is the list of operands.
 
    The disassembler reads the table in order and prints the first
@@ -2017,16 +2106,16 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vmrghb",	VX (4,	12),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"psq_stx",	XW (4,	 7,0),	XW_MASK,     PPCPS,	PPCNONE,	{FRS,RA,RB,PSWM,PSQM}},
 {"vpkuhum",	VX (4,	14),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"mulhhwu",	XRC(4,	 8,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"mulhhwu.",	XRC(4,	 8,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulhhwu",	XRC(4,	 8,0),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"mulhhwu.",	XRC(4,	 8,1),	X_MASK,      MULHW, 	PPCNONE,	{RT, RA, RB}},
 {"ps_sum0",	A  (4,	10,0),	A_MASK,      PPCPS,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 {"ps_sum0.",	A  (4,	10,1),	A_MASK,      PPCPS,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 {"ps_sum1",	A  (4,	11,0),	A_MASK,      PPCPS,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 {"ps_sum1.",	A  (4,	11,1),	A_MASK,      PPCPS,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 {"ps_muls0",	A  (4,	12,0),	AFRB_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRC}},
-{"machhwu",	XO (4,	12,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwu",	XO (4,	12,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_muls0.",	A  (4,	12,1),	AFRB_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRC}},
-{"machhwu.",	XO (4,	12,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwu.",	XO (4,	12,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_muls1",	A  (4,	13,0),	AFRB_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRC}},
 {"ps_muls1.",	A  (4,	13,1),	AFRB_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRC}},
 {"ps_madds0",	A  (4,	14,0),	A_MASK,      PPCPS,	PPCNONE,	{FRT, FRA, FRC, FRB}},
@@ -2081,13 +2170,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"psq_stux",	XW (4,	39,0),	XW_MASK,     PPCPS,	PPCNONE,	{FRS,RA,RB,PSWM,PSQM}},
 {"vpkuwum",	VX (4,	78),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"ps_neg",	XRC(4,	40,0),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
-{"mulhhw",	XRC(4,	40,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulhhw",	XRC(4,	40,0),	X_MASK,      MULHW, 	PPCNONE,	{RT, RA, RB}},
 {"ps_neg.",	XRC(4,	40,1),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
-{"mulhhw.",	XRC(4,	40,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhw",	XO (4,	44,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhw.",	XO (4,	44,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhw",	XO (4,	46,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhw.",	XO (4,	46,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulhhw.",	XRC(4,	40,1),	X_MASK,      MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"machhw",	XO (4,	44,0,0),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"machhw.",	XO (4,	44,0,1),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"nmachhw",	XO (4,	46,0,0),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"nmachhw.",	XO (4,	46,0,1),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
 {"ps_cmpu1",	X  (4,	64), X_MASK|(3<<21), PPCPS,	PPCNONE,	{BF, FRA, FRB}},
 {"vadduwm",	VX (4,	128),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vmaxuw",	VX (4,	130),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
@@ -2097,15 +2186,15 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vpkuhus",	VX (4,	142),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"ps_mr",	XRC(4,	72,0),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
 {"ps_mr.",	XRC(4,	72,1),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
-{"machhwsu",	XO (4,	76,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhwsu.",	XO (4,	76,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwsu",	XO (4,	76,0,0),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"machhwsu.",	XO (4,	76,0,1),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
 {"ps_cmpo1",	X  (4,	96), X_MASK|(3<<21), PPCPS,	PPCNONE,	{BF, FRA, FRB}},
 {"vcmpeqfp",	VXR(4, 198,0),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vpkuwus",	VX (4, 206),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"machhws",	XO (4, 108,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhws.",	XO (4, 108,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhws",	XO (4, 110,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhws.",	XO (4, 110,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhws",	XO (4, 108,0,0),XO_MASK,     MULHW, 	PPCNONE,	{RT, RA, RB}},
+{"machhws.",	XO (4, 108,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmachhws",	XO (4, 110,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmachhws.",	XO (4, 110,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vmaxsb",	VX (4, 258),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vslb",	VX (4, 260),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vmulosb",	VX (4, 264),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
@@ -2113,39 +2202,39 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vmrglb",	VX (4, 268),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vpkshus",	VX (4, 270),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"ps_nabs",	XRC(4, 136,0),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
-{"mulchwu",	XRC(4, 136,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulchwu",	XRC(4, 136,0),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_nabs.",	XRC(4, 136,1),	XRA_MASK,    PPCPS,	PPCNONE,	{FRT, FRB}},
-{"mulchwu.",	XRC(4, 136,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchwu",	XO (4, 140,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchwu.",	XO (4, 140,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulchwu.",	XRC(4, 136,1),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchwu",	XO (4, 140,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchwu.",	XO (4, 140,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vmaxsh",	VX (4, 322),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vslh",	VX (4, 324),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vmulosh",	VX (4, 328),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vrsqrtefp",	VX (4, 330),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB}},
 {"vmrglh",	VX (4, 332),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vpkswus",	VX (4, 334),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"mulchw",	XRC(4, 168,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"mulchw.",	XRC(4, 168,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchw",	XO (4, 172,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchw.",	XO (4, 172,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchw",	XO (4, 174,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchw.",	XO (4, 174,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mulchw",	XRC(4, 168,0),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"mulchw.",	XRC(4, 168,1),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchw",	XO (4, 172,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchw.",	XO (4, 172,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchw",	XO (4, 174,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchw.",	XO (4, 174,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vaddcuw",	VX (4, 384),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vmaxsw",	VX (4, 386),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vslw",	VX (4, 388),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vexptefp",	VX (4, 394),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB}},
 {"vmrglw",	VX (4, 396),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vpkshss",	VX (4, 398),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"macchwsu",	XO (4, 204,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchwsu.",	XO (4, 204,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwsu",	XO (4, 204,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchwsu.",	XO (4, 204,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vsl",		VX (4, 452),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vcmpgefp",	VXR(4, 454,0),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vlogefp",	VX (4, 458),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB}},
 {"vpkswss",	VX (4, 462),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"macchws",	XO (4, 236,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchws.",	XO (4, 236,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchws",	XO (4, 238,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchws.",	XO (4, 238,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchws",	XO (4, 236,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchws.",	XO (4, 236,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchws",	XO (4, 238,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchws.",	XO (4, 238,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evaddw",	VX (4, 512),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"vaddubs",	VX (4, 512),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"evaddiw",	VX (4, 514),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RB, UIMM}},
@@ -2322,17 +2411,17 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evlhhossplatx",VX(4, 782),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"vpkpx",	VX (4, 782),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"evlhhossplat",VX (4, 783),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_2, RA}},
-{"mullhwu",	XRC(4, 392,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mullhwu",	XRC(4, 392,0),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evlwhex",	VX (4, 784),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"mullhwu.",	XRC(4, 392,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mullhwu.",	XRC(4, 392,1),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evlwhe",	VX (4, 785),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_4, RA}},
 {"evlwhoux",	VX (4, 788),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evlwhou",	VX (4, 789),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_4, RA}},
 {"evlwhosx",	VX (4, 790),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evlwhos",	VX (4, 791),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_4, RA}},
-{"maclhwu",	XO (4, 396,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwu",	XO (4, 396,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evlwwsplatx",	VX (4, 792),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"maclhwu.",	XO (4, 396,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwu.",	XO (4, 396,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evlwwsplat",	VX (4, 793),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_4, RA}},
 {"evlwhsplatx",	VX (4, 796),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evlwhsplat",	VX (4, 797),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, EVUIMM_4, RA}},
@@ -2358,27 +2447,27 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vcfsx",	VX (4, 842),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB, UIMM}},
 {"vspltish",	VX (4, 844),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, SIMM}},
 {"vupkhpx",	VX (4, 846),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB}},
-{"mullhw",	XRC(4, 424,0),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"mullhw.",	XRC(4, 424,1),	X_MASK,  PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhw",	XO (4, 428,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhw.",	XO (4, 428,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhw",	XO (4, 430,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhw.",	XO (4, 430,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"mullhw",	XRC(4, 424,0),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"mullhw.",	XRC(4, 424,1),	X_MASK,      MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhw",	XO (4, 428,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhw.",	XO (4, 428,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhw",	XO (4, 430,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhw.",	XO (4, 430,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vaddsws",	VX (4, 896),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vminsw",	VX (4, 898),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vsraw",	VX (4, 900),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vcmpgtsw",	VXR(4, 902,0),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vctuxs",	VX (4, 906),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB, UIMM}},
 {"vspltisw",	VX (4, 908),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, SIMM}},
-{"maclhwsu",	XO (4, 460,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhwsu.",	XO (4, 460,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwsu",	XO (4, 460,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhwsu.",	XO (4, 460,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vcmpbfp",	VXR(4, 966,0),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vctsxs",	VX (4, 970),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB, UIMM}},
 {"vupklpx",	VX (4, 974),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VB}},
-{"maclhws",	XO (4, 492,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhws.",	XO (4, 492,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhws",	XO (4, 494,0,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhws.",	XO (4, 494,0,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhws",	XO (4, 492,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhws.",	XO (4, 492,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhws",	XO (4, 494,0,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhws.",	XO (4, 494,0,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vsububm",	VX (4,1024),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vavgub",	VX (4,1026),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"evmhessf",	VX (4,1027),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2395,8 +2484,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vslo",	VX (4,1036),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"evmhosmi",	VX (4,1037),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhosmf",	VX (4,1039),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"machhwuo",	XO (4,	12,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhwuo.",	XO (4,	12,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwuo",	XO (4,	12,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"machhwuo.",	XO (4,	12,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_merge00",	XOPS(4,528,0),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"ps_merge00.",	XOPS(4,528,1),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"evmhessfa",	VX (4,1059),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2421,13 +2510,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evmwhsmi",	VX (4,1101),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwhsmf",	VX (4,1103),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwssf",	VX (4,1107),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"machhwo",	XO (4,	44,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwo",	XO (4,	44,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwumi",	VX (4,1112),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"machhwo.",	XO (4,	44,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwo.",	XO (4,	44,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwsmi",	VX (4,1113),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwsmf",	VX (4,1115),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"nmachhwo",	XO (4,	46,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhwo.",	XO (4,	46,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"nmachhwo",	XO (4,	46,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmachhwo.",	XO (4,	46,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_merge01",	XOPS(4,560,0),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"ps_merge01.",	XOPS(4,560,1),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"evmwhssfa",	VX (4,1127),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2445,8 +2534,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"vcmpequw.",	VXR(4, 134,1),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"udi2fcm.",	APU(4, 579,0), APU_MASK, PPC405|PPC440, PPC476,		{URT, URA, URB}},
 {"udi2fcm",	APU(4, 579,1), APU_MASK, PPC405|PPC440, PPC476,		{URT, URA, URB}},   
-{"machhwsuo",	XO (4,	76,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhwsuo.",	XO (4,	76,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwsuo",	XO (4,	76,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"machhwsuo.",	XO (4,	76,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_merge10",	XOPS(4,592,0),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"ps_merge10.",	XOPS(4,592,1),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"evaddusiaaw",	VX (4,1216),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA}},
@@ -2464,10 +2553,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evaddsmiaaw",	VX (4,1225),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA}},
 {"evsubfumiaaw",VX (4,1226),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA}},
 {"evsubfsmiaaw",VX (4,1227),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA}},
-{"machhwso",	XO (4, 108,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"machhwso.",	XO (4, 108,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhwso",	XO (4, 110,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmachhwso.",	XO (4, 110,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"machhwso",	XO (4, 108,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"machhwso.",	XO (4, 108,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmachhwso",	XO (4, 110,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmachhwso.",	XO (4, 110,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"ps_merge11",	XOPS(4,624,0),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"ps_merge11.",	XOPS(4,624,1),	XOPS_MASK,   PPCPS,	PPCNONE,	{FRT, FRA, FRB}},
 {"evmheusiaaw",	VX (4,1280),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2486,8 +2575,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evmhoumiaaw",	VX (4,1292),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhosmiaaw",	VX (4,1293),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhosmfaaw",	VX (4,1295),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwuo",	XO (4, 140,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchwuo.",	XO (4, 140,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwuo",	XO (4, 140,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchwuo.",	XO (4, 140,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmhegumiaa",	VX (4,1320),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhegsmiaa",	VX (4,1321),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhegsmfaa",	VX (4,1323),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2502,13 +2591,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evmwlumiaaw",	VX (4,1352),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwlsmiaaw",	VX (4,1353),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwssfaa",	VX (4,1363),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwo",	XO (4, 172,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwo",	XO (4, 172,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwumiaa",	VX (4,1368),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwo.",	XO (4, 172,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwo.",	XO (4, 172,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwsmiaa",	VX (4,1369),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwsmfaa",	VX (4,1371),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"nmacchwo",	XO (4, 174,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchwo.",	XO (4, 174,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"nmacchwo",	XO (4, 174,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchwo.",	XO (4, 174,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmheusianw",	VX (4,1408),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"vsubcuw",	VX (4,1408),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"evmhessianw",	VX (4,1409),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2525,8 +2614,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evmhoumianw",	VX (4,1420),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhosmianw",	VX (4,1421),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhosmfanw",	VX (4,1423),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwsuo",	XO (4, 204,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"macchwsuo.",	XO (4, 204,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwsuo",	XO (4, 204,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"macchwsuo.",	XO (4, 204,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmhegumian",	VX (4,1448),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhegsmian",	VX (4,1449),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmhegsmfan",	VX (4,1451),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
@@ -2541,13 +2630,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"evmwlumianw",	VX (4,1480),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwlsmianw",	VX (4,1481),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwssfan",	VX (4,1491),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwso",	XO (4, 236,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwso",	XO (4, 236,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwumian",	VX (4,1496),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"macchwso.",	XO (4, 236,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"macchwso.",	XO (4, 236,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"evmwsmian",	VX (4,1497),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
 {"evmwsmfan",	VX (4,1499),	VX_MASK,     PPCSPE,	PPCNONE,	{RS, RA, RB}},
-{"nmacchwso",	XO (4, 238,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmacchwso.",	XO (4, 238,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"nmacchwso",	XO (4, 238,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmacchwso.",	XO (4, 238,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vsububs",	VX (4,1536),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"mfvscr",	VX (4,1540),	VX_MASK,     PPCVEC,	PPCNONE,	{VD}},
 {"vcmpgtub.",	VXR(4, 518,1),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
@@ -2573,30 +2662,30 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"udi12fcm.",	APU(4, 899,0),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"udi12fcm",	APU(4, 899,1),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"vsum4sbs",	VX (4,1800),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"maclhwuo",	XO (4, 396,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhwuo.",	XO (4, 396,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwuo",	XO (4, 396,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhwuo.",	XO (4, 396,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vsubshs",	VX (4,1856),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vcmpgtsh.",	VXR(4, 838,1),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"udi13fcm.",	APU(4, 931,0),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"udi13fcm",	APU(4, 931,1),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
-{"maclhwo",	XO (4, 428,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhwo.",	XO (4, 428,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhwo",	XO (4, 430,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhwo.",	XO (4, 430,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwo",	XO (4, 428,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhwo.",	XO (4, 428,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhwo",	XO (4, 430,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhwo.",	XO (4, 430,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vsubsws",	VX (4,1920),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"vcmpgtsw.",	VXR(4, 902,1),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"udi14fcm.",	APU(4, 963,0),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"udi14fcm",	APU(4, 963,1),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"vsumsws",	VX (4,1928),	VX_MASK,     PPCVEC,	PPCNONE,	{VD, VA, VB}},
-{"maclhwsuo",	XO (4, 460,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhwsuo.",	XO (4, 460,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwsuo",	XO (4, 460,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhwsuo.",	XO (4, 460,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"vcmpbfp.",	VXR(4, 966,1),	VXR_MASK,    PPCVEC,	PPCNONE,	{VD, VA, VB}},
 {"udi15fcm.",	APU(4, 995,0),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
 {"udi15fcm",	APU(4, 995,1),	APU_MASK,    PPC440,	PPC476,		{URT, URA, URB}},
-{"maclhwso",	XO (4, 492,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"maclhwso.",	XO (4, 492,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhwso",	XO (4, 494,1,0),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
-{"nmaclhwso.",	XO (4, 494,1,1),XO_MASK, PPC405|PPC440,	PPCNONE,	{RT, RA, RB}},
+{"maclhwso",	XO (4, 492,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"maclhwso.",	XO (4, 492,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhwso",	XO (4, 494,1,0),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
+{"nmaclhwso.",	XO (4, 494,1,1),XO_MASK,     MULHW,	PPCNONE,	{RT, RA, RB}},
 {"dcbz_l",	X  (4,1014),	XRT_MASK,    PPCPS,	PPCNONE,	{RA, RB}},
 
 {"mulli",	OP(7),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA, SI}},
@@ -2610,12 +2699,12 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"cmplwi",	OPL(10,0),	OPL_MASK,    PPCCOM,	PPCNONE,	{OBF, RA, UI}},
 {"cmpldi",	OPL(10,1),	OPL_MASK,    PPC64,	PPCNONE,	{OBF, RA, UI}},
 {"cmpli",	OP(10),		OP_MASK,     PPC,	PPCNONE,	{BF, L, RA, UI}},
-{"cmpli",	OP(10),		OP_MASK,     PWRCOM,	PPCNONE,	{BF, RA, UI}},
+{"cmpli",	OP(10),		OP_MASK,     PWRCOM,	PPC,		{BF, RA, UI}},
 
 {"cmpwi",	OPL(11,0),	OPL_MASK,    PPCCOM,	PPCNONE,	{OBF, RA, SI}},
 {"cmpdi",	OPL(11,1),	OPL_MASK,    PPC64,	PPCNONE,	{OBF, RA, SI}},
 {"cmpi",	OP(11),		OP_MASK,     PPC,	PPCNONE,	{BF, L, RA, SI}},
-{"cmpi",	OP(11),		OP_MASK,     PWRCOM,	PPCNONE,	{BF, RA, SI}},
+{"cmpi",	OP(11),		OP_MASK,     PWRCOM,	PPC,		{BF, RA, SI}},
 
 {"addic",	OP(12),		OP_MASK,     PPCCOM,	PPCNONE,	{RT, RA, SI}},
 {"ai",		OP(12),		OP_MASK,     PWRCOM,	PPCNONE,	{RT, RA, SI}},
@@ -2813,29 +2902,29 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"bunla+",   BBOCB(16,BOT,CBSO,1,1),	BBOATCB_MASK,  PPCCOM,	 PPCNONE,	{CR, BDPA}},
 {"bunla",    BBOCB(16,BOT,CBSO,1,1),	BBOATCB_MASK,  PPCCOM,	 PPCNONE,	{CR, BDA}},
 
-{"bdnzf-",   BBO(16,BODNZF,0,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdnzf+",   BBO(16,BODNZF,0,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdnzf-",   BBO(16,BODNZF,0,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdnzf+",   BBO(16,BODNZF,0,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdnzf",    BBO(16,BODNZF,0,0),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdnzfl-",  BBO(16,BODNZF,0,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdnzfl+",  BBO(16,BODNZF,0,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdnzfl-",  BBO(16,BODNZF,0,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdnzfl+",  BBO(16,BODNZF,0,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdnzfl",   BBO(16,BODNZF,0,1),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdnzfa-",  BBO(16,BODNZF,1,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdnzfa+",  BBO(16,BODNZF,1,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdnzfa-",  BBO(16,BODNZF,1,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdnzfa+",  BBO(16,BODNZF,1,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdnzfa",   BBO(16,BODNZF,1,0),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdnzfla-", BBO(16,BODNZF,1,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdnzfla+", BBO(16,BODNZF,1,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdnzfla-", BBO(16,BODNZF,1,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdnzfla+", BBO(16,BODNZF,1,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdnzfla",  BBO(16,BODNZF,1,1),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdzf-",    BBO(16,BODZF,0,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdzf+",    BBO(16,BODZF,0,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdzf-",    BBO(16,BODZF,0,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdzf+",    BBO(16,BODZF,0,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdzf",     BBO(16,BODZF,0,0),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdzfl-",   BBO(16,BODZF,0,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdzfl+",   BBO(16,BODZF,0,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdzfl-",   BBO(16,BODZF,0,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdzfl+",   BBO(16,BODZF,0,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdzfl",    BBO(16,BODZF,0,1),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdzfa-",   BBO(16,BODZF,1,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdzfa+",   BBO(16,BODZF,1,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdzfa-",   BBO(16,BODZF,1,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdzfa+",   BBO(16,BODZF,1,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdzfa",    BBO(16,BODZF,1,0),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdzfla-",  BBO(16,BODZF,1,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdzfla+",  BBO(16,BODZF,1,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdzfla-",  BBO(16,BODZF,1,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdzfla+",  BBO(16,BODZF,1,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdzfla",   BBO(16,BODZF,1,1),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
 
 {"bf-",      BBO(16,BOF,0,0),		BBOAT_MASK,    PPCCOM,	 PPCNONE,	{BI, BDM}},
@@ -2855,29 +2944,29 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"bfla",     BBO(16,BOF,1,1),		BBOAT_MASK,    PPCCOM,	 PPCNONE,	{BI, BDA}},
 {"bbfla",    BBO(16,BOF,1,1),		BBOAT_MASK,    PWRCOM,	 PPCNONE,	{BI, BDA}},
 
-{"bdnzt-",   BBO(16,BODNZT,0,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdnzt+",   BBO(16,BODNZT,0,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdnzt-",   BBO(16,BODNZT,0,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdnzt+",   BBO(16,BODNZT,0,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdnzt",    BBO(16,BODNZT,0,0),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdnztl-",  BBO(16,BODNZT,0,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdnztl+",  BBO(16,BODNZT,0,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdnztl-",  BBO(16,BODNZT,0,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdnztl+",  BBO(16,BODNZT,0,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdnztl",   BBO(16,BODNZT,0,1),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdnzta-",  BBO(16,BODNZT,1,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdnzta+",  BBO(16,BODNZT,1,0),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdnzta-",  BBO(16,BODNZT,1,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdnzta+",  BBO(16,BODNZT,1,0),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdnzta",   BBO(16,BODNZT,1,0),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdnztla-", BBO(16,BODNZT,1,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdnztla+", BBO(16,BODNZT,1,1),	BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdnztla-", BBO(16,BODNZT,1,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdnztla+", BBO(16,BODNZT,1,1),	BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdnztla",  BBO(16,BODNZT,1,1),	BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdzt-",    BBO(16,BODZT,0,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdzt+",    BBO(16,BODZT,0,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdzt-",    BBO(16,BODZT,0,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdzt+",    BBO(16,BODZT,0,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdzt",     BBO(16,BODZT,0,0),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdztl-",   BBO(16,BODZT,0,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDM}},
-{"bdztl+",   BBO(16,BODZT,0,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDP}},
+{"bdztl-",   BBO(16,BODZT,0,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDM}},
+{"bdztl+",   BBO(16,BODZT,0,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDP}},
 {"bdztl",    BBO(16,BODZT,0,1),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BD}},
-{"bdzta-",   BBO(16,BODZT,1,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdzta+",   BBO(16,BODZT,1,0),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdzta-",   BBO(16,BODZT,1,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdzta+",   BBO(16,BODZT,1,0),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdzta",    BBO(16,BODZT,1,0),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
-{"bdztla-",  BBO(16,BODZT,1,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDMA}},
-{"bdztla+",  BBO(16,BODZT,1,1),		BBOY_MASK,     PPCCOM,   POWER4,	{BI, BDPA}},
+{"bdztla-",  BBO(16,BODZT,1,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDMA}},
+{"bdztla+",  BBO(16,BODZT,1,1),		BBOY_MASK,     PPCCOM,   ISA_V2,	{BI, BDPA}},
 {"bdztla",   BBO(16,BODZT,1,1),		BBOY_MASK,     PPCCOM,	 PPCNONE,	{BI, BDA}},
 
 {"bt-",      BBO(16,BOT,0,0),		BBOAT_MASK,    PPCCOM,	 PPCNONE,	{BI, BDM}},
@@ -2924,219 +3013,219 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mcrf",      XL(19,0), XLBB_MASK|(3<<21)|(3<<16), COM,	PPCNONE,	{BF, BFA}},
 
 {"bdnzlr",   XLO(19,BODNZ,16,0),	XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
-{"bdnzlr-",  XLO(19,BODNZ,16,0),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
+{"bdnzlr-",  XLO(19,BODNZ,16,0),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
 {"bdnzlrl",  XLO(19,BODNZ,16,1),	XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
-{"bdnzlrl-", XLO(19,BODNZ,16,1),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
-{"bdnzlr+",  XLO(19,BODNZP,16,0),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
-{"bdnzlrl+", XLO(19,BODNZP,16,1),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
+{"bdnzlrl-", XLO(19,BODNZ,16,1),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
+{"bdnzlr+",  XLO(19,BODNZP,16,0),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
+{"bdnzlrl+", XLO(19,BODNZP,16,1),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
 {"bdzlr",    XLO(19,BODZ,16,0),		XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
-{"bdzlr-",   XLO(19,BODZ,16,0),		XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
+{"bdzlr-",   XLO(19,BODZ,16,0),		XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
 {"bdzlrl",   XLO(19,BODZ,16,1),		XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
-{"bdzlrl-",  XLO(19,BODZ,16,1),		XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
-{"bdzlr+",   XLO(19,BODZP,16,0),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
-{"bdzlrl+",  XLO(19,BODZP,16,1),	XLBOBIBB_MASK, PPCCOM,   POWER4,	{0}},
+{"bdzlrl-",  XLO(19,BODZ,16,1),		XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
+{"bdzlr+",   XLO(19,BODZP,16,0),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
+{"bdzlrl+",  XLO(19,BODZP,16,1),	XLBOBIBB_MASK, PPCCOM,   ISA_V2,	{0}},
 {"blr",      XLO(19,BOU,16,0),		XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
 {"br",	     XLO(19,BOU,16,0),		XLBOBIBB_MASK, PWRCOM,	 PPCNONE,	{0}},
 {"blrl",     XLO(19,BOU,16,1),		XLBOBIBB_MASK, PPCCOM,	 PPCNONE,	{0}},
 {"brl",      XLO(19,BOU,16,1),		XLBOBIBB_MASK, PWRCOM,	 PPCNONE,	{0}},
-{"bdnzlr-",  XLO(19,BODNZM4,16,0),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdnzlrl-", XLO(19,BODNZM4,16,1),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdnzlr+",  XLO(19,BODNZP4,16,0),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdnzlrl+", XLO(19,BODNZP4,16,1),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdzlr-",   XLO(19,BODZM4,16,0),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdzlrl-",  XLO(19,BODZM4,16,1),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdzlr+",   XLO(19,BODZP4,16,0),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
-{"bdzlrl+",  XLO(19,BODZP4,16,1),	XLBOBIBB_MASK, POWER4,	 PPCNONE,	{0}},
+{"bdnzlr-",  XLO(19,BODNZM4,16,0),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdnzlrl-", XLO(19,BODNZM4,16,1),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdnzlr+",  XLO(19,BODNZP4,16,0),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdnzlrl+", XLO(19,BODNZP4,16,1),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdzlr-",   XLO(19,BODZM4,16,0),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdzlrl-",  XLO(19,BODZM4,16,1),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdzlr+",   XLO(19,BODZP4,16,0),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
+{"bdzlrl+",  XLO(19,BODZP4,16,1),	XLBOBIBB_MASK, ISA_V2,	 PPCNONE,	{0}},
 
 {"bgelr",    XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgelr-",   XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgelr-",   XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bger",     XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnllr",    XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnllr-",   XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnllr-",   XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnlr",     XLOCB(19,BOF,CBLT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bgelrl",   XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgelrl-",  XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgelrl-",  XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgerl",    XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnllrl",   XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnllrl-",  XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnllrl-",  XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnlrl",    XLOCB(19,BOF,CBLT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"blelr",    XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"blelr-",   XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"blelr-",   XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bler",     XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnglr",    XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnglr-",   XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnglr-",   XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bngr",     XLOCB(19,BOF,CBGT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"blelrl",   XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"blelrl-",  XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"blelrl-",  XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"blerl",    XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnglrl",   XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnglrl-",  XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnglrl-",  XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bngrl",    XLOCB(19,BOF,CBGT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnelr",    XLOCB(19,BOF,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnelr-",   XLOCB(19,BOF,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnelr-",   XLOCB(19,BOF,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bner",     XLOCB(19,BOF,CBEQ,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnelrl",   XLOCB(19,BOF,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnelrl-",  XLOCB(19,BOF,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnelrl-",  XLOCB(19,BOF,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnerl",    XLOCB(19,BOF,CBEQ,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnslr",    XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnslr-",   XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnslr-",   XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnsr",     XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnulr",    XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnulr-",   XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnulr-",   XLOCB(19,BOF,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnslrl",   XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnslrl-",  XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnslrl-",  XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnsrl",    XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bnulrl",   XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnulrl-",  XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgelr+",   XLOCB(19,BOFP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnllr+",   XLOCB(19,BOFP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgelrl+",  XLOCB(19,BOFP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnllrl+",  XLOCB(19,BOFP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"blelr+",   XLOCB(19,BOFP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnglr+",   XLOCB(19,BOFP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"blelrl+",  XLOCB(19,BOFP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnglrl+",  XLOCB(19,BOFP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnelr+",   XLOCB(19,BOFP,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnelrl+",  XLOCB(19,BOFP,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnslr+",   XLOCB(19,BOFP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnulr+",   XLOCB(19,BOFP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnslrl+",  XLOCB(19,BOFP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnulrl+",  XLOCB(19,BOFP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgelr-",   XLOCB(19,BOFM4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnllr-",   XLOCB(19,BOFM4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgelrl-",  XLOCB(19,BOFM4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnllrl-",  XLOCB(19,BOFM4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blelr-",   XLOCB(19,BOFM4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnglr-",   XLOCB(19,BOFM4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blelrl-",  XLOCB(19,BOFM4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnglrl-",  XLOCB(19,BOFM4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnelr-",   XLOCB(19,BOFM4,CBEQ,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnelrl-",  XLOCB(19,BOFM4,CBEQ,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnslr-",   XLOCB(19,BOFM4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnulr-",   XLOCB(19,BOFM4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnslrl-",  XLOCB(19,BOFM4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnulrl-",  XLOCB(19,BOFM4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgelr+",   XLOCB(19,BOFP4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnllr+",   XLOCB(19,BOFP4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgelrl+",  XLOCB(19,BOFP4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnllrl+",  XLOCB(19,BOFP4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blelr+",   XLOCB(19,BOFP4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnglr+",   XLOCB(19,BOFP4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blelrl+",  XLOCB(19,BOFP4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnglrl+",  XLOCB(19,BOFP4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnelr+",   XLOCB(19,BOFP4,CBEQ,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnelrl+",  XLOCB(19,BOFP4,CBEQ,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnslr+",   XLOCB(19,BOFP4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnulr+",   XLOCB(19,BOFP4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnslrl+",  XLOCB(19,BOFP4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnulrl+",  XLOCB(19,BOFP4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
+{"bnulrl-",  XLOCB(19,BOF,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgelr+",   XLOCB(19,BOFP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnllr+",   XLOCB(19,BOFP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgelrl+",  XLOCB(19,BOFP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnllrl+",  XLOCB(19,BOFP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"blelr+",   XLOCB(19,BOFP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnglr+",   XLOCB(19,BOFP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"blelrl+",  XLOCB(19,BOFP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnglrl+",  XLOCB(19,BOFP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnelr+",   XLOCB(19,BOFP,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnelrl+",  XLOCB(19,BOFP,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnslr+",   XLOCB(19,BOFP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnulr+",   XLOCB(19,BOFP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnslrl+",  XLOCB(19,BOFP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnulrl+",  XLOCB(19,BOFP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgelr-",   XLOCB(19,BOFM4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnllr-",   XLOCB(19,BOFM4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgelrl-",  XLOCB(19,BOFM4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnllrl-",  XLOCB(19,BOFM4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blelr-",   XLOCB(19,BOFM4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnglr-",   XLOCB(19,BOFM4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blelrl-",  XLOCB(19,BOFM4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnglrl-",  XLOCB(19,BOFM4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnelr-",   XLOCB(19,BOFM4,CBEQ,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnelrl-",  XLOCB(19,BOFM4,CBEQ,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnslr-",   XLOCB(19,BOFM4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnulr-",   XLOCB(19,BOFM4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnslrl-",  XLOCB(19,BOFM4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnulrl-",  XLOCB(19,BOFM4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgelr+",   XLOCB(19,BOFP4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnllr+",   XLOCB(19,BOFP4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgelrl+",  XLOCB(19,BOFP4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnllrl+",  XLOCB(19,BOFP4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blelr+",   XLOCB(19,BOFP4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnglr+",   XLOCB(19,BOFP4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blelrl+",  XLOCB(19,BOFP4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnglrl+",  XLOCB(19,BOFP4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnelr+",   XLOCB(19,BOFP4,CBEQ,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnelrl+",  XLOCB(19,BOFP4,CBEQ,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnslr+",   XLOCB(19,BOFP4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnulr+",   XLOCB(19,BOFP4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnslrl+",  XLOCB(19,BOFP4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnulrl+",  XLOCB(19,BOFP4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
 {"bltlr",    XLOCB(19,BOT,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bltlr-",   XLOCB(19,BOT,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bltlr-",   XLOCB(19,BOT,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bltr",     XLOCB(19,BOT,CBLT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bltlrl",   XLOCB(19,BOT,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bltlrl-",  XLOCB(19,BOT,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bltlrl-",  XLOCB(19,BOT,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bltrl",    XLOCB(19,BOT,CBLT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bgtlr",    XLOCB(19,BOT,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgtlr-",   XLOCB(19,BOT,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgtlr-",   XLOCB(19,BOT,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgtr",     XLOCB(19,BOT,CBGT,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bgtlrl",   XLOCB(19,BOT,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgtlrl-",  XLOCB(19,BOT,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgtlrl-",  XLOCB(19,BOT,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgtrl",    XLOCB(19,BOT,CBGT,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"beqlr",    XLOCB(19,BOT,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"beqlr-",   XLOCB(19,BOT,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"beqlr-",   XLOCB(19,BOT,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"beqr",     XLOCB(19,BOT,CBEQ,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"beqlrl",   XLOCB(19,BOT,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"beqlrl-",  XLOCB(19,BOT,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"beqlrl-",  XLOCB(19,BOT,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"beqrl",    XLOCB(19,BOT,CBEQ,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bsolr",    XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bsolr-",   XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bsolr-",   XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bsor",     XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bunlr",    XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bunlr-",   XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bunlr-",   XLOCB(19,BOT,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bsolrl",   XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bsolrl-",  XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bsolrl-",  XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bsorl",    XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PWRCOM,	 PPCNONE,	{CR}},
 {"bunlrl",   XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bunlrl-",  XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltlr+",   XLOCB(19,BOTP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltlrl+",  XLOCB(19,BOTP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgtlr+",   XLOCB(19,BOTP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgtlrl+",  XLOCB(19,BOTP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"beqlr+",   XLOCB(19,BOTP,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"beqlrl+",  XLOCB(19,BOTP,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bsolr+",   XLOCB(19,BOTP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bunlr+",   XLOCB(19,BOTP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bsolrl+",  XLOCB(19,BOTP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bunlrl+",  XLOCB(19,BOTP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltlr-",   XLOCB(19,BOTM4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltlrl-",  XLOCB(19,BOTM4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtlr-",   XLOCB(19,BOTM4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtlrl-",  XLOCB(19,BOTM4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqlr-",   XLOCB(19,BOTM4,CBEQ,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqlrl-",  XLOCB(19,BOTM4,CBEQ,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsolr-",   XLOCB(19,BOTM4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunlr-",   XLOCB(19,BOTM4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsolrl-",  XLOCB(19,BOTM4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunlrl-",  XLOCB(19,BOTM4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltlr+",   XLOCB(19,BOTP4,CBLT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltlrl+",  XLOCB(19,BOTP4,CBLT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtlr+",   XLOCB(19,BOTP4,CBGT,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtlrl+",  XLOCB(19,BOTP4,CBGT,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqlr+",   XLOCB(19,BOTP4,CBEQ,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqlrl+",  XLOCB(19,BOTP4,CBEQ,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsolr+",   XLOCB(19,BOTP4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunlr+",   XLOCB(19,BOTP4,CBSO,16,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsolrl+",  XLOCB(19,BOTP4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunlrl+",  XLOCB(19,BOTP4,CBSO,16,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
+{"bunlrl-",  XLOCB(19,BOT,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltlr+",   XLOCB(19,BOTP,CBLT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltlrl+",  XLOCB(19,BOTP,CBLT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgtlr+",   XLOCB(19,BOTP,CBGT,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgtlrl+",  XLOCB(19,BOTP,CBGT,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"beqlr+",   XLOCB(19,BOTP,CBEQ,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"beqlrl+",  XLOCB(19,BOTP,CBEQ,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bsolr+",   XLOCB(19,BOTP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bunlr+",   XLOCB(19,BOTP,CBSO,16,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bsolrl+",  XLOCB(19,BOTP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bunlrl+",  XLOCB(19,BOTP,CBSO,16,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltlr-",   XLOCB(19,BOTM4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltlrl-",  XLOCB(19,BOTM4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtlr-",   XLOCB(19,BOTM4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtlrl-",  XLOCB(19,BOTM4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqlr-",   XLOCB(19,BOTM4,CBEQ,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqlrl-",  XLOCB(19,BOTM4,CBEQ,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsolr-",   XLOCB(19,BOTM4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunlr-",   XLOCB(19,BOTM4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsolrl-",  XLOCB(19,BOTM4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunlrl-",  XLOCB(19,BOTM4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltlr+",   XLOCB(19,BOTP4,CBLT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltlrl+",  XLOCB(19,BOTP4,CBLT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtlr+",   XLOCB(19,BOTP4,CBGT,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtlrl+",  XLOCB(19,BOTP4,CBGT,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqlr+",   XLOCB(19,BOTP4,CBEQ,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqlrl+",  XLOCB(19,BOTP4,CBEQ,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsolr+",   XLOCB(19,BOTP4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunlr+",   XLOCB(19,BOTP4,CBSO,16,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsolrl+",  XLOCB(19,BOTP4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunlrl+",  XLOCB(19,BOTP4,CBSO,16,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
 
 {"bdnzflr",  XLO(19,BODNZF,16,0),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdnzflr-", XLO(19,BODNZF,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdnzflr-", XLO(19,BODNZF,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdnzflrl", XLO(19,BODNZF,16,1),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdnzflrl-",XLO(19,BODNZF,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdnzflr+", XLO(19,BODNZFP,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdnzflrl+",XLO(19,BODNZFP,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdnzflrl-",XLO(19,BODNZF,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdnzflr+", XLO(19,BODNZFP,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdnzflrl+",XLO(19,BODNZFP,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdzflr",   XLO(19,BODZF,16,0),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdzflr-",  XLO(19,BODZF,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdzflr-",  XLO(19,BODZF,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdzflrl",  XLO(19,BODZF,16,1),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdzflrl-", XLO(19,BODZF,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdzflr+",  XLO(19,BODZFP,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdzflrl+", XLO(19,BODZFP,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdzflrl-", XLO(19,BODZF,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdzflr+",  XLO(19,BODZFP,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdzflrl+", XLO(19,BODZFP,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bflr",     XLO(19,BOF,16,0),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bflr-",    XLO(19,BOF,16,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bflr-",    XLO(19,BOF,16,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bbfr",     XLO(19,BOF,16,0),		XLBOBB_MASK,   PWRCOM,	 PPCNONE,	{BI}},
 {"bflrl",    XLO(19,BOF,16,1),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bflrl-",   XLO(19,BOF,16,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bflrl-",   XLO(19,BOF,16,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bbfrl",    XLO(19,BOF,16,1),		XLBOBB_MASK,   PWRCOM,	 PPCNONE,	{BI}},
-{"bflr+",    XLO(19,BOFP,16,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bflrl+",   XLO(19,BOFP,16,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bflr-",    XLO(19,BOFM4,16,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bflrl-",   XLO(19,BOFM4,16,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bflr+",    XLO(19,BOFP4,16,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bflrl+",   XLO(19,BOFP4,16,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
+{"bflr+",    XLO(19,BOFP,16,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bflrl+",   XLO(19,BOFP,16,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bflr-",    XLO(19,BOFM4,16,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bflrl-",   XLO(19,BOFM4,16,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bflr+",    XLO(19,BOFP4,16,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bflrl+",   XLO(19,BOFP4,16,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
 {"bdnztlr",  XLO(19,BODNZT,16,0),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdnztlr-", XLO(19,BODNZT,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdnztlr-", XLO(19,BODNZT,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdnztlrl", XLO(19,BODNZT,16,1),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdnztlrl-",XLO(19,BODNZT,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdnztlr+", XLO(19,BODNZTP,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdnztlrl+",XLO(19,BODNZTP,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdnztlrl-",XLO(19,BODNZT,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdnztlr+", XLO(19,BODNZTP,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdnztlrl+",XLO(19,BODNZTP,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdztlr",   XLO(19,BODZT,16,0),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdztlr-",  XLO(19,BODZT,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdztlr-",  XLO(19,BODZT,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bdztlrl",  XLO(19,BODZT,16,1),	XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bdztlrl-", XLO(19,BODZT,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdztlr+",  XLO(19,BODZTP,16,0),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bdztlrl+", XLO(19,BODZTP,16,1),	XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bdztlrl-", XLO(19,BODZT,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdztlr+",  XLO(19,BODZTP,16,0),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bdztlrl+", XLO(19,BODZTP,16,1),	XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"btlr",     XLO(19,BOT,16,0),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"btlr-",    XLO(19,BOT,16,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"btlr-",    XLO(19,BOT,16,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bbtr",     XLO(19,BOT,16,0),		XLBOBB_MASK,   PWRCOM,	 PPCNONE,	{BI}},
 {"btlrl",    XLO(19,BOT,16,1),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"btlrl-",   XLO(19,BOT,16,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"btlrl-",   XLO(19,BOT,16,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bbtrl",    XLO(19,BOT,16,1),		XLBOBB_MASK,   PWRCOM,	 PPCNONE,	{BI}},
-{"btlr+",    XLO(19,BOTP,16,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"btlrl+",   XLO(19,BOTP,16,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"btlr-",    XLO(19,BOTM4,16,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btlrl-",   XLO(19,BOTM4,16,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btlr+",    XLO(19,BOTP4,16,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btlrl+",   XLO(19,BOTP4,16,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
+{"btlr+",    XLO(19,BOTP,16,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"btlrl+",   XLO(19,BOTP,16,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"btlr-",    XLO(19,BOTM4,16,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btlrl-",   XLO(19,BOTM4,16,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btlr+",    XLO(19,BOTP4,16,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btlrl+",   XLO(19,BOTP4,16,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
 
 {"bclr-",    XLYLK(19,16,0,0),		XLYBB_MASK,    PPCCOM,	 PPCNONE,	{BOE, BI}},
 {"bclrl-",   XLYLK(19,16,0,1),		XLYBB_MASK,    PPCCOM,	 PPCNONE,	{BOE, BI}},
@@ -3196,146 +3285,146 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"bctrl",   XLO(19,BOU,528,1),		XLBOBIBB_MASK, COM,	 PPCNONE,	{0}},
 
 {"bgectr",  XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgectr-", XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgectr-", XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnlctr",  XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnlctr-", XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnlctr-", XLOCB(19,BOF,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgectrl", XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgectrl-",XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgectrl-",XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnlctrl", XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnlctrl-",XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnlctrl-",XLOCB(19,BOF,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"blectr",  XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"blectr-", XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"blectr-", XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bngctr",  XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bngctr-", XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bngctr-", XLOCB(19,BOF,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"blectrl", XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"blectrl-",XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"blectrl-",XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bngctrl", XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bngctrl-",XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bngctrl-",XLOCB(19,BOF,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnectr",  XLOCB(19,BOF,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnectr-", XLOCB(19,BOF,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnectr-", XLOCB(19,BOF,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnectrl", XLOCB(19,BOF,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnectrl-",XLOCB(19,BOF,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnectrl-",XLOCB(19,BOF,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnsctr",  XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnsctr-", XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnsctr-", XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnuctr",  XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnuctr-", XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnuctr-", XLOCB(19,BOF,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnsctrl", XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnsctrl-",XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bnsctrl-",XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bnuctrl", XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bnuctrl-",XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgectr+", XLOCB(19,BOFP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnlctr+", XLOCB(19,BOFP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgectrl+",XLOCB(19,BOFP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnlctrl+",XLOCB(19,BOFP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"blectr+", XLOCB(19,BOFP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bngctr+", XLOCB(19,BOFP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"blectrl+",XLOCB(19,BOFP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bngctrl+",XLOCB(19,BOFP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnectr+", XLOCB(19,BOFP,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnectrl+",XLOCB(19,BOFP,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnsctr+", XLOCB(19,BOFP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnuctr+", XLOCB(19,BOFP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnsctrl+",XLOCB(19,BOFP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bnuctrl+",XLOCB(19,BOFP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgectr-", XLOCB(19,BOFM4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnlctr-", XLOCB(19,BOFM4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgectrl-",XLOCB(19,BOFM4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnlctrl-",XLOCB(19,BOFM4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blectr-", XLOCB(19,BOFM4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bngctr-", XLOCB(19,BOFM4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blectrl-",XLOCB(19,BOFM4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bngctrl-",XLOCB(19,BOFM4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnectr-", XLOCB(19,BOFM4,CBEQ,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnectrl-",XLOCB(19,BOFM4,CBEQ,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnsctr-", XLOCB(19,BOFM4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnuctr-", XLOCB(19,BOFM4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnsctrl-",XLOCB(19,BOFM4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnuctrl-",XLOCB(19,BOFM4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgectr+", XLOCB(19,BOFP4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnlctr+", XLOCB(19,BOFP4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgectrl+",XLOCB(19,BOFP4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnlctrl+",XLOCB(19,BOFP4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blectr+", XLOCB(19,BOFP4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bngctr+", XLOCB(19,BOFP4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"blectrl+",XLOCB(19,BOFP4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bngctrl+",XLOCB(19,BOFP4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnectr+", XLOCB(19,BOFP4,CBEQ,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnectrl+",XLOCB(19,BOFP4,CBEQ,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnsctr+", XLOCB(19,BOFP4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnuctr+", XLOCB(19,BOFP4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnsctrl+",XLOCB(19,BOFP4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bnuctrl+",XLOCB(19,BOFP4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
+{"bnuctrl-",XLOCB(19,BOF,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgectr+", XLOCB(19,BOFP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnlctr+", XLOCB(19,BOFP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgectrl+",XLOCB(19,BOFP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnlctrl+",XLOCB(19,BOFP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"blectr+", XLOCB(19,BOFP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bngctr+", XLOCB(19,BOFP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"blectrl+",XLOCB(19,BOFP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bngctrl+",XLOCB(19,BOFP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnectr+", XLOCB(19,BOFP,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnectrl+",XLOCB(19,BOFP,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnsctr+", XLOCB(19,BOFP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnuctr+", XLOCB(19,BOFP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnsctrl+",XLOCB(19,BOFP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bnuctrl+",XLOCB(19,BOFP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgectr-", XLOCB(19,BOFM4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnlctr-", XLOCB(19,BOFM4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgectrl-",XLOCB(19,BOFM4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnlctrl-",XLOCB(19,BOFM4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blectr-", XLOCB(19,BOFM4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bngctr-", XLOCB(19,BOFM4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blectrl-",XLOCB(19,BOFM4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bngctrl-",XLOCB(19,BOFM4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnectr-", XLOCB(19,BOFM4,CBEQ,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnectrl-",XLOCB(19,BOFM4,CBEQ,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnsctr-", XLOCB(19,BOFM4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnuctr-", XLOCB(19,BOFM4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnsctrl-",XLOCB(19,BOFM4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnuctrl-",XLOCB(19,BOFM4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgectr+", XLOCB(19,BOFP4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnlctr+", XLOCB(19,BOFP4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgectrl+",XLOCB(19,BOFP4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnlctrl+",XLOCB(19,BOFP4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blectr+", XLOCB(19,BOFP4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bngctr+", XLOCB(19,BOFP4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"blectrl+",XLOCB(19,BOFP4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bngctrl+",XLOCB(19,BOFP4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnectr+", XLOCB(19,BOFP4,CBEQ,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnectrl+",XLOCB(19,BOFP4,CBEQ,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnsctr+", XLOCB(19,BOFP4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnuctr+", XLOCB(19,BOFP4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnsctrl+",XLOCB(19,BOFP4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bnuctrl+",XLOCB(19,BOFP4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
 {"bltctr",  XLOCB(19,BOT,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bltctr-", XLOCB(19,BOT,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bltctr-", XLOCB(19,BOT,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bltctrl", XLOCB(19,BOT,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bltctrl-",XLOCB(19,BOT,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bltctrl-",XLOCB(19,BOT,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgtctr",  XLOCB(19,BOT,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgtctr-", XLOCB(19,BOT,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgtctr-", XLOCB(19,BOT,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bgtctrl", XLOCB(19,BOT,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bgtctrl-",XLOCB(19,BOT,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bgtctrl-",XLOCB(19,BOT,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"beqctr",  XLOCB(19,BOT,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"beqctr-", XLOCB(19,BOT,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"beqctr-", XLOCB(19,BOT,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"beqctrl", XLOCB(19,BOT,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"beqctrl-",XLOCB(19,BOT,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"beqctrl-",XLOCB(19,BOT,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bsoctr",  XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bsoctr-", XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bsoctr-", XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bunctr",  XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bunctr-", XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bunctr-", XLOCB(19,BOT,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bsoctrl", XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bsoctrl-",XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
+{"bsoctrl-",XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
 {"bunctrl", XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,	 PPCNONE,	{CR}},
-{"bunctrl-",XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltctr+", XLOCB(19,BOTP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltctrl+",XLOCB(19,BOTP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgtctr+", XLOCB(19,BOTP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bgtctrl+",XLOCB(19,BOTP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"beqctr+", XLOCB(19,BOTP,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"beqctrl+",XLOCB(19,BOTP,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bsoctr+", XLOCB(19,BOTP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bunctr+", XLOCB(19,BOTP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bsoctrl+",XLOCB(19,BOTP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bunctrl+",XLOCB(19,BOTP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   POWER4,	{CR}},
-{"bltctr-", XLOCB(19,BOTM4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltctrl-",XLOCB(19,BOTM4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtctr-", XLOCB(19,BOTM4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtctrl-",XLOCB(19,BOTM4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqctr-", XLOCB(19,BOTM4,CBEQ,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqctrl-",XLOCB(19,BOTM4,CBEQ,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsoctr-", XLOCB(19,BOTM4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunctr-", XLOCB(19,BOTM4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsoctrl-",XLOCB(19,BOTM4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunctrl-",XLOCB(19,BOTM4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltctr+", XLOCB(19,BOTP4,CBLT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bltctrl+",XLOCB(19,BOTP4,CBLT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtctr+", XLOCB(19,BOTP4,CBGT,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bgtctrl+",XLOCB(19,BOTP4,CBGT,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqctr+", XLOCB(19,BOTP4,CBEQ,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"beqctrl+",XLOCB(19,BOTP4,CBEQ,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsoctr+", XLOCB(19,BOTP4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunctr+", XLOCB(19,BOTP4,CBSO,528,0),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bsoctrl+",XLOCB(19,BOTP4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
-{"bunctrl+",XLOCB(19,BOTP4,CBSO,528,1),	XLBOCBBB_MASK, POWER4,	 PPCNONE,	{CR}},
+{"bunctrl-",XLOCB(19,BOT,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltctr+", XLOCB(19,BOTP,CBLT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltctrl+",XLOCB(19,BOTP,CBLT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgtctr+", XLOCB(19,BOTP,CBGT,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bgtctrl+",XLOCB(19,BOTP,CBGT,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"beqctr+", XLOCB(19,BOTP,CBEQ,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"beqctrl+",XLOCB(19,BOTP,CBEQ,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bsoctr+", XLOCB(19,BOTP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bunctr+", XLOCB(19,BOTP,CBSO,528,0),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bsoctrl+",XLOCB(19,BOTP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bunctrl+",XLOCB(19,BOTP,CBSO,528,1),	XLBOCBBB_MASK, PPCCOM,   ISA_V2,	{CR}},
+{"bltctr-", XLOCB(19,BOTM4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltctrl-",XLOCB(19,BOTM4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtctr-", XLOCB(19,BOTM4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtctrl-",XLOCB(19,BOTM4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqctr-", XLOCB(19,BOTM4,CBEQ,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqctrl-",XLOCB(19,BOTM4,CBEQ,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsoctr-", XLOCB(19,BOTM4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunctr-", XLOCB(19,BOTM4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsoctrl-",XLOCB(19,BOTM4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunctrl-",XLOCB(19,BOTM4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltctr+", XLOCB(19,BOTP4,CBLT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bltctrl+",XLOCB(19,BOTP4,CBLT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtctr+", XLOCB(19,BOTP4,CBGT,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bgtctrl+",XLOCB(19,BOTP4,CBGT,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqctr+", XLOCB(19,BOTP4,CBEQ,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"beqctrl+",XLOCB(19,BOTP4,CBEQ,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsoctr+", XLOCB(19,BOTP4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunctr+", XLOCB(19,BOTP4,CBSO,528,0),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bsoctrl+",XLOCB(19,BOTP4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
+{"bunctrl+",XLOCB(19,BOTP4,CBSO,528,1),	XLBOCBBB_MASK, ISA_V2,	 PPCNONE,	{CR}},
 
 {"bfctr",   XLO(19,BOF,528,0),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bfctr-",  XLO(19,BOF,528,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"bfctr-",  XLO(19,BOF,528,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"bfctrl",  XLO(19,BOF,528,1),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"bfctrl-", XLO(19,BOF,528,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bfctr+",  XLO(19,BOFP,528,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bfctrl+", XLO(19,BOFP,528,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"bfctr-",  XLO(19,BOFM4,528,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bfctrl-", XLO(19,BOFM4,528,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bfctr+",  XLO(19,BOFP4,528,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"bfctrl+", XLO(19,BOFP4,528,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
+{"bfctrl-", XLO(19,BOF,528,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bfctr+",  XLO(19,BOFP,528,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bfctrl+", XLO(19,BOFP,528,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"bfctr-",  XLO(19,BOFM4,528,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bfctrl-", XLO(19,BOFM4,528,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bfctr+",  XLO(19,BOFP4,528,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"bfctrl+", XLO(19,BOFP4,528,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
 {"btctr",   XLO(19,BOT,528,0),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"btctr-",  XLO(19,BOT,528,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
+{"btctr-",  XLO(19,BOT,528,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
 {"btctrl",  XLO(19,BOT,528,1),		XLBOBB_MASK,   PPCCOM,	 PPCNONE,	{BI}},
-{"btctrl-", XLO(19,BOT,528,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"btctr+",  XLO(19,BOTP,528,0),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"btctrl+", XLO(19,BOTP,528,1),		XLBOBB_MASK,   PPCCOM,   POWER4,	{BI}},
-{"btctr-",  XLO(19,BOTM4,528,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btctrl-", XLO(19,BOTM4,528,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btctr+",  XLO(19,BOTP4,528,0),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
-{"btctrl+", XLO(19,BOTP4,528,1),	XLBOBB_MASK,   POWER4,	 PPCNONE,	{BI}},
+{"btctrl-", XLO(19,BOT,528,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"btctr+",  XLO(19,BOTP,528,0),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"btctrl+", XLO(19,BOTP,528,1),		XLBOBB_MASK,   PPCCOM,   ISA_V2,	{BI}},
+{"btctr-",  XLO(19,BOTM4,528,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btctrl-", XLO(19,BOTM4,528,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btctr+",  XLO(19,BOTP4,528,0),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
+{"btctrl+", XLO(19,BOTP4,528,1),	XLBOBB_MASK,   ISA_V2,	 PPCNONE,	{BI}},
 
 {"bcctr-",  XLYLK(19,528,0,0),		XLYBB_MASK,    PPCCOM,	 PPCNONE,	{BOE, BI}},
 {"bcctrl-", XLYLK(19,528,0,1),		XLYBB_MASK,    PPCCOM,	 PPCNONE,	{BOE, BI}},
@@ -3417,7 +3506,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"cmpw",	XOPL(31,0,0),	XCMPL_MASK,  PPCCOM,	PPCNONE,	{OBF, RA, RB}},
 {"cmpd",	XOPL(31,0,1),	XCMPL_MASK,  PPC64,	PPCNONE,	{OBF, RA, RB}},
 {"cmp",		X(31,0),	XCMP_MASK,   PPC,	PPCNONE,	{BF, L, RA, RB}},
-{"cmp",		X(31,0),	XCMPL_MASK,  PWRCOM,	PPCNONE,	{BF, RA, RB}},
+{"cmp",		X(31,0),	XCMPL_MASK,  PWRCOM,	PPC,		{BF, RA, RB}},
 
 {"twlgt",	XTO(31,4,TOLGT), XTO_MASK,   PPCCOM,	PPCNONE,	{RA, RB}},
 {"tlgt",	XTO(31,4,TOLGT), XTO_MASK,   PWRCOM,	PPCNONE,	{RA, RB}},
@@ -3457,7 +3546,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"subfc",	XO(31,8,0,0),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"sf",		XO(31,8,0,0),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
-{"subc",	XO(31,8,0,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RB, RA}},
+{"subc",	XO(31,8,0,0),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RB, RA}},
 {"subfc.",	XO(31,8,0,1),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"sf.",		XO(31,8,0,1),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
 {"subc.",	XO(31,8,0,1),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RB, RA}},
@@ -3518,7 +3607,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"cmplw",	XOPL(31,32,0),	XCMPL_MASK,  PPCCOM,	PPCNONE,	{OBF, RA, RB}},
 {"cmpld",	XOPL(31,32,1),	XCMPL_MASK,  PPC64,	PPCNONE,	{OBF, RA, RB}},
 {"cmpl",	X(31,32),	XCMP_MASK,   PPC,	PPCNONE,	{BF, L, RA, RB}},
-{"cmpl",	X(31,32),	XCMPL_MASK,  PWRCOM,	PPCNONE,	{BF, RA, RB}},
+{"cmpl",	X(31,32),	XCMPL_MASK,  PWRCOM,	PPC,		{BF, RA, RB}},
 
 {"lvsr",	X(31,38),	X_MASK,      PPCVEC,	PPCNONE,	{VD, RA, RB}},
 {"lvehx",	X(31,39),	X_MASK,      PPCVEC,	PPCNONE,	{VD, RA, RB}},
@@ -3532,7 +3621,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"iseleq",	X(31,79),	X_MASK,      PPCISEL,	PPCNONE,	{RT, RA, RB}},
 
-{"isel",	XISEL(31,15),	XISEL_MASK,  PPCISEL,	PPCNONE,	{RT, RA, RB, CRB}},
+{"isel",	XISEL(31,15), XISEL_MASK, PPCISEL|TITAN, PPCNONE,	{RT, RA, RB, CRB}},
 
 {"subf",	XO(31,40,0,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RA, RB}},
 {"sub",		XO(31,40,0,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RB, RA}},
@@ -3585,8 +3674,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mulhw",	XO(31,75,0,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RA, RB}},
 {"mulhw.",	XO(31,75,0,1),	XO_MASK,     PPC,	PPCNONE,	{RT, RA, RB}},
 
-{"dlmzb",	XRC(31,78,0),	X_MASK,  PPC403|PPC440,	PPCNONE,	{RA, RS, RB}},
-{"dlmzb.",	XRC(31,78,1),	X_MASK,  PPC403|PPC440,	PPCNONE,	{RA, RS, RB}},
+{"dlmzb",	XRC(31,78,0), X_MASK, PPC403|PPC440|TITAN, PPCNONE,	{RA, RS, RB}},
+{"dlmzb.",	XRC(31,78,1), X_MASK, PPC403|PPC440|TITAN, PPCNONE,	{RA, RS, RB}},
 
 {"mtsrd",	X(31,82),  XRB_MASK|(1<<20), PPC64,	PPCNONE,	{SR, RS}},
 
@@ -3629,7 +3718,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"wrtee",	X(31,131), XRARB_MASK, PPC403|BOOKE|PPCA2|PPC476, PPCNONE, {RS}},
 
-{"dcbtstls",	X(31,134),	X_MASK, PPCCHLK|PPC476,	PPCNONE,	{CT, RA, RB}},
+{"dcbtstls",	X(31,134), X_MASK, PPCCHLK|PPC476|TITAN, PPCNONE,	{CT, RA, RB}},
 
 {"stvebx",	X(31,135),	X_MASK,      PPCVEC,	PPCNONE,	{VS, RA, RB}},
 {"stbfcmx",	APU(31,135,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
@@ -3676,7 +3765,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"wrteei",	X(31,163), XE_MASK, PPC403|BOOKE|PPCA2|PPC476, PPCNONE,	{E}},
 
-{"dcbtls",	X(31,166),	X_MASK, PPCCHLK|PPC476,	PPCNONE,	{CT, RA, RB}},
+{"dcbtls",	X(31,166), X_MASK, PPCCHLK|PPC476|TITAN, PPCNONE,	{CT, RA, RB}},
 
 {"stvehx",	X(31,167),	X_MASK,      PPCVEC,	PPCNONE,	{VS, RA, RB}},
 {"sthfcmx",	APU(31,167,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
@@ -3714,7 +3803,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"msgsnd",	XRTRA(31,206,0,0), XRTRA_MASK, E500MC|PPCA2, PPCNONE,	{RB}},
 
-{"mtsr",	X(31,210), XRB_MASK|(1<<20), COM32,	PPCNONE,	{SR, RS}},
+{"mtsr",	X(31,210), XRB_MASK|(1<<20), COM,	NON32,  	{SR, RS}},
 
 {"eratwe",	X(31,211),	X_MASK,	     PPCA2,	PPCNONE,	{RS, RA, WS}},
 
@@ -3732,7 +3821,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"stbepx",	X(31,223),	X_MASK,   E500MC|PPCA2,	PPCNONE,	{RS, RA, RB}},
 
-{"icblc",	X(31,230),	X_MASK, PPCCHLK|PPC476,	PPCNONE,	{CT, RA, RB}},
+{"icblc",	X(31,230), X_MASK, PPCCHLK|PPC476|TITAN, PPCNONE,	{CT, RA, RB}},
 
 {"stvx",	X(31,231),	X_MASK,      PPCVEC,	PPCNONE,	{VS, RA, RB}},
 {"stqfcmx",	APU(31,231,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
@@ -3757,8 +3846,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"icblce",	X(31,238),	X_MASK,      PPCCHLK,	E500MC|PPCA2,	{CT, RA, RB}},
 {"msgclr",	XRTRA(31,238,0,0),XRTRA_MASK,E500MC|PPCA2, PPCNONE,	{RB}},
-{"mtsrin",	X(31,242),	XRA_MASK,    PPC32,	PPCNONE,	{RS, RB}},
-{"mtsri",	X(31,242),	XRA_MASK,    POWER32,	PPCNONE,	{RS, RB}},
+{"mtsrin",	X(31,242),	XRA_MASK,    PPC,	NON32,  	{RS, RB}},
+{"mtsri",	X(31,242),	XRA_MASK,    POWER,	NON32,		{RS, RB}},
 
 {"dcbtstt",	XRT(31,246,0x10), XRT_MASK,  POWER7,	PPCNONE,	{RA, RB}},
 {"dcbtst",	X(31,246),	X_MASK,      POWER4,	PPCNONE,	{RA, RB, CT}},
@@ -3773,7 +3862,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"dcbtstep",	XRT(31,255,0),	X_MASK,   E500MC|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
-{"mfdcrx",	X(31,259),	X_MASK, BOOKE|PPCA2|PPC476, PPCNONE,	{RS, RA}},
+{"mfdcrx",	X(31,259),	X_MASK, BOOKE|PPCA2|PPC476, TITAN,	{RS, RA}},
 {"mfdcrx.",	XRC(31,259,1),	X_MASK,      PPCA2,	PPCNONE,	{RS, RA}},
 
 {"icbt",	X(31,262),	XRT_MASK,    PPC403,	PPCNONE,	{RA, RB}},
@@ -3791,7 +3880,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"tlbiel",	X(31,274),	XRTLRA_MASK, POWER4,	PPC476,		{RB, L}},
 
-{"mfapidi",	X(31,275),	X_MASK,      BOOKE,	PPCNONE,	{RT, RA}},
+{"mfapidi",	X(31,275),	X_MASK,      BOOKE,	TITAN,  	{RT, RA}},
 
 {"lscbx",	XRC(31,277,0),	X_MASK,      M601,	PPCNONE,	{RT, RA, RB}},
 {"lscbx.",	XRC(31,277,1),	X_MASK,      M601,	PPCNONE,	{RT, RA, RB}},
@@ -3811,10 +3900,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"mfdcrux",	X(31,291),	X_MASK,      PPC464,	PPCNONE,	{RS, RA}},
 
-{"tlbie",	X(31,306),	XRTLRA_MASK, PPC,	PPCNONE,	{RB, L}},
+{"tlbie",	X(31,306),	XRTLRA_MASK, PPC,	TITAN,  	{RB, L}},
 {"tlbi",	X(31,306),	XRT_MASK,    POWER,	PPCNONE,	{RA0, RB}},
 
-{"eciwx",	X(31,310),	X_MASK,      PPC,	PPCNONE,	{RT, RA, RB}},
+{"eciwx",	X(31,310),	X_MASK,      PPC,	TITAN,  	{RT, RA, RB}},
 
 {"lhzux",	X(31,311),	X_MASK,      COM,	PPCNONE,	{RT, RAL, RB}},
 
@@ -3859,10 +3948,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfdmasa3",	XSPR(31,323,219), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdmacc3",	XSPR(31,323,220), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdmasr",	XSPR(31,323,224), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
-{"mfdcr",	X(31,323),	X_MASK, PPC403|BOOKE|PPCA2|PPC476, PPCNONE, {RT, SPR}},
+{"mfdcr",	X(31,323), X_MASK, PPC403|BOOKE|PPCA2|PPC476, TITAN,	{RT, SPR}},
 {"mfdcr.",	XRC(31,323,1),	X_MASK,      PPCA2,	PPCNONE,	{RT, SPR}},
 
-{"dcread",	X(31,326),	X_MASK,      PPC476,	PPCNONE,	{RT, RA, RB}},
+{"dcread",	X(31,326),	X_MASK,  PPC476|TITAN,	PPCNONE,	{RT, RA, RB}},
 
 {"div",		XO(31,331,0,0),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
 {"div.",	XO(31,331,0,1),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
@@ -3873,17 +3962,17 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"mfmq",	XSPR(31,339,  0), XSPR_MASK, M601,	PPCNONE,	{RT}},
 {"mfxer",	XSPR(31,339,  1), XSPR_MASK, COM,	PPCNONE,	{RT}},
-{"mfrtcu",	XSPR(31,339,  4), XSPR_MASK, COM,	PPCNONE,	{RT}},
-{"mfrtcl",	XSPR(31,339,  5), XSPR_MASK, COM,	PPCNONE,	{RT}},
+{"mfrtcu",	XSPR(31,339,  4), XSPR_MASK, COM,	TITAN,  	{RT}},
+{"mfrtcl",	XSPR(31,339,  5), XSPR_MASK, COM,	TITAN,  	{RT}},
 {"mfdec",	XSPR(31,339,  6), XSPR_MASK, MFDEC1,	PPCNONE,	{RT}},
 {"mflr",	XSPR(31,339,  8), XSPR_MASK, COM,	PPCNONE,	{RT}},
 {"mfctr",	XSPR(31,339,  9), XSPR_MASK, COM,	PPCNONE,	{RT}},
 {"mftid",	XSPR(31,339, 17), XSPR_MASK, POWER,	PPCNONE,	{RT}},
-{"mfdsisr",	XSPR(31,339, 18), XSPR_MASK, COM,	PPCNONE,	{RT}},
-{"mfdar",	XSPR(31,339, 19), XSPR_MASK, COM,	PPCNONE,	{RT}},
-{"mfdec",	XSPR(31,339, 22), XSPR_MASK, MFDEC2,	PPCNONE,	{RT}},
+{"mfdsisr",	XSPR(31,339, 18), XSPR_MASK, COM,	TITAN,  	{RT}},
+{"mfdar",	XSPR(31,339, 19), XSPR_MASK, COM,	TITAN,  	{RT}},
+{"mfdec",	XSPR(31,339, 22), XSPR_MASK, MFDEC2,	MFDEC1,		{RT}},
 {"mfsdr0",	XSPR(31,339, 24), XSPR_MASK, POWER,	PPCNONE,	{RT}},
-{"mfsdr1",	XSPR(31,339, 25), XSPR_MASK, COM,	PPCNONE,	{RT}},
+{"mfsdr1",	XSPR(31,339, 25), XSPR_MASK, COM,	TITAN,  	{RT}},
 {"mfsrr0",	XSPR(31,339, 26), XSPR_MASK, COM,	PPCNONE,	{RT}},
 {"mfsrr1",	XSPR(31,339, 27), XSPR_MASK, COM,	PPCNONE,	{RT}},
 {"mfcfar",	XSPR(31,339, 28), XSPR_MASK, POWER6,	PPCNONE,	{RT}},
@@ -3924,7 +4013,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfsprg2",	XSPR(31,339,274), XSPR_MASK, PPC,	PPCNONE,	{RT}},
 {"mfsprg3",	XSPR(31,339,275), XSPR_MASK, PPC,	PPCNONE,	{RT}},
 {"mfasr",	XSPR(31,339,280), XSPR_MASK, PPC64,	PPCNONE,	{RT}},
-{"mfear",	XSPR(31,339,282), XSPR_MASK, PPC,	PPCNONE,	{RT}},
+{"mfear",	XSPR(31,339,282), XSPR_MASK, PPC,	TITAN,  	{RT}},
 {"mfpir",	XSPR(31,339,286), XSPR_MASK, BOOKE,	PPCNONE,	{RT}},
 {"mfpvr",	XSPR(31,339,287), XSPR_MASK, PPC,	PPCNONE,	{RT}},
 {"mfdbsr",	XSPR(31,339,304), XSPR_MASK, BOOKE,	PPCNONE,	{RT}},
@@ -3961,13 +4050,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfbbear",	XSPR(31,339,513), XSPR_MASK, PPCBRLK,	PPCNONE,	{RT}},
 {"mfbbtar",	XSPR(31,339,514), XSPR_MASK, PPCBRLK,	PPCNONE,	{RT}},
 {"mfivor32",	XSPR(31,339,528), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
-{"mfibatu",	XSPR(31,339,528), XSPRBAT_MASK, PPC,	PPCNONE,	{RT, SPRBAT}},
+{"mfibatu",	XSPR(31,339,528), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfivor33",	XSPR(31,339,529), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
-{"mfibatl",	XSPR(31,339,529), XSPRBAT_MASK, PPC,	PPCNONE,	{RT, SPRBAT}},
+{"mfibatl",	XSPR(31,339,529), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfivor34",	XSPR(31,339,530), XSPR_MASK, PPCSPE,	PPCNONE,	{RT}},
 {"mfivor35",	XSPR(31,339,531), XSPR_MASK, PPCPMR,	PPCNONE,	{RT}},
-{"mfdbatu",	XSPR(31,339,536), XSPRBAT_MASK, PPC,	PPCNONE,	{RT, SPRBAT}},
-{"mfdbatl",	XSPR(31,339,537), XSPRBAT_MASK, PPC,	PPCNONE,	{RT, SPRBAT}},
+{"mfdbatu",	XSPR(31,339,536), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
+{"mfdbatl",	XSPR(31,339,537), XSPRBAT_MASK, PPC,	TITAN,  	{RT, SPRBAT}},
 {"mfic_cst",	XSPR(31,339,560), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfic_adr",	XSPR(31,339,561), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfic_dat",	XSPR(31,339,562), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
@@ -3977,7 +4066,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfmcsrr0",	XSPR(31,339,570), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RT}},
 {"mfmcsrr1",	XSPR(31,339,571), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RT}},
 {"mfmcsr",	XSPR(31,339,572), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RT}},
-{"mfmcar",	XSPR(31,339,573), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RT}},
+{"mfmcar",	XSPR(31,339,573), XSPR_MASK, PPCRFMCI,	TITAN,  	{RT}},
 {"mfdpdr",	XSPR(31,339,630), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfdpir",	XSPR(31,339,631), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfimmr",	XSPR(31,339,638), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
@@ -4000,6 +4089,16 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfmd_dbcam",	XSPR(31,339,824), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfmd_dbram0",	XSPR(31,339,825), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
 {"mfmd_dbram1",	XSPR(31,339,826), XSPR_MASK, PPC860,	PPCNONE,	{RT}},
+{"mfivndx",	XSPR(31,339,880), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfdvndx",	XSPR(31,339,881), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfivlim",	XSPR(31,339,882), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfdvlim",	XSPR(31,339,883), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfclcsr",	XSPR(31,339,884), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfccr1",	XSPR(31,339,888), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfrstcfg",	XSPR(31,339,923), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfdcdbtrl",	XSPR(31,339,924), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfdcdbtrh",	XSPR(31,339,925), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mficdbtr",	XSPR(31,339,927), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
 {"mfummcr0",	XSPR(31,339,936), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
 {"mfupmc1",	XSPR(31,339,937), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
 {"mfupmc2",	XSPR(31,339,938), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
@@ -4009,7 +4108,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfupmc4",	XSPR(31,339,942), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
 {"mfzpr",	XSPR(31,339,944), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfpid",	XSPR(31,339,945), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
-{"mfccr0",	XSPR(31,339,947), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
+{"mfmmucr",	XSPR(31,339,946), XSPR_MASK, TITAN,	PPCNONE,	{RT}},
+{"mfccr0",	XSPR(31,339,947), XSPR_MASK, PPC405|TITAN, PPCNONE,	{RT}},
 {"mfiac3",	XSPR(31,339,948), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
 {"mfiac4",	XSPR(31,339,949), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
 {"mfdvc1",	XSPR(31,339,950), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
@@ -4026,7 +4126,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfdbcr1",	XSPR(31,339,957), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
 {"mfpmc3",	XSPR(31,339,957), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
 {"mfpmc4",	XSPR(31,339,958), XSPR_MASK, PPC750,	PPCNONE,	{RT}},
-{"mficdbdr",	XSPR(31,339,979), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
+{"mficdbdr",	XSPR(31,339,979), XSPR_MASK, PPC403|TITAN, PPCNONE,	{RT}},
 {"mfesr",	XSPR(31,339,980), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdear",	XSPR(31,339,981), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfevpr",	XSPR(31,339,982), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
@@ -4040,6 +4140,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mfsrr3",	XSPR(31,339,991), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdbsr",	XSPR(31,339,1008), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdbcr0",	XSPR(31,339,1010), XSPR_MASK, PPC405,	PPCNONE,	{RT}},
+{"mfdbdr",	XSPR(31,339,1011), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
 {"mfiac1",	XSPR(31,339,1012), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfiac2",	XSPR(31,339,1013), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
 {"mfdac1",	XSPR(31,339,1014), XSPR_MASK, PPC403,	PPCNONE,	{RT}},
@@ -4071,11 +4172,11 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"divs",	XO(31,363,0,0),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
 {"divs.",	XO(31,363,0,1),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
 
-{"tlbia",	X(31,370),	0xffffffff,  PPC,	PPCNONE,	{0}},
+{"tlbia",	X(31,370),	0xffffffff,  PPC,	TITAN,  	{0}},
 
-{"mftbl",	XSPR(31,371,268), XSPR_MASK, CLASSIC,	PPCNONE,	{RT}},
-{"mftbu",	XSPR(31,371,269), XSPR_MASK, CLASSIC,	PPCNONE,	{RT}},
-{"mftb",	X(31,371),	X_MASK,  CLASSIC|PPCA2,	POWER7,		{RT, TBR}},
+{"mftbl",	XSPR(31,371,268), XSPR_MASK, PPC,	NO371,		{RT}},
+{"mftbu",	XSPR(31,371,269), XSPR_MASK, PPC,	NO371,		{RT}},
+{"mftb",	X(31,371),	X_MASK,      PPC|PPCA2,	NO371|POWER7,	{RT, TBR}},
 
 {"lwaux",	X(31,373),	X_MASK,      PPC64,	PPCNONE,	{RT, RAL, RB}},
 
@@ -4085,23 +4186,23 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"popcntw",	X(31,378),	XRB_MASK, POWER7|PPCA2,	PPCNONE,	{RA, RS}},
 
-{"mtdcrx",	X(31,387),	X_MASK, BOOKE|PPCA2|PPC476, PPCNONE,	{RA, RS}},
+{"mtdcrx",	X(31,387),	X_MASK, BOOKE|PPCA2|PPC476, TITAN,	{RA, RS}},
 {"mtdcrx.",	XRC(31,387,1),	X_MASK,      PPCA2,	PPCNONE,	{RA, RS}},
 
-{"dcblc",	X(31,390),	X_MASK, PPCCHLK|PPC476,	PPCNONE,	{CT, RA, RB}},
+{"dcblc",	X(31,390),	X_MASK, PPCCHLK|PPC476|TITAN, PPCNONE,	{CT, RA, RB}},
 {"stdfcmx",	APU(31,391,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
 
-{"divdeu",	XO(31,393,0,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divdeu.",	XO(31,393,0,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweu",	XO(31,395,0,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweu.",	XO(31,395,0,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
+{"divdeu",	XO(31,393,0,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divdeu.",	XO(31,393,0,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweu",	XO(31,395,0,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweu.",	XO(31,395,0,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
 {"dcblce",	X(31,398),	X_MASK,      PPCCHLK,	PPCNONE,	{CT, RA, RB}},
 
 {"slbmte",	X(31,402),	XRA_MASK,    PPC64,	PPCNONE,	{RS, RB}},
 
-{"icswx",	XRC(31,406,0),	X_MASK,      PPCA2,	PPCNONE,	{RS, RA, RB}},
-{"icswx.",	XRC(31,406,1),	X_MASK,      PPCA2,	PPCNONE,	{RS, RA, RB}},
+{"icswx",	XRC(31,406,0),	X_MASK,   POWER7|PPCA2,	PPCNONE,	{RS, RA, RB}},
+{"icswx.",	XRC(31,406,1),	X_MASK,   POWER7|PPCA2,	PPCNONE,	{RS, RA, RB}},
 
 {"sthx",	X(31,407),	X_MASK,      COM,	PPCNONE,	{RS, RA0, RB}},
 
@@ -4112,14 +4213,14 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"mtdcrux",	X(31,419),	X_MASK,      PPC464,	PPCNONE,	{RA, RS}},
 
-{"divde",	XO(31,425,0,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divde.",	XO(31,425,0,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divwe",	XO(31,427,0,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divwe.",	XO(31,427,0,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
+{"divde",	XO(31,425,0,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divde.",	XO(31,425,0,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divwe",	XO(31,427,0,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divwe.",	XO(31,427,0,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
 {"slbie",	X(31,434),	XRTRA_MASK,  PPC64,	PPCNONE,	{RB}},
 
-{"ecowx",	X(31,438),	X_MASK,      PPC,	PPCNONE,	{RT, RA, RB}},
+{"ecowx",	X(31,438),	X_MASK,      PPC,	TITAN,  	{RT, RA, RB}},
 
 {"sthux",	X(31,439),	X_MASK,      COM,	PPCNONE,	{RS, RAS, RB}},
 
@@ -4164,10 +4265,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtdmasa3",	XSPR(31,451,219), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtdmacc3",	XSPR(31,451,220), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtdmasr",	XSPR(31,451,224), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
-{"mtdcr",	X(31,451),     X_MASK, PPC403|BOOKE|PPCA2|PPC476, PPCNONE, {SPR, RS}},
+{"mtdcr",	X(31,451), X_MASK, PPC403|BOOKE|PPCA2|PPC476, TITAN,	{SPR, RS}},
 {"mtdcr.",	XRC(31,451,1), X_MASK,       PPCA2,	PPCNONE,	{SPR, RS}},
 
-{"dccci",	X(31,454),     XRT_MASK, PPC403|PPC440,	PPCA2|PPC476,	{RA, RB}},
+{"dccci",	X(31,454), XRT_MASK, PPC403|PPC440|TITAN|PPCA2, PPCNONE, {RAOPT, RBOPT}},
 {"dci",		X(31,454),	XRARB_MASK, PPCA2|PPC476, PPCNONE,	{CT}},
 
 {"divdu",	XO(31,457,0,0),	XO_MASK,     PPC64,	PPCNONE,	{RT, RA, RB}},
@@ -4181,15 +4282,15 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtmq",	XSPR(31,467,  0), XSPR_MASK, M601,	PPCNONE,	{RS}},
 {"mtxer",	XSPR(31,467,  1), XSPR_MASK, COM,	PPCNONE,	{RS}},
 {"mtlr",	XSPR(31,467,  8), XSPR_MASK, COM,	PPCNONE,	{RS}},
-{"mtctr",	XSPR(31,467,  9), XSPR_MASK, COM,	PPCNONE,	{RS}},
+{"mtctr", 	XSPR(31,467,  9), XSPR_MASK, COM,	PPCNONE,	{RS}},
 {"mttid",	XSPR(31,467, 17), XSPR_MASK, POWER,	PPCNONE,	{RS}},
-{"mtdsisr",	XSPR(31,467, 18), XSPR_MASK, COM,	PPCNONE,	{RS}},
-{"mtdar",	XSPR(31,467, 19), XSPR_MASK, COM,	PPCNONE,	{RS}},
-{"mtrtcu",	XSPR(31,467, 20), XSPR_MASK, COM,	PPCNONE,	{RS}},
-{"mtrtcl",	XSPR(31,467, 21), XSPR_MASK, COM,	PPCNONE,	{RS}},
+{"mtdsisr",	XSPR(31,467, 18), XSPR_MASK, COM,	TITAN,  	{RS}},
+{"mtdar",	XSPR(31,467, 19), XSPR_MASK, COM,	TITAN,  	{RS}},
+{"mtrtcu",	XSPR(31,467, 20), XSPR_MASK, COM,	TITAN,  	{RS}},
+{"mtrtcl",	XSPR(31,467, 21), XSPR_MASK, COM,	TITAN,  	{RS}},
 {"mtdec",	XSPR(31,467, 22), XSPR_MASK, COM,	PPCNONE,	{RS}},
 {"mtsdr0",	XSPR(31,467, 24), XSPR_MASK, POWER,	PPCNONE,	{RS}},
-{"mtsdr1",	XSPR(31,467, 25), XSPR_MASK, COM,	PPCNONE,	{RS}},
+{"mtsdr1",	XSPR(31,467, 25), XSPR_MASK, COM,	TITAN,  	{RS}},
 {"mtsrr0",	XSPR(31,467, 26), XSPR_MASK, COM,	PPCNONE,	{RS}},
 {"mtsrr1",	XSPR(31,467, 27), XSPR_MASK, COM,	PPCNONE,	{RS}},
 {"mtcfar",	XSPR(31,467, 28), XSPR_MASK, POWER6,	PPCNONE,	{RS}},
@@ -4228,7 +4329,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtsprg6",	XSPR(31,467,278), XSPR_MASK, PPC405|BOOKE, PPCNONE,	{RS}},
 {"mtsprg7",	XSPR(31,467,279), XSPR_MASK, PPC405|BOOKE, PPCNONE,	{RS}},
 {"mtasr",	XSPR(31,467,280), XSPR_MASK, PPC64,	PPCNONE,	{RS}},
-{"mtear",	XSPR(31,467,282), XSPR_MASK, PPC,	PPCNONE,	{RS}},
+{"mtear",	XSPR(31,467,282), XSPR_MASK, PPC,	TITAN,  	{RS}},
 {"mttbl",	XSPR(31,467,284), XSPR_MASK, PPC,	PPCNONE,	{RS}},
 {"mttbu",	XSPR(31,467,285), XSPR_MASK, PPC,	PPCNONE,	{RS}},
 {"mtdbsr",	XSPR(31,467,304), XSPR_MASK, BOOKE,	PPCNONE,	{RS}},
@@ -4265,16 +4366,22 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtbbear",	XSPR(31,467,513), XSPR_MASK, PPCBRLK,	PPCNONE,	{RS}},
 {"mtbbtar",	XSPR(31,467,514), XSPR_MASK, PPCBRLK,	PPCNONE,	{RS}},
 {"mtivor32",	XSPR(31,467,528), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
-{"mtibatu",	XSPR(31,467,528), XSPRBAT_MASK, PPC,	PPCNONE,	{SPRBAT, RS}},
+{"mtibatu",	XSPR(31,467,528), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtivor33",	XSPR(31,467,529), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
-{"mtibatl",	XSPR(31,467,529), XSPRBAT_MASK, PPC,	PPCNONE,	{SPRBAT, RS}},
+{"mtibatl",	XSPR(31,467,529), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtivor34",	XSPR(31,467,530), XSPR_MASK, PPCSPE,	PPCNONE,	{RS}},
 {"mtivor35",	XSPR(31,467,531), XSPR_MASK, PPCPMR,	PPCNONE,	{RS}},
-{"mtdbatu",	XSPR(31,467,536), XSPRBAT_MASK, PPC,	PPCNONE,	{SPRBAT, RS}},
-{"mtdbatl",	XSPR(31,467,537), XSPRBAT_MASK, PPC,	PPCNONE,	{SPRBAT, RS}},
+{"mtdbatu",	XSPR(31,467,536), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
+{"mtdbatl",	XSPR(31,467,537), XSPRBAT_MASK, PPC,	TITAN,  	{SPRBAT, RS}},
 {"mtmcsrr0",	XSPR(31,467,570), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
 {"mtmcsrr1",	XSPR(31,467,571), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
 {"mtmcsr",	XSPR(31,467,572), XSPR_MASK, PPCRFMCI,	PPCNONE,	{RS}},
+{"mtivndx",	XSPR(31,467,880), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtdvndx",	XSPR(31,467,881), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtivlim",	XSPR(31,467,882), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtdvlim",	XSPR(31,467,883), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtclcsr",	XSPR(31,467,884), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtccr1",	XSPR(31,467,888), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
 {"mtummcr0",	XSPR(31,467,936), XSPR_MASK, PPC750,	PPCNONE,	{RS}},
 {"mtupmc1",	XSPR(31,467,937), XSPR_MASK, PPC750,	PPCNONE,	{RS}},
 {"mtupmc2",	XSPR(31,467,938), XSPR_MASK, PPC750,	PPCNONE,	{RS}},
@@ -4284,7 +4391,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtupmc4",	XSPR(31,467,942), XSPR_MASK, PPC750,	PPCNONE,	{RS}},
 {"mtzpr",	XSPR(31,467,944), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtpid",	XSPR(31,467,945), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
-{"mtccr0",	XSPR(31,467,947), XSPR_MASK, PPC405,	PPCNONE,	{RS}},
+{"mtrmmucr",	XSPR(31,467,946), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
+{"mtccr0",	XSPR(31,467,947), XSPR_MASK, PPC405|TITAN, PPCNONE,	{RS}},
 {"mtiac3",	XSPR(31,467,948), XSPR_MASK, PPC405,	PPCNONE,	{RS}},
 {"mtiac4",	XSPR(31,467,949), XSPR_MASK, PPC405,	PPCNONE,	{RS}},
 {"mtdvc1",	XSPR(31,467,950), XSPR_MASK, PPC405,	PPCNONE,	{RS}},
@@ -4314,6 +4422,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mtsrr2",	XSPR(31,467,990), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtsrr3",	XSPR(31,467,991), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtdbsr",	XSPR(31,467,1008), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
+{"mtdbdr",	XSPR(31,467,1011), XSPR_MASK, TITAN,	PPCNONE,	{RS}},
 {"mtdbcr0",	XSPR(31,467,1010), XSPR_MASK, PPC405,	PPCNONE,	{RS}},
 {"mtiac1",	XSPR(31,467,1012), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
 {"mtiac2",	XSPR(31,467,1013), XSPR_MASK, PPC403,	PPCNONE,	{RS}},
@@ -4341,7 +4450,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"dcread",	X(31,486),	X_MASK,  PPC403|PPC440,	PPCA2|PPC476,	{RT, RA, RB}},
 
-{"icbtls",	X(31,486),	X_MASK, PPCCHLK|PPC476,	PPCNONE,	{CT, RA, RB}},
+{"icbtls",	X(31,486),	X_MASK, PPCCHLK|PPC476|TITAN, PPCNONE,	{CT, RA, RB}},
 
 {"stvxl",	X(31,487),	X_MASK,      PPCVEC,	PPCNONE,	{VS, RA, RB}},
 
@@ -4375,10 +4484,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"subfco",	XO(31,8,1,0),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"sfo",		XO(31,8,1,0),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
-{"subco",	XO(31,8,1,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RB, RA}},
+{"subco",	XO(31,8,1,0),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RB, RA}},
 {"subfco.",	XO(31,8,1,1),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"sfo.",	XO(31,8,1,1),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
-{"subco.",	XO(31,8,1,1),	XO_MASK,     PPC,	PPCNONE,	{RT, RB, RA}},
+{"subco.",	XO(31,8,1,1),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RB, RA}},
 
 {"addco",	XO(31,10,1,0),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"ao",		XO(31,10,1,0),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
@@ -4389,13 +4498,13 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"ldbrx",	X(31,532),	X_MASK, CELL|POWER7|PPCA2, PPCNONE,	{RT, RA0, RB}},
 
-{"lswx",	X(31,533),	X_MASK,      PPCCOM,	PPCNONE,	{RT, RA0, RB}},
+{"lswx",	X(31,533),	X_MASK,      PPCCOM,	E500|E500MC,	{RT, RAX, RBX}},
 {"lsx",		X(31,533),	X_MASK,      PWRCOM,	PPCNONE,	{RT, RA, RB}},
 
 {"lwbrx",	X(31,534),	X_MASK,      PPCCOM,	PPCNONE,	{RT, RA0, RB}},
 {"lbrx",	X(31,534),	X_MASK,      PWRCOM,	PPCNONE,	{RT, RA, RB}},
 
-{"lfsx",	X(31,535),	X_MASK,      COM,	PPCNONE,	{FRT, RA0, RB}},
+{"lfsx",	X(31,535),	X_MASK,      COM,	PPCEFS,		{FRT, RA0, RB}},
 
 {"srw",		XRC(31,536,0),	X_MASK,      PPCCOM,	PPCNONE,	{RA, RS, RB}},
 {"sr",		XRC(31,536,0),	X_MASK,      PWRCOM,	PPCNONE,	{RA, RS, RB}},
@@ -4425,7 +4534,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"tlbsync",	X(31,566),	0xffffffff,  PPC,	PPCNONE,	{0}},
 
-{"lfsux",	X(31,567),	X_MASK,      COM,	PPCNONE,	{FRT, RAS, RB}},
+{"lfsux",	X(31,567),	X_MASK,      COM,	PPCEFS,		{FRT, RAS, RB}},
 
 {"lwdx",	X(31,579),	X_MASK,      E500MC,	PPCNONE,	{RT, RA, RB}},
 
@@ -4433,18 +4542,20 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"lxsdx",	X(31,588),	XX1_MASK,    PPCVSX,	PPCNONE,	{XT6, RA, RB}},
 
-{"mfsr",	X(31,595), XRB_MASK|(1<<20), COM32,	PPCNONE,	{RT, SR}},
+{"mfsr",	X(31,595), XRB_MASK|(1<<20), COM,	NON32,  	{RT, SR}},
 
-{"lswi",	X(31,597),	X_MASK,      PPCCOM,	PPCNONE,	{RT, RA0, NB}},
+{"lswi",	X(31,597),	X_MASK,      PPCCOM,	E500|E500MC,	{RT, RA0, NBI}},
 {"lsi",		X(31,597),	X_MASK,      PWRCOM,	PPCNONE,	{RT, RA0, NB}},
 
-{"lwsync",	XSYNC(31,598,1), 0xffffffff, PPC,	PPCNONE,	{0}},
+{"lwsync",	XSYNC(31,598,1), 0xffffffff, PPC,	E500,		{0}},
 {"ptesync",	XSYNC(31,598,2), 0xffffffff, PPC64,	PPCNONE,	{0}},
 {"sync",	X(31,598),	XSYNC_MASK,  PPCCOM,	BOOKE|PPC476,	{LS}},
 {"msync",	X(31,598),	0xffffffff, BOOKE|PPCA2|PPC476, PPCNONE, {0}},
+{"sync",	X(31,598),	0xffffffff, BOOKE|PPC476, PPCNONE, {0}},
+{"lwsync",	X(31,598),	0xffffffff, E500,	PPCNONE,	{0}},
 {"dcs",		X(31,598),	0xffffffff,  PWRCOM,	PPCNONE,	{0}},
 
-{"lfdx",	X(31,599),	X_MASK,      COM,	PPCNONE,	{FRT, RA0, RB}},
+{"lfdx",	X(31,599),	X_MASK,      COM,	PPCEFS,		{FRT, RA0, RB}},
 
 {"mffgpr",	XRC(31,607,0),	XRA_MASK,    POWER6,	POWER7,		{FRT, RB}},
 {"lfdepx",	X(31,607),	X_MASK,   E500MC|PPCA2,	PPCNONE,	{FRT, RA, RB}},
@@ -4459,11 +4570,11 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"mulo",	XO(31,107,1,0),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
 {"mulo.",	XO(31,107,1,1),	XO_MASK,     M601,	PPCNONE,	{RT, RA, RB}},
 
-{"mfsri",	X(31,627),	X_MASK,      PWRCOM,	PPCNONE,	{RT, RA, RB}},
+{"mfsri",	X(31,627),	X_MASK,      M601,	PPCNONE,	{RT, RA, RB}},
 
-{"dclst",	X(31,630),	XRB_MASK,    PWRCOM,	PPCNONE,	{RS, RA}},
+{"dclst",	X(31,630),	XRB_MASK,    M601,	PPCNONE,	{RS, RA}},
 
-{"lfdux",	X(31,631),	X_MASK,      COM,	PPCNONE,	{FRT, RAS, RB}},
+{"lfdux",	X(31,631),	X_MASK,      COM,	PPCEFS,		{FRT, RAS, RB}},
 
 {"stbdx",	X(31,643),	X_MASK,      E500MC,	PPCNONE,	{RS, RA, RB}},
 
@@ -4480,17 +4591,17 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"addeo.",	XO(31,138,1,1),	XO_MASK,     PPCCOM,	PPCNONE,	{RT, RA, RB}},
 {"aeo.",	XO(31,138,1,1),	XO_MASK,     PWRCOM,	PPCNONE,	{RT, RA, RB}},
 
-{"mfsrin",	X(31,659),	XRA_MASK,    PPC32,	PPCNONE,	{RT, RB}},
+{"mfsrin",	X(31,659),	XRA_MASK,    PPC,	NON32,  	{RT, RB}},
 
 {"stdbrx",	X(31,660),	X_MASK, CELL|POWER7|PPCA2, PPCNONE,	{RS, RA0, RB}},
 
-{"stswx",	X(31,661),	X_MASK,      PPCCOM,	PPCNONE,	{RS, RA0, RB}},
+{"stswx",	X(31,661),	X_MASK,      PPCCOM,	E500|E500MC,	{RS, RA0, RB}},
 {"stsx",	X(31,661),	X_MASK,      PWRCOM,	PPCNONE,	{RS, RA0, RB}},
 
 {"stwbrx",	X(31,662),	X_MASK,      PPCCOM,	PPCNONE,	{RS, RA0, RB}},
 {"stbrx",	X(31,662),	X_MASK,      PWRCOM,	PPCNONE,	{RS, RA0, RB}},
 
-{"stfsx",	X(31,663),	X_MASK,      COM,	PPCNONE,	{FRS, RA0, RB}},
+{"stfsx",	X(31,663),	X_MASK,      COM,	PPCEFS,		{FRS, RA0, RB}},
 
 {"srq",		XRC(31,664,0),	X_MASK,      M601,	PPCNONE,	{RA, RS, RB}},
 {"srq.",	XRC(31,664,1),	X_MASK,      M601,	PPCNONE,	{RA, RS, RB}},
@@ -4503,13 +4614,9 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"stvrx",	X(31,679),	X_MASK,      CELL,	PPCNONE,	{VS, RA0, RB}},
 {"sthfcmux",	APU(31,679,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
 
-{"wclrone",	XOPL2(31,694,2),XRT_MASK,    PPCA2,	PPCNONE,	{RA0, RB}},
-{"wclrall",	X(31,694),	XRARB_MASK,  PPCA2,	PPCNONE,	{L}},
-{"wclr",	X(31,694),	X_MASK,	     PPCA2,	PPCNONE,	{L, RA0, RB}},
-
 {"stbcx.",	XRC(31,694,1),	X_MASK,      POWER7,	PPCNONE,	{RS, RA0, RB}},
 
-{"stfsux",	X(31,695),	X_MASK,      COM,	PPCNONE,	{FRS, RAS, RB}},
+{"stfsux",	X(31,695),	X_MASK,      COM,	PPCEFS,		{FRS, RAS, RB}},
 
 {"sriq",	XRC(31,696,0),	X_MASK,      M601,	PPCNONE,	{RA, RS, SH}},
 {"sriq.",	XRC(31,696,1),	X_MASK,      M601,	PPCNONE,	{RA, RS, SH}},
@@ -4530,12 +4637,12 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"addzeo.",	XO(31,202,1,1),	XORB_MASK,   PPCCOM,	PPCNONE,	{RT, RA}},
 {"azeo.",	XO(31,202,1,1),	XORB_MASK,   PWRCOM,	PPCNONE,	{RT, RA}},
 
-{"stswi",	X(31,725),	X_MASK,      PPCCOM,	PPCNONE,	{RS, RA0, NB}},
+{"stswi",	X(31,725),	X_MASK,      PPCCOM,	E500|E500MC,	{RS, RA0, NB}},
 {"stsi",	X(31,725),	X_MASK,      PWRCOM,	PPCNONE,	{RS, RA0, NB}},
 
 {"sthcx.",	XRC(31,726,1),	X_MASK,      POWER7,	PPCNONE,	{RS, RA0, RB}},
 
-{"stfdx",	X(31,727),	X_MASK,      COM,	PPCNONE,	{FRS, RA0, RB}},
+{"stfdx",	X(31,727),	X_MASK,      COM,	PPCEFS,		{FRS, RA0, RB}},
 
 {"srlq",	XRC(31,728,0),	X_MASK,      M601,	PPCNONE,	{RA, RS, RB}},
 {"srlq.",	XRC(31,728,1),	X_MASK,      M601,	PPCNONE,	{RA, RS, RB}},
@@ -4571,7 +4678,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"dcba",	X(31,758), XRT_MASK, PPC405|PPC7450|BOOKE|PPCA2|PPC476, PPCNONE, {RA, RB}},
 {"dcbal",	XOPL(31,758,1), XRT_MASK,    E500MC,	PPCNONE,	{RA, RB}},
 
-{"stfdux",	X(31,759),	X_MASK,      COM,	PPCNONE,	{FRS, RAS, RB}},
+{"stfdux",	X(31,759),	X_MASK,      COM,	PPCEFS,		{FRS, RAS, RB}},
 
 {"srliq",	XRC(31,760,0),	X_MASK,      M601,	PPCNONE,	{RA, RS, SH}},
 {"srliq.",	XRC(31,760,1),	X_MASK,      M601,	PPCNONE,	{RA, RS, SH}},
@@ -4595,7 +4702,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"lhbrx",	X(31,790),	X_MASK,      COM,	PPCNONE,	{RT, RA0, RB}},
 
-{"lfdpx",	X(31,791),	X_MASK,      POWER6,	POWER7,		{FRT, RA, RB}},
+{"lfdpx",	X(31,791),	X_MASK,      POWER6,	POWER7,		{FRTp, RA, RB}},
 {"lfqx",	X(31,791),	X_MASK,      POWER2,	PPCNONE,	{FRT, RA, RB}},
 
 {"sraw",	XRC(31,792,0),	X_MASK,      PPCCOM,	PPCNONE,	{RA, RS, RB}},
@@ -4610,7 +4717,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"lvrxl",	X(31,807),	X_MASK,      CELL,	PPCNONE,	{VD, RA0, RB}},
 
-{"rac",		X(31,818),	X_MASK,      PWRCOM,	PPCNONE,	{RT, RA, RB}},
+{"rac",		X(31,818),	X_MASK,      M601,	PPCNONE,	{RT, RA, RB}},
 
 {"erativax",	X(31,819),	X_MASK,	     PPCA2,	PPCNONE,	{RS, RA0, RB}},
 
@@ -4641,6 +4748,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"eieio",	X(31,854),	0xffffffff,  PPC,   BOOKE|PPCA2|PPC476,	{0}},
 {"mbar",	X(31,854),	X_MASK, BOOKE|PPCA2|PPC476, PPCNONE,	{MO}},
+{"eieio",	XMBAR(31,854,1),0xffffffff,  E500,   PPCNONE,	{0}},
 {"eieio",	X(31,854),	0xffffffff, PPCA2|PPC476, PPCNONE,	{0}},
 
 {"lfiwax",	X(31,855),	X_MASK, POWER6|PPCA2|PPC476, PPCNONE,	{FRT, RA0, RB}},
@@ -4658,10 +4766,10 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"stvlxl",	X(31,903),	X_MASK,      CELL,	PPCNONE,	{VS, RA0, RB}},
 {"stdfcmux",	APU(31,903,0), 	APU_MASK,    PPC405,	PPCNONE,	{FCRT, RA, RB}},
 
-{"divdeuo",	XO(31,393,1,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divdeuo.",	XO(31,393,1,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweuo",	XO(31,395,1,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweuo.",	XO(31,395,1,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
+{"divdeuo",	XO(31,393,1,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divdeuo.",	XO(31,393,1,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweuo",	XO(31,395,1,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweuo.",	XO(31,395,1,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
 {"stxvw4x",	X(31,908),	XX1_MASK,    PPCVSX,	PPCNONE,	{XS6, RA, RB}},
 
@@ -4674,7 +4782,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"sthbrx",	X(31,918),	X_MASK,      COM,	PPCNONE,	{RS, RA0, RB}},
 
-{"stfdpx",	X(31,919),	X_MASK,      POWER6,	PPCNONE,	{FRS, RA, RB}},
+{"stfdpx",	X(31,919),	X_MASK,      POWER6,	POWER7,		{FRSp, RA, RB}},
 {"stfqx",	X(31,919),	X_MASK,      POWER2,	PPCNONE,	{FRS, RA, RB}},
 
 {"sraq",	XRC(31,920,0),	X_MASK,      M601,	PPCNONE,	{RA, RS, RB}},
@@ -4690,18 +4798,25 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"stfddx",	X(31,931),	X_MASK,      E500MC,	PPCNONE,	{FRS, RA, RB}},
 
+{"wclrone",	XOPL2(31,934,2),XRT_MASK,    PPCA2,	PPCNONE,	{RA0, RB}},
+{"wclrall",	X(31,934),	XRARB_MASK,  PPCA2,	PPCNONE,	{L}},
+{"wclr",	X(31,934),	X_MASK,	     PPCA2,	PPCNONE,	{L, RA0, RB}},
+
 {"stvrxl",	X(31,935),	X_MASK,      CELL,	PPCNONE,	{VS, RA0, RB}},
 
-{"divdeo",	XO(31,425,1,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divdeo.",	XO(31,425,1,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweo",	XO(31,427,1,0),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
-{"divweo.",	XO(31,427,1,1),	XO_MASK,     POWER7,	PPCNONE,	{RT, RA, RB}},
+{"divdeo",	XO(31,425,1,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divdeo.",	XO(31,425,1,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweo",	XO(31,427,1,0),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
+{"divweo.",	XO(31,427,1,1),	XO_MASK,  POWER7|PPCA2,	PPCNONE,	{RT, RA, RB}},
 
 {"tlbrehi",	XTLB(31,946,0),	XTLB_MASK,   PPC403,	PPCA2,		{RT, RA}},
 {"tlbrelo",	XTLB(31,946,1),	XTLB_MASK,   PPC403,	PPCA2,		{RT, RA}},
 {"tlbre",	X(31,946),	X_MASK, PPC403|BOOKE|PPCA2|PPC476, PPCNONE, {RSO, RAOPT, SHO}},
 
 {"sthcix",	X(31,949),	X_MASK,      POWER6,	PPCNONE,	{RS, RA0, RB}},
+
+{"icswepx",	XRC(31,950,0),	X_MASK,      PPCA2,	PPCNONE,	{RS, RA, RB}},
+{"icswepx.",	XRC(31,950,1),	X_MASK,      PPCA2,	PPCNONE,	{RS, RA, RB}},
 
 {"stfqux",	X(31,951),	X_MASK,      POWER2,	PPCNONE,	{FRS, RA, RB}},
 
@@ -4711,7 +4826,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"extsb",	XRC(31,954,0),	XRB_MASK,    PPC,	PPCNONE,	{RA, RS}},
 {"extsb.",	XRC(31,954,1),	XRB_MASK,    PPC,	PPCNONE,	{RA, RS}},
 
-{"iccci",	X(31,966),     XRT_MASK, PPC403|PPC440,	PPC476,		{RA, RB}},
+{"iccci",	X(31,966), XRT_MASK, PPC403|PPC440|TITAN|PPCA2, PPCNONE, {RAOPT, RBOPT}},
 {"ici",		X(31,966),	XRARB_MASK,  PPCA2|PPC476, PPCNONE,	{CT}},
 
 {"divduo",	XO(31,457,1,0),	XO_MASK,     PPC64,	PPCNONE,	{RT, RA, RB}},
@@ -4731,14 +4846,14 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"icbi",	X(31,982),	XRT_MASK,    PPC,	PPCNONE,	{RA, RB}},
 
-{"stfiwx",	X(31,983),	X_MASK,      PPC,	PPCNONE,	{FRS, RA0, RB}},
+{"stfiwx",	X(31,983),	X_MASK,      PPC,	PPCEFS,		{FRS, RA0, RB}},
 
 {"extsw",	XRC(31,986,0),  XRB_MASK,    PPC64,	PPCNONE,	{RA, RS}},
 {"extsw.",	XRC(31,986,1),	XRB_MASK,    PPC64,	PPCNONE,	{RA, RS}},
 
 {"icbiep",	XRT(31,991,0),	XRT_MASK, E500MC|PPCA2,	PPCNONE,	{RA, RB}},
 
-{"icread",	X(31,998),     XRT_MASK, PPC403|PPC440|PPC476, PPCNONE,	{RA, RB}},
+{"icread",	X(31,998), XRT_MASK, PPC403|PPC440|PPC476|TITAN, PPCNONE, {RA, RB}},
 
 {"nabso",	XO(31,488,1,0),	XORB_MASK,   M601,	PPCNONE,	{RT, RA}},
 {"nabso.",	XO(31,488,1,1),	XORB_MASK,   M601,	PPCNONE,	{RT, RA}},
@@ -4749,7 +4864,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"divwo",	XO(31,491,1,0),	XO_MASK,     PPC,	PPCNONE,	{RT, RA, RB}},
 {"divwo.",	XO(31,491,1,1),	XO_MASK,     PPC,	PPCNONE,	{RT, RA, RB}},
 
-{"tlbli",	X(31,1010),	XRTRA_MASK,  PPC,	PPCNONE,	{RB}},
+{"tlbli",	X(31,1010),	XRTRA_MASK,  PPC,	TITAN,  	{RB}},
 
 {"stdcix",	X(31,1013),	X_MASK,      POWER6,	PPCNONE,	{RS, RA0, RB}},
 
@@ -4811,27 +4926,27 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"stmw",	OP(47),		OP_MASK,     PPCCOM,	PPCNONE,	{RS, D, RA0}},
 {"stm",		OP(47),		OP_MASK,     PWRCOM,	PPCNONE,	{RS, D, RA0}},
 
-{"lfs",		OP(48),		OP_MASK,     COM,	PPCNONE,	{FRT, D, RA0}},
+{"lfs",		OP(48),		OP_MASK,     COM,	PPCEFS,		{FRT, D, RA0}},
 
-{"lfsu",	OP(49),		OP_MASK,     COM,	PPCNONE,	{FRT, D, RAS}},
+{"lfsu",	OP(49),		OP_MASK,     COM,	PPCEFS,		{FRT, D, RAS}},
 
-{"lfd",		OP(50),		OP_MASK,     COM,	PPCNONE,	{FRT, D, RA0}},
+{"lfd",		OP(50),		OP_MASK,     COM,	PPCEFS,		{FRT, D, RA0}},
 
-{"lfdu",	OP(51),		OP_MASK,     COM,	PPCNONE,	{FRT, D, RAS}},
+{"lfdu",	OP(51),		OP_MASK,     COM,	PPCEFS,		{FRT, D, RAS}},
 
-{"stfs",	OP(52),		OP_MASK,     COM,	PPCNONE,	{FRS, D, RA0}},
+{"stfs",	OP(52),		OP_MASK,     COM,	PPCEFS,		{FRS, D, RA0}},
 
-{"stfsu",	OP(53),		OP_MASK,     COM,	PPCNONE,	{FRS, D, RAS}},
+{"stfsu",	OP(53),		OP_MASK,     COM,	PPCEFS,		{FRS, D, RAS}},
 
-{"stfd",	OP(54),		OP_MASK,     COM,	PPCNONE,	{FRS, D, RA0}},
+{"stfd",	OP(54),		OP_MASK,     COM,	PPCEFS,		{FRS, D, RA0}},
 
-{"stfdu",	OP(55),		OP_MASK,     COM,	PPCNONE,	{FRS, D, RAS}},
+{"stfdu",	OP(55),		OP_MASK,     COM,	PPCEFS,		{FRS, D, RAS}},
 
 {"lq",		OP(56),		OP_MASK,     POWER4,	PPC476,		{RTQ, DQ, RAQ}},
 {"psq_l",	OP(56),		OP_MASK,     PPCPS,	PPCNONE,	{FRT,PSD,RA,PSW,PSQ}},
 {"lfq",		OP(56),		OP_MASK,     POWER2,	PPCNONE,	{FRT, D, RA0}},
 
-{"lfdp",	OP(57),		OP_MASK,     POWER6,	POWER7,		{FRT, D, RA0}},
+{"lfdp",	OP(57),		OP_MASK,     POWER6,	POWER7,		{FRTp, D, RA0}},
 {"psq_lu",	OP(57),		OP_MASK,     PPCPS,	PPCNONE,	{FRT,PSD,RA,PSW,PSQ}},
 {"lfqu",	OP(57),		OP_MASK,     POWER2,	PPCNONE,	{FRT, D, RA0}},
 
@@ -4845,42 +4960,42 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"dqua",	ZRC(59,3,0),	Z2_MASK,     POWER6,	PPCNONE,	{FRT,FRA,FRB,RMC}},
 {"dqua.",	ZRC(59,3,1),	Z2_MASK,     POWER6,	PPCNONE,	{FRT,FRA,FRB,RMC}},
 
-{"fdivs",	A(59,18,0),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
-{"fdivs.",	A(59,18,1),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
+{"fdivs",	A(59,18,0),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
+{"fdivs.",	A(59,18,1),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
 
-{"fsubs",	A(59,20,0),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
-{"fsubs.",	A(59,20,1),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
+{"fsubs",	A(59,20,0),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
+{"fsubs.",	A(59,20,1),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
 
-{"fadds",	A(59,21,0),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
-{"fadds.",	A(59,21,1),	AFRC_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRB}},
+{"fadds",	A(59,21,0),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
+{"fadds.",	A(59,21,1),	AFRC_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRB}},
 
-{"fsqrts",	A(59,22,0),    AFRAFRC_MASK, PPC,	PPCNONE,	{FRT, FRB}},
-{"fsqrts.",	A(59,22,1),    AFRAFRC_MASK, PPC,	PPCNONE,	{FRT, FRB}},
+{"fsqrts",	A(59,22,0),    AFRAFRC_MASK, PPC,	TITAN,  	{FRT, FRB}},
+{"fsqrts.",	A(59,22,1),    AFRAFRC_MASK, PPC,	TITAN,  	{FRT, FRB}},
 
 {"fres",	A(59,24,0),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"fres",	A(59,24,0),   AFRALFRC_MASK, PPC,	POWER7,		{FRT, FRB, A_L}},
 {"fres.",	A(59,24,1),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"fres.",	A(59,24,1),   AFRALFRC_MASK, PPC,	POWER7,		{FRT, FRB, A_L}},
 
-{"fmuls",	A(59,25,0),	AFRB_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRC}},
-{"fmuls.",	A(59,25,1),	AFRB_MASK,   PPC,	PPCNONE,	{FRT, FRA, FRC}},
+{"fmuls",	A(59,25,0),	AFRB_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRC}},
+{"fmuls.",	A(59,25,1),	AFRB_MASK,   PPC,	PPCEFS,		{FRT, FRA, FRC}},
 
 {"frsqrtes",	A(59,26,0),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"frsqrtes",	A(59,26,0),   AFRALFRC_MASK, POWER5,	POWER7,		{FRT, FRB, A_L}},
 {"frsqrtes.",	A(59,26,1),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"frsqrtes.",	A(59,26,1),   AFRALFRC_MASK, POWER5,	POWER7,		{FRT, FRB, A_L}},
 
-{"fmsubs",	A(59,28,0),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fmsubs.",	A(59,28,1),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmsubs",	A(59,28,0),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
+{"fmsubs.",	A(59,28,1),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 
-{"fmadds",	A(59,29,0),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fmadds.",	A(59,29,1),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmadds",	A(59,29,0),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
+{"fmadds.",	A(59,29,1),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 
-{"fnmsubs",	A(59,30,0),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fnmsubs.",	A(59,30,1),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmsubs",	A(59,30,0),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
+{"fnmsubs.",	A(59,30,1),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 
-{"fnmadds",	A(59,31,0),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fnmadds.",	A(59,31,1),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmadds",	A(59,31,0),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
+{"fnmadds.",	A(59,31,1),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 
 {"dmul",	XRC(59,34,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
 {"dmul.",	XRC(59,34,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
@@ -5094,7 +5209,7 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"psq_st",	OP(60),		OP_MASK,     PPCPS,	PPCNONE,	{FRS,PSD,RA,PSW,PSQ}},
 {"stfq",	OP(60),		OP_MASK,     POWER2,	PPCNONE,	{FRS, D, RA}},
 
-{"stfdp",	OP(61),		OP_MASK,     POWER6,	PPCNONE,	{FRT, D, RA0}},
+{"stfdp",	OP(61),		OP_MASK,     POWER6,	POWER7,		{FRSp, D, RA0}},
 {"psq_stu",	OP(61),		OP_MASK,     PPCPS,	PPCNONE,	{FRS,PSD,RA,PSW,PSQ}},
 {"stfqu",	OP(61),		OP_MASK,     POWER2,	PPCNONE,	{FRS, D, RA}},
 
@@ -5102,59 +5217,59 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"stdu",	DSO(62,1),	DS_MASK,     PPC64,	PPCNONE,	{RS, DS, RAS}},
 {"stq",		DSO(62,2),	DS_MASK,     POWER4,	PPC476,		{RSQ, DS, RA0}},
 
-{"fcmpu",	X(63,0),     X_MASK|(3<<21), COM,	PPCNONE,	{BF, FRA, FRB}},
+{"fcmpu",	X(63,0),     X_MASK|(3<<21), COM,	PPCEFS,		{BF, FRA, FRB}},
 
-{"daddq",	XRC(63,2,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
-{"daddq.",	XRC(63,2,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
+{"daddq",	XRC(63,2,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
+{"daddq.",	XRC(63,2,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
 
-{"dquaq",	ZRC(63,3,0),	Z2_MASK,     POWER6,	PPCNONE,	{FRT, FRA, FRB, RMC}},
-{"dquaq.",	ZRC(63,3,1),	Z2_MASK,     POWER6,	PPCNONE,	{FRT, FRA, FRB, RMC}},
+{"dquaq",	ZRC(63,3,0),	Z2_MASK,     POWER6,	PPCNONE,	{FRTp, FRAp, FRBp, RMC}},
+{"dquaq.",	ZRC(63,3,1),	Z2_MASK,     POWER6,	PPCNONE,	{FRTp, FRAp, FRBp, RMC}},
 
 {"fcpsgn",	XRC(63,8,0),	X_MASK, POWER6|PPCA2|PPC476, PPCNONE,	{FRT, FRA, FRB}},
 {"fcpsgn.",	XRC(63,8,1),	X_MASK, POWER6|PPCA2|PPC476, PPCNONE,	{FRT, FRA, FRB}},
 
-{"frsp",	XRC(63,12,0),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
-{"frsp.",	XRC(63,12,1),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
+{"frsp",	XRC(63,12,0),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
+{"frsp.",	XRC(63,12,1),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
 
-{"fctiw",	XRC(63,14,0),	XRA_MASK,    PPCCOM,	PPCNONE,	{FRT, FRB}},
-{"fcir",	XRC(63,14,0),	XRA_MASK,    POWER2,	PPCNONE,	{FRT, FRB}},
-{"fctiw.",	XRC(63,14,1),	XRA_MASK,    PPCCOM,	PPCNONE,	{FRT, FRB}},
-{"fcir.",	XRC(63,14,1),	XRA_MASK,    POWER2,	PPCNONE,	{FRT, FRB}},
+{"fctiw",	XRC(63,14,0),	XRA_MASK,    PPCCOM,	PPCEFS,		{FRT, FRB}},
+{"fcir",	XRC(63,14,0),	XRA_MASK,    PWR2COM,	PPCNONE,	{FRT, FRB}},
+{"fctiw.",	XRC(63,14,1),	XRA_MASK,    PPCCOM,	PPCEFS,		{FRT, FRB}},
+{"fcir.",	XRC(63,14,1),	XRA_MASK,    PWR2COM,	PPCNONE,	{FRT, FRB}},
 
-{"fctiwz",	XRC(63,15,0),	XRA_MASK,    PPCCOM,	PPCNONE,	{FRT, FRB}},
-{"fcirz",	XRC(63,15,0),	XRA_MASK,    POWER2,	PPCNONE,	{FRT, FRB}},
-{"fctiwz.",	XRC(63,15,1),	XRA_MASK,    PPCCOM,	PPCNONE,	{FRT, FRB}},
-{"fcirz.",	XRC(63,15,1),	XRA_MASK,    POWER2,	PPCNONE,	{FRT, FRB}},
+{"fctiwz",	XRC(63,15,0),	XRA_MASK,    PPCCOM,	PPCEFS,		{FRT, FRB}},
+{"fcirz",	XRC(63,15,0),	XRA_MASK,    PWR2COM,	PPCNONE,	{FRT, FRB}},
+{"fctiwz.",	XRC(63,15,1),	XRA_MASK,    PPCCOM,	PPCEFS,		{FRT, FRB}},
+{"fcirz.",	XRC(63,15,1),	XRA_MASK,    PWR2COM,	PPCNONE,	{FRT, FRB}},
 
-{"fdiv",	A(63,18,0),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fdiv",	A(63,18,0),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fd",		A(63,18,0),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
-{"fdiv.",	A(63,18,1),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fdiv.",	A(63,18,1),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fd.",		A(63,18,1),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
 
-{"fsub",	A(63,20,0),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fsub",	A(63,20,0),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fs",		A(63,20,0),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
-{"fsub.",	A(63,20,1),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fsub.",	A(63,20,1),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fs.",		A(63,20,1),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
 
-{"fadd",	A(63,21,0),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fadd",	A(63,21,0),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fa",		A(63,21,0),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
-{"fadd.",	A(63,21,1),	AFRC_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRB}},
+{"fadd.",	A(63,21,1),	AFRC_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRB}},
 {"fa.",		A(63,21,1),	AFRC_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRB}},
 
-{"fsqrt",	A(63,22,0),    AFRAFRC_MASK, PPCPWR2,	PPCNONE,	{FRT, FRB}},
-{"fsqrt.",	A(63,22,1),    AFRAFRC_MASK, PPCPWR2,	PPCNONE,	{FRT, FRB}},
+{"fsqrt",	A(63,22,0),    AFRAFRC_MASK, PPCPWR2,	TITAN,  	{FRT, FRB}},
+{"fsqrt.",	A(63,22,1),    AFRAFRC_MASK, PPCPWR2,	TITAN,  	{FRT, FRB}},
 
-{"fsel",	A(63,23,0),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fsel.",	A(63,23,1),	A_MASK,      PPC,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fsel",	A(63,23,0),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
+{"fsel.",	A(63,23,1),	A_MASK,      PPC,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 
 {"fre",		A(63,24,0),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"fre",		A(63,24,0),   AFRALFRC_MASK, POWER5,	POWER7,		{FRT, FRB, A_L}},
 {"fre.",	A(63,24,1),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"fre.",	A(63,24,1),   AFRALFRC_MASK, POWER5,	POWER7,		{FRT, FRB, A_L}},
 
-{"fmul",	A(63,25,0),	AFRB_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRC}},
+{"fmul",	A(63,25,0),	AFRB_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRC}},
 {"fm",		A(63,25,0),	AFRB_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRC}},
-{"fmul.",	A(63,25,1),	AFRB_MASK,   PPCCOM,	PPCNONE,	{FRT, FRA, FRC}},
+{"fmul.",	A(63,25,1),	AFRB_MASK,   PPCCOM,	PPCEFS,		{FRT, FRA, FRC}},
 {"fm.",		A(63,25,1),	AFRB_MASK,   PWRCOM,	PPCNONE,	{FRT, FRA, FRC}},
 
 {"frsqrte",	A(63,26,0),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
@@ -5162,71 +5277,71 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"frsqrte.",	A(63,26,1),   AFRAFRC_MASK,  POWER7,	PPCNONE,	{FRT, FRB}},
 {"frsqrte.",	A(63,26,1),   AFRALFRC_MASK, PPC,	POWER7,		{FRT, FRB, A_L}},
 
-{"fmsub",	A(63,28,0),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmsub",	A(63,28,0),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fms",		A(63,28,0),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fmsub.",	A(63,28,1),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmsub.",	A(63,28,1),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fms.",	A(63,28,1),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 
-{"fmadd",	A(63,29,0),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmadd",	A(63,29,0),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fma",		A(63,29,0),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fmadd.",	A(63,29,1),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fmadd.",	A(63,29,1),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fma.",	A(63,29,1),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 
-{"fnmsub",	A(63,30,0),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmsub",	A(63,30,0),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fnms",	A(63,30,0),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fnmsub.",	A(63,30,1),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmsub.",	A(63,30,1),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fnms.",	A(63,30,1),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 
-{"fnmadd",	A(63,31,0),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmadd",	A(63,31,0),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fnma",	A(63,31,0),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
-{"fnmadd.",	A(63,31,1),	A_MASK,      PPCCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
+{"fnmadd.",	A(63,31,1),	A_MASK,      PPCCOM,	PPCEFS,		{FRT, FRA, FRC, FRB}},
 {"fnma.",	A(63,31,1),	A_MASK,      PWRCOM,	PPCNONE,	{FRT, FRA, FRC, FRB}},
 
-{"fcmpo",	X(63,32),    X_MASK|(3<<21), COM,	PPCNONE,	{BF, FRA, FRB}},
+{"fcmpo",	X(63,32),    X_MASK|(3<<21), COM,	PPCEFS,		{BF, FRA, FRB}},
 
-{"dmulq",	XRC(63,34,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
-{"dmulq.",	XRC(63,34,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
+{"dmulq",	XRC(63,34,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
+{"dmulq.",	XRC(63,34,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
 
-{"drrndq",	ZRC(63,35,0),	Z2_MASK,     POWER6,	PPCNONE,	{FRT, FRA, FRB, RMC}},
-{"drrndq.",	ZRC(63,35,1),	Z2_MASK,     POWER6,	PPCNONE,	{FRT, FRA, FRB, RMC}},
+{"drrndq",	ZRC(63,35,0),	Z2_MASK,     POWER6,	PPCNONE,	{FRTp, FRA, FRBp, RMC}},
+{"drrndq.",	ZRC(63,35,1),	Z2_MASK,     POWER6,	PPCNONE,	{FRTp, FRA, FRBp, RMC}},
 
 {"mtfsb1",	XRC(63,38,0),	XRARB_MASK,  COM,	PPCNONE,	{BT}},
 {"mtfsb1.",	XRC(63,38,1),	XRARB_MASK,  COM,	PPCNONE,	{BT}},
 
-{"fneg",	XRC(63,40,0),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
-{"fneg.",	XRC(63,40,1),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
+{"fneg",	XRC(63,40,0),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
+{"fneg.",	XRC(63,40,1),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
 
 {"mcrfs",      X(63,64), XRB_MASK|(3<<21)|(3<<16), COM,	PPCNONE,	{BF, BFA}},
 
-{"dscliq",	ZRC(63,66,0),	Z_MASK,      POWER6,	PPCNONE,	{FRT, FRA, SH16}},
-{"dscliq.",	ZRC(63,66,1),	Z_MASK,      POWER6,	PPCNONE,	{FRT, FRA, SH16}},
+{"dscliq",	ZRC(63,66,0),	Z_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, SH16}},
+{"dscliq.",	ZRC(63,66,1),	Z_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, SH16}},
 
-{"dquaiq",	ZRC(63,67,0),	Z2_MASK,     POWER6,	PPCNONE,	{TE, FRT, FRB, RMC}},
-{"dquaiq.",	ZRC(63,67,1),	Z2_MASK,     POWER6,	PPCNONE,	{TE, FRT, FRB, RMC}},
+{"dquaiq",	ZRC(63,67,0),	Z2_MASK,     POWER6,	PPCNONE,	{TE, FRTp, FRBp, RMC}},
+{"dquaiq.",	ZRC(63,67,1),	Z2_MASK,     POWER6,	PPCNONE,	{TE, FRTp, FRBp, RMC}},
 
 {"mtfsb0",	XRC(63,70,0),	XRARB_MASK,  COM,	PPCNONE,	{BT}},
 {"mtfsb0.",	XRC(63,70,1),	XRARB_MASK,  COM,	PPCNONE,	{BT}},
 
-{"fmr",		XRC(63,72,0),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
-{"fmr.",	XRC(63,72,1),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
+{"fmr",		XRC(63,72,0),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
+{"fmr.",	XRC(63,72,1),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
 
-{"dscriq",	ZRC(63,98,0),	Z_MASK,      POWER6,	PPCNONE,	{FRT, FRA, SH16}},
-{"dscriq.",	ZRC(63,98,1),	Z_MASK,      POWER6,	PPCNONE,	{FRT, FRA, SH16}},
+{"dscriq",	ZRC(63,98,0),	Z_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, SH16}},
+{"dscriq.",	ZRC(63,98,1),	Z_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, SH16}},
 
-{"drintxq",	ZRC(63,99,0),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRT, FRB, RMC}},
-{"drintxq.",	ZRC(63,99,1),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRT, FRB, RMC}},
+{"drintxq",	ZRC(63,99,0),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRTp, FRBp, RMC}},
+{"drintxq.",	ZRC(63,99,1),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRTp, FRBp, RMC}},
 
 {"ftdiv",	X(63,128),   X_MASK|(3<<21), POWER7,	PPCNONE,	{BF, FRA, FRB}},
 
-{"dcmpoq",	X(63,130),	X_MASK,      POWER6,	PPCNONE,	{BF, FRA, FRB}},
+{"dcmpoq",	X(63,130),	X_MASK,      POWER6,	PPCNONE,	{BF, FRAp, FRBp}},
 
 {"mtfsfi",  XRC(63,134,0), XWRA_MASK|(3<<21)|(1<<11), POWER6|PPCA2|PPC476, PPCNONE, {BFF, U, W}},
 {"mtfsfi",  XRC(63,134,0), XRA_MASK|(3<<21)|(1<<11), COM, POWER6|PPCA2|PPC476, {BFF, U}},
 {"mtfsfi.", XRC(63,134,1), XWRA_MASK|(3<<21)|(1<<11), POWER6|PPCA2|PPC476, PPCNONE, {BFF, U, W}},
 {"mtfsfi.", XRC(63,134,1), XRA_MASK|(3<<21)|(1<<11), COM, POWER6|PPCA2|PPC476, {BFF, U}},
 
-{"fnabs",	XRC(63,136,0),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
-{"fnabs.",	XRC(63,136,1),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
+{"fnabs",	XRC(63,136,0),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
+{"fnabs.",	XRC(63,136,1),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
 
 {"fctiwu",	XRC(63,142,0),	XRA_MASK,    POWER7,	PPCNONE,	{FRT, FRB}},
 {"fctiwu.",	XRC(63,142,1),	XRA_MASK,    POWER7,	PPCNONE,	{FRT, FRB}},
@@ -5235,27 +5350,27 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 {"ftsqrt",	X(63,160), X_MASK|(3<<21|FRA_MASK), POWER7, PPCNONE,	{BF, FRB}},
 
-{"dtstexq",	X(63,162),	X_MASK,      POWER6,	PPCNONE,	{BF, FRA, FRB}},
-{"dtstdcq",	Z(63,194),	Z_MASK,      POWER6,	PPCNONE,	{BF, FRA, DCM}},
-{"dtstdgq",	Z(63,226),	Z_MASK,      POWER6,	PPCNONE,	{BF, FRA, DGM}},
+{"dtstexq",	X(63,162),	X_MASK,      POWER6,	PPCNONE,	{BF, FRAp, FRBp}},
+{"dtstdcq",	Z(63,194),	Z_MASK,      POWER6,	PPCNONE,	{BF, FRAp, DCM}},
+{"dtstdgq",	Z(63,226),	Z_MASK,      POWER6,	PPCNONE,	{BF, FRAp, DGM}},
 
-{"drintnq",	ZRC(63,227,0),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRT, FRB, RMC}},
-{"drintnq.",	ZRC(63,227,1),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRT, FRB, RMC}},
+{"drintnq",	ZRC(63,227,0),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRTp, FRBp, RMC}},
+{"drintnq.",	ZRC(63,227,1),	Z2_MASK,     POWER6,	PPCNONE,	{R, FRTp, FRBp, RMC}},
 
-{"dctqpq",	XRC(63,258,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
-{"dctqpq.",	XRC(63,258,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
+{"dctqpq",	XRC(63,258,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRB}},
+{"dctqpq.",	XRC(63,258,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRB}},
 
-{"fabs",	XRC(63,264,0),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
-{"fabs.",	XRC(63,264,1),	XRA_MASK,    COM,	PPCNONE,	{FRT, FRB}},
+{"fabs",	XRC(63,264,0),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
+{"fabs.",	XRC(63,264,1),	XRA_MASK,    COM,	PPCEFS,		{FRT, FRB}},
 
-{"dctfixq",	XRC(63,290,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
-{"dctfixq.",	XRC(63,290,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
+{"dctfixq",	XRC(63,290,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRBp}},
+{"dctfixq.",	XRC(63,290,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRBp}},
 
-{"ddedpdq",	XRC(63,322,0),	X_MASK,      POWER6,	PPCNONE,	{SP, FRT, FRB}},
-{"ddedpdq.",	XRC(63,322,1),	X_MASK,      POWER6,	PPCNONE,	{SP, FRT, FRB}},
+{"ddedpdq",	XRC(63,322,0),	X_MASK,      POWER6,	PPCNONE,	{SP, FRTp, FRBp}},
+{"ddedpdq.",	XRC(63,322,1),	X_MASK,      POWER6,	PPCNONE,	{SP, FRTp, FRBp}},
 
-{"dxexq",	XRC(63,354,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
-{"dxexq.",	XRC(63,354,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
+{"dxexq",	XRC(63,354,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRBp}},
+{"dxexq.",	XRC(63,354,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRBp}},
 
 {"frin",	XRC(63,392,0),	XRA_MASK,    POWER5,	PPCNONE,	{FRT, FRB}},
 {"frin.",	XRC(63,392,1),	XRA_MASK,    POWER5,	PPCNONE,	{FRT, FRB}},
@@ -5266,29 +5381,29 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"frim",	XRC(63,488,0),	XRA_MASK,    POWER5,	PPCNONE,	{FRT, FRB}},
 {"frim.",	XRC(63,488,1),	XRA_MASK,    POWER5,	PPCNONE,	{FRT, FRB}},
 
-{"dsubq",	XRC(63,514,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
-{"dsubq.",	XRC(63,514,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
+{"dsubq",	XRC(63,514,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
+{"dsubq.",	XRC(63,514,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
 
-{"ddivq",	XRC(63,546,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
-{"ddivq.",	XRC(63,546,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
+{"ddivq",	XRC(63,546,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
+{"ddivq.",	XRC(63,546,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRAp, FRBp}},
 
-{"mffs",	XRC(63,583,0),	XRARB_MASK,  COM,	PPCNONE,	{FRT}},
-{"mffs.",	XRC(63,583,1),	XRARB_MASK,  COM,	PPCNONE,	{FRT}},
+{"mffs",	XRC(63,583,0),	XRARB_MASK,  COM,	PPCEFS,		{FRT}},
+{"mffs.",	XRC(63,583,1),	XRARB_MASK,  COM,	PPCEFS,		{FRT}},
 
-{"dcmpuq",	X(63,642),	X_MASK,      POWER6,	PPCNONE,	{BF, FRA, FRB}},
+{"dcmpuq",	X(63,642),	X_MASK,      POWER6,	PPCNONE,	{BF, FRAp, FRBp}},
 
-{"dtstsfq",	X(63,674),	X_MASK,      POWER6,	PPCNONE,	{BF, FRA, FRB}},
+{"dtstsfq",	X(63,674),	X_MASK,      POWER6,	PPCNONE,	{BF, FRA, FRBp}},
 
 {"mtfsf",	XFL(63,711,0),	XFL_MASK, POWER6|PPCA2|PPC476, PPCNONE,	{FLM, FRB, XFL_L, W}},
-{"mtfsf",	XFL(63,711,0),	XFL_MASK,    COM, POWER6|PPCA2|PPC476,	{FLM, FRB}},
+{"mtfsf",	XFL(63,711,0),	XFL_MASK,    COM, POWER6|PPCA2|PPC476|PPCEFS,	{FLM, FRB}},
 {"mtfsf.",	XFL(63,711,1),	XFL_MASK, POWER6|PPCA2|PPC476, PPCNONE,	{FLM, FRB, XFL_L, W}},
-{"mtfsf.",	XFL(63,711,1),	XFL_MASK,    COM, POWER6|PPCA2|PPC476,	{FLM, FRB}},
+{"mtfsf.",	XFL(63,711,1),	XFL_MASK,    COM, POWER6|PPCA2|PPC476|PPCEFS,	{FLM, FRB}},
 
-{"drdpq",	XRC(63,770,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
-{"drdpq.",	XRC(63,770,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
+{"drdpq",	XRC(63,770,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRBp}},
+{"drdpq.",	XRC(63,770,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRBp}},
 
-{"dcffixq",	XRC(63,802,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
-{"dcffixq.",	XRC(63,802,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRB}},
+{"dcffixq",	XRC(63,802,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRB}},
+{"dcffixq.",	XRC(63,802,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRB}},
 
 {"fctid",	XRC(63,814,0),	XRA_MASK,    PPC64,	PPCNONE,	{FRT, FRB}},
 {"fctid",	XRC(63,814,0),	XRA_MASK,    PPC476,	PPCNONE,	{FRT, FRB}},
@@ -5300,16 +5415,16 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 {"fctidz.",	XRC(63,815,1),	XRA_MASK,    PPC64,	PPCNONE,	{FRT, FRB}},
 {"fctidz.",	XRC(63,815,1),	XRA_MASK,    PPC476,	PPCNONE,	{FRT, FRB}},
 
-{"denbcdq",	XRC(63,834,0),	X_MASK,      POWER6,	PPCNONE,	{S, FRT, FRB}},
-{"denbcdq.",	XRC(63,834,1),	X_MASK,      POWER6,	PPCNONE,	{S, FRT, FRB}},
+{"denbcdq",	XRC(63,834,0),	X_MASK,      POWER6,	PPCNONE,	{S, FRTp, FRBp}},
+{"denbcdq.",	XRC(63,834,1),	X_MASK,      POWER6,	PPCNONE,	{S, FRTp, FRBp}},
 
 {"fcfid",	XRC(63,846,0),	XRA_MASK,    PPC64,	PPCNONE,	{FRT, FRB}},
 {"fcfid",	XRC(63,846,0),	XRA_MASK,    PPC476,	PPCNONE,	{FRT, FRB}},
 {"fcfid.",	XRC(63,846,1),	XRA_MASK,    PPC64,	PPCNONE,	{FRT, FRB}},
 {"fcfid.",	XRC(63,846,1),	XRA_MASK,    PPC476,	PPCNONE,	{FRT, FRB}},
 
-{"diexq",	XRC(63,866,0),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
-{"diexq.",	XRC(63,866,1),	X_MASK,      POWER6,	PPCNONE,	{FRT, FRA, FRB}},
+{"diexq",	XRC(63,866,0),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRA, FRBp}},
+{"diexq.",	XRC(63,866,1),	X_MASK,      POWER6,	PPCNONE,	{FRTp, FRA, FRBp}},
 
 {"fctidu",	XRC(63,942,0),	XRA_MASK, POWER7|PPCA2,	PPCNONE,	{FRT, FRB}},
 {"fctidu.",	XRC(63,942,1),	XRA_MASK, POWER7|PPCA2,	PPCNONE,	{FRT, FRB}},

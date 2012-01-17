@@ -1,6 +1,6 @@
 /* BFD back-end for archive files (libraries).
    Copyright 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Cygnus Support.  Mostly Gumby Henkel-Wallace's fault.
 
@@ -104,7 +104,6 @@ SUBSECTION
 
    BSD 4.4 uses a third scheme:  It writes a long filename
    directly after the header.  This allows 'ar q' to work.
-   We currently can read BSD 4.4 archives, but not write them.
 */
 
 /* Summary of archive member names:
@@ -125,7 +124,6 @@ SUBSECTION
  "/18             " - SVR4 style, name at offset 18 in name table.
  "#1/23           " - Long name (or embedded spaces) 23 characters long,
 		      BSD 4.4 style, full name follows header.
-		      Implemented for reading, not writing.
  " 18             " - Long name 18 characters long, extended pseudo-BSD.
  */
 
@@ -159,6 +157,11 @@ struct ar_cache {
 
 #define arch_eltdata(bfd) ((struct areltdata *) ((bfd)->arelt_data))
 #define arch_hdr(bfd) ((struct ar_hdr *) arch_eltdata (bfd)->arch_header)
+
+/* True iff NAME designated a BSD 4.4 extended name.  */
+
+#define is_bsd44_extended_name(NAME) \
+  (NAME[0] == '#'  && NAME[1] == '1' && NAME[2] == '/' && ISDIGIT (NAME[3]))
 
 void
 _bfd_ar_spacepad (char *p, size_t n, const char *fmt, long val)
@@ -300,6 +303,15 @@ eq_file_ptr (const PTR p1, const PTR p2)
   return arc1->ptr == arc2->ptr;
 }
 
+/* The calloc function doesn't always take size_t (e.g. on VMS)
+   so wrap it to avoid a compile time warning.   */
+
+static void *
+_bfd_calloc_wrapper (size_t a, size_t b)
+{
+  return calloc (a, b);
+}
+
 /* Kind of stupid to call cons for each one, but we don't do too many.  */
 
 bfd_boolean
@@ -312,7 +324,7 @@ _bfd_add_bfd_to_archive_cache (bfd *arch_bfd, file_ptr filepos, bfd *new_elt)
   if (hash_table == NULL)
     {
       hash_table = htab_create_alloc (16, hash_file_ptr, eq_file_ptr,
-				      NULL, calloc, free);
+				      NULL, _bfd_calloc_wrapper, free);
       if (hash_table == NULL)
 	return FALSE;
       bfd_ardata (arch_bfd)->cache = hash_table;
@@ -331,15 +343,19 @@ static bfd *
 _bfd_find_nested_archive (bfd *arch_bfd, const char *filename)
 {
   bfd *abfd;
+  const char *target;
 
   for (abfd = arch_bfd->nested_archives;
        abfd != NULL;
        abfd = abfd->archive_next)
     {
-      if (strcmp (filename, abfd->filename) == 0)
+      if (filename_cmp (filename, abfd->filename) == 0)
         return abfd;
     }
-  abfd = bfd_openr (filename, NULL);
+  target = NULL;
+  if (!arch_bfd->target_defaulted)
+    target = arch_bfd->xvec->name;
+  abfd = bfd_openr (filename, target);
   if (abfd)
     {
       abfd->archive_next = arch_bfd->nested_archives;
@@ -354,15 +370,15 @@ _bfd_find_nested_archive (bfd *arch_bfd, const char *filename)
 static char *
 get_extended_arelt_filename (bfd *arch, const char *name, file_ptr *originp)
 {
-  unsigned long index = 0;
+  unsigned long table_index = 0;
   const char *endp;
 
   /* Should extract string so that I can guarantee not to overflow into
      the next region, but I'm too lazy.  */
   errno = 0;
   /* Skip first char, which is '/' in SVR4 or ' ' in some other variants.  */
-  index = strtol (name + 1, (char **) &endp, 10);
-  if (errno != 0 || index >= bfd_ardata (arch)->extended_names_size)
+  table_index = strtol (name + 1, (char **) &endp, 10);
+  if (errno != 0 || table_index >= bfd_ardata (arch)->extended_names_size)
     {
       bfd_set_error (bfd_error_malformed_archive);
       return NULL;
@@ -383,7 +399,7 @@ get_extended_arelt_filename (bfd *arch, const char *name, file_ptr *originp)
   else
     *originp = 0;
 
-  return bfd_ardata (arch)->extended_names + index;
+  return bfd_ardata (arch)->extended_names + table_index;
 }
 
 /* This functions reads an arch header and returns an areltdata pointer, or
@@ -415,6 +431,7 @@ _bfd_generic_read_ar_hdr_mag (bfd *abfd, const char *mag)
   bfd_size_type allocsize = sizeof (struct areltdata) + sizeof (struct ar_hdr);
   char *allocptr = 0;
   file_ptr origin = 0;
+  unsigned int extra_size = 0;
 
   if (bfd_bread (hdrp, sizeof (struct ar_hdr), abfd) != sizeof (struct ar_hdr))
     {
@@ -450,17 +467,14 @@ _bfd_generic_read_ar_hdr_mag (bfd *abfd, const char *mag)
       if (filename == NULL)
 	return NULL;
     }
-  /* BSD4.4-style long filename.
-     Only implemented for reading, so far!  */
-  else if (hdr.ar_name[0] == '#'
-	   && hdr.ar_name[1] == '1'
-	   && hdr.ar_name[2] == '/'
-	   && ISDIGIT (hdr.ar_name[3]))
+  /* BSD4.4-style long filename.  */
+  else if (is_bsd44_extended_name (hdr.ar_name))
     {
       /* BSD-4.4 extended name */
       namelen = atoi (&hdr.ar_name[3]);
       allocsize += namelen + 1;
       parsed_size -= namelen;
+      extra_size = namelen;
 
       allocptr = (char *) bfd_zalloc (abfd, allocsize);
       if (allocptr == NULL)
@@ -515,6 +529,7 @@ _bfd_generic_read_ar_hdr_mag (bfd *abfd, const char *mag)
   ared->arch_header = allocptr + sizeof (struct areltdata);
   memcpy (ared->arch_header, &hdr, sizeof (struct ar_hdr));
   ared->parsed_size = parsed_size;
+  ared->extra_size = extra_size;
   ared->origin = origin;
 
   if (filename != NULL)
@@ -534,8 +549,8 @@ _bfd_generic_read_ar_hdr_mag (bfd *abfd, const char *mag)
 /* Append the relative pathname for a member of the thin archive
    to the pathname of the directory containing the archive.  */
 
-static char *
-append_relative_path (bfd *arch, char *elt_name)
+char *
+_bfd_append_relative_path (bfd *arch, char *elt_name)
 {
   const char *arch_name = arch->filename;
   const char *base_name = lbasename (arch_name);
@@ -566,12 +581,6 @@ _bfd_get_elt_at_filepos (bfd *archive, file_ptr filepos)
   bfd *n_nfd;
   char *filename;
 
-  if (archive->my_archive)
-    {
-      filepos += archive->origin;
-      archive = archive->my_archive;
-    }
-
   n_nfd = _bfd_look_for_bfd_in_cache (archive, filepos);
   if (n_nfd)
     return n_nfd;
@@ -586,10 +595,12 @@ _bfd_get_elt_at_filepos (bfd *archive, file_ptr filepos)
 
   if (bfd_is_thin_archive (archive))
     {
+      const char *target;
+
       /* This is a proxy entry for an external file.  */
       if (! IS_ABSOLUTE_PATH (filename))
         {
-          filename = append_relative_path (archive, filename);
+          filename = _bfd_append_relative_path (archive, filename);
           if (filename == NULL)
             return NULL;
         }
@@ -617,7 +628,12 @@ _bfd_get_elt_at_filepos (bfd *archive, file_ptr filepos)
         }
       /* It's not an element of a nested archive;
          open the external file as a bfd.  */
-      n_nfd = bfd_openr (filename, NULL);
+      target = NULL;
+      if (!archive->target_defaulted)
+	target = archive->xvec->name;
+      n_nfd = bfd_openr (filename, target);
+      if (n_nfd == NULL)
+	bfd_set_error (bfd_error_malformed_archive);
     }
   else
     {
@@ -644,26 +660,25 @@ _bfd_get_elt_at_filepos (bfd *archive, file_ptr filepos)
 
   n_nfd->arelt_data = new_areldata;
 
+  /* Copy BFD_COMPRESS and BFD_DECOMPRESS flags.  */
+  n_nfd->flags |= archive->flags & (BFD_COMPRESS | BFD_DECOMPRESS);
+
   if (_bfd_add_bfd_to_archive_cache (archive, filepos, n_nfd))
     return n_nfd;
 
-  /* Huh?  */
-  /* FIXME:  n_nfd isn't allocated in the archive's memory pool.
-     If we reach this point, I think bfd_release will abort.  */
-  bfd_release (archive, n_nfd);
   bfd_release (archive, new_areldata);
   return NULL;
 }
 
 /* Return the BFD which is referenced by the symbol in ABFD indexed by
-   INDEX.  INDEX should have been returned by bfd_get_next_mapent.  */
+   SYM_INDEX.  SYM_INDEX should have been returned by bfd_get_next_mapent.  */
 
 bfd *
-_bfd_generic_get_elt_at_index (bfd *abfd, symindex index)
+_bfd_generic_get_elt_at_index (bfd *abfd, symindex sym_index)
 {
   carsym *entry;
 
-  entry = bfd_ardata (abfd)->symdefs + index;
+  entry = bfd_ardata (abfd)->symdefs + sym_index;
   return _bfd_get_elt_at_filepos (abfd, entry->file_offset);
 }
 
@@ -707,11 +722,10 @@ bfd_generic_openr_next_archived_file (bfd *archive, bfd *last_file)
   else
     {
       unsigned int size = arelt_size (last_file);
+
       filestart = last_file->proxy_origin;
       if (! bfd_is_thin_archive (archive))
         filestart += size;
-      if (archive->my_archive)
-	filestart -= archive->origin;
       /* Pad to an even boundary...
 	 Note that last_file->origin can be odd in the case of
 	 BSD-4.4-style element with a long odd size.  */
@@ -740,7 +754,7 @@ bfd_generic_archive_p (bfd *abfd)
   if (strncmp (armag, ARMAG, SARMAG) != 0
       && strncmp (armag, ARMAGB, SARMAG) != 0
       && ! bfd_is_thin_archive (abfd))
-    return 0;
+    return NULL;
 
   tdata_hold = bfd_ardata (abfd);
 
@@ -771,7 +785,7 @@ bfd_generic_archive_p (bfd *abfd)
       return NULL;
     }
 
-  if (bfd_has_map (abfd))
+  if (abfd->target_defaulted && bfd_has_map (abfd))
     {
       bfd *first;
 
@@ -1054,6 +1068,25 @@ bfd_slurp_armap (bfd *abfd)
       return FALSE;
 #endif
     }
+  else if (CONST_STRNEQ (nextname, "#1/20           "))
+    {
+      /* Mach-O has a special name for armap when the map is sorted by name.
+         However because this name has a space it is slightly more difficult
+         to check it.  */
+      struct ar_hdr hdr;
+      char extname[21];
+
+      if (bfd_bread (&hdr, sizeof (hdr), abfd) != sizeof (hdr))
+        return FALSE;
+      /* Read the extended name.  We know its length.  */
+      if (bfd_bread (extname, 20, abfd) != 20)
+        return FALSE;
+      if (bfd_seek (abfd, (file_ptr) -(sizeof (hdr) + 20), SEEK_CUR) != 0)
+        return FALSE;
+      if (CONST_STRNEQ (extname, "__.SYMDEF SORTED")
+          || CONST_STRNEQ (extname, "__.SYMDEF"))
+        return do_slurp_bsd_armap (abfd);
+    }
 
   bfd_has_map (abfd) = FALSE;
   return TRUE;
@@ -1076,6 +1109,7 @@ bfd_slurp_bsd_armap_f2 (bfd *abfd)
   struct artdata *ardata = bfd_ardata (abfd);
   char *stringbase;
   unsigned int stringsize;
+  unsigned int left;
   bfd_size_type amt;
   carsym *set;
   int i = bfd_bread (nextname, 16, abfd);
@@ -1103,43 +1137,46 @@ bfd_slurp_bsd_armap_f2 (bfd *abfd)
   if (mapdata == NULL)
     return FALSE;
 
-  amt = mapdata->parsed_size;
-  raw_armap = (bfd_byte *) bfd_zalloc (abfd, amt);
-  if (raw_armap == NULL)
+  if (mapdata->parsed_size < HPUX_SYMDEF_COUNT_SIZE + BSD_STRING_COUNT_SIZE)
     {
+    wrong_format:
+      bfd_set_error (bfd_error_wrong_format);
     byebye:
       bfd_release (abfd, mapdata);
       return FALSE;
     }
+  left = mapdata->parsed_size - HPUX_SYMDEF_COUNT_SIZE - BSD_STRING_COUNT_SIZE;
+
+  amt = mapdata->parsed_size;
+  raw_armap = (bfd_byte *) bfd_zalloc (abfd, amt);
+  if (raw_armap == NULL)
+    goto byebye;
 
   if (bfd_bread (raw_armap, amt, abfd) != amt)
     {
       if (bfd_get_error () != bfd_error_system_call)
 	bfd_set_error (bfd_error_malformed_archive);
-    byebyebye:
-      bfd_release (abfd, raw_armap);
       goto byebye;
     }
 
   ardata->symdef_count = H_GET_16 (abfd, raw_armap);
 
-  if (ardata->symdef_count * BSD_SYMDEF_SIZE
-      > mapdata->parsed_size - HPUX_SYMDEF_COUNT_SIZE)
-    {
-      /* Probably we're using the wrong byte ordering.  */
-      bfd_set_error (bfd_error_wrong_format);
-      goto byebyebye;
-    }
-
   ardata->cache = 0;
 
   stringsize = H_GET_32 (abfd, raw_armap + HPUX_SYMDEF_COUNT_SIZE);
+  if (stringsize > left)
+    goto wrong_format;
+  left -= stringsize;
+
   /* Skip sym count and string sz.  */
   stringbase = ((char *) raw_armap
 		+ HPUX_SYMDEF_COUNT_SIZE
 		+ BSD_STRING_COUNT_SIZE);
   rbase = (bfd_byte *) stringbase + stringsize;
   amt = ardata->symdef_count * BSD_SYMDEF_SIZE;
+  if (amt > left)
+    goto wrong_format;
+
   ardata->symdefs = (struct carsym *) bfd_alloc (abfd, amt);
   if (!ardata->symdefs)
     return FALSE;
@@ -1183,7 +1220,9 @@ _bfd_slurp_extended_name_table (bfd *abfd)
 
   /* FIXME:  Formatting sucks here, and in case of failure of BFD_READ,
      we probably don't want to return TRUE.  */
-  bfd_seek (abfd, bfd_ardata (abfd)->first_file_filepos, SEEK_SET);
+  if (bfd_seek (abfd, bfd_ardata (abfd)->first_file_filepos, SEEK_SET) != 0)
+    return FALSE;
+
   if (bfd_bread (nextname, 16, abfd) == 16)
     {
       if (bfd_seek (abfd, (file_ptr) -16, SEEK_CUR) != 0)
@@ -1294,39 +1333,55 @@ normalize (bfd *abfd, const char *file)
 static const char *
 normalize (bfd *abfd ATTRIBUTE_UNUSED, const char *file)
 {
-  const char *filename = strrchr (file, '/');
-
-#ifdef HAVE_DOS_BASED_FILE_SYSTEM
-  {
-    /* We could have foo/bar\\baz, or foo\\bar, or d:bar.  */
-    char *bslash = strrchr (file, '\\');
-    if (filename == NULL || (bslash != NULL && bslash > filename))
-      filename = bslash;
-    if (filename == NULL && file[0] != '\0' && file[1] == ':')
-      filename = file + 1;
-  }
-#endif
-  if (filename != NULL)
-    filename++;
-  else
-    filename = file;
-  return filename;
+  return lbasename (file);
 }
 #endif
 
-/* Adjust a relative path name based on the reference path.  */
+/* Adjust a relative path name based on the reference path.
+   For example:
 
+     Relative path  Reference path  Result
+     -------------  --------------  ------
+     bar.o          lib.a           bar.o
+     foo/bar.o      lib.a           foo/bar.o
+     bar.o          foo/lib.a       ../bar.o
+     foo/bar.o      baz/lib.a       ../foo/bar.o
+     bar.o          ../lib.a        <parent of current dir>/bar.o
+   ; ../bar.o       ../lib.a        bar.o
+   ; ../bar.o       lib.a           ../bar.o
+     foo/bar.o      ../lib.a        <parent of current dir>/foo/bar.o
+     bar.o          ../../lib.a     <grandparent>/<parent>/bar.o
+     bar.o          foo/baz/lib.a   ../../bar.o
+
+   Note - the semicolons above are there to prevent the BFD chew
+   utility from interpreting those lines as prototypes to put into
+   the autogenerated bfd.h header...
+
+   Note - the string is returned in a static buffer.  */
+   
 static const char *
 adjust_relative_path (const char * path, const char * ref_path)
 {
   static char *pathbuf = NULL;
-  static int pathbuf_len = 0;
-  const char *pathp = path;
-  const char *refp = ref_path;
-  int element_count = 0;
-  int len;
+  static unsigned int pathbuf_len = 0;
+  const char *pathp;
+  const char *refp;
+  char * lpath;
+  char * rpath;
+  unsigned int len;
+  unsigned int dir_up = 0;
+  unsigned int dir_down = 0;
   char *newp;
+  char * pwd = getpwd ();
+  const char * down;
 
+  /* Remove symlinks, '.' and '..' from the paths, if possible.  */
+  lpath = lrealpath (path);
+  pathp = lpath == NULL ? path : lpath;
+
+  rpath = lrealpath (ref_path);
+  refp = rpath == NULL ? ref_path : rpath;
+ 
   /* Remove common leading path elements.  */
   for (;;)
     {
@@ -1338,18 +1393,48 @@ adjust_relative_path (const char * path, const char * ref_path)
       while (*e2 && ! IS_DIR_SEPARATOR (*e2))
 	++e2;
       if (*e1 == '\0' || *e2 == '\0' || e1 - pathp != e2 - refp
-	  || strncmp (pathp, refp, e1 - pathp) != 0)
+	  || filename_ncmp (pathp, refp, e1 - pathp) != 0)
 	break;
       pathp = e1 + 1;
       refp = e2 + 1;
     }
 
+  len = strlen (pathp) + 1;
   /* For each leading path element in the reference path,
      insert "../" into the path.  */
   for (; *refp; ++refp)
     if (IS_DIR_SEPARATOR (*refp))
-      ++element_count;
-  len = 3 * element_count + strlen (path) + 1;
+      {
+	/* PR 12710:  If the path element is "../" then instead of
+	   inserting "../" we need to insert the name of the directory
+	   at the current level.  */	
+	if (refp > ref_path + 1
+	    && refp[-1] == '.'
+	    && refp[-2] == '.')
+	  dir_down ++;
+	else
+	  dir_up ++;
+      }
+
+  /* If the lrealpath calls above succeeded then we should never
+     see dir_up and dir_down both being non-zero.  */
+  
+  len += 3 * dir_up;
+
+  if (dir_down)
+    {
+      down = pwd + strlen (pwd) - 1;
+
+      while (dir_down && down > pwd)
+	{
+	  if (IS_DIR_SEPARATOR (*down))
+	    --dir_down;
+	}
+      BFD_ASSERT (dir_down == 0);
+      len += strlen (down) + 1;
+    }
+  else
+    down = NULL;
 
   if (len > pathbuf_len)
     {
@@ -1358,19 +1443,26 @@ adjust_relative_path (const char * path, const char * ref_path)
       pathbuf_len = 0;
       pathbuf = (char *) bfd_malloc (len);
       if (pathbuf == NULL)
-	return path;
+	goto out;
       pathbuf_len = len;
     }
 
   newp = pathbuf;
-  while (element_count-- > 0)
+  while (dir_up-- > 0)
     {
       /* FIXME: Support Windows style path separators as well.  */
       strcpy (newp, "../");
       newp += 3;
     }
-  strcpy (newp, pathp);
 
+  if (down)
+    sprintf (newp, "%s/%s", down, pathp);
+  else
+    strcpy (newp, pathp);
+
+ out:
+  free (lpath);
+  free (rpath);
   return pathbuf;
 }
 
@@ -1412,7 +1504,7 @@ _bfd_construct_extended_name_table (bfd *abfd,
 				    char **tabloc,
 				    bfd_size_type *tablen)
 {
-  unsigned int maxname = abfd->xvec->ar_max_namelen;
+  unsigned int maxname = ar_maxnamelen (abfd);
   bfd_size_type total_namelen = 0;
   bfd *current;
   char *strptr;
@@ -1443,7 +1535,7 @@ _bfd_construct_extended_name_table (bfd *abfd,
           /* If the path is the same as the previous path seen,
              reuse it.  This can happen when flattening a thin
              archive that contains other archives.  */
-          if (last_filename && strcmp (last_filename, filename) == 0)
+          if (last_filename && filename_cmp (last_filename, filename) == 0)
             continue;
 
           last_filename = filename;
@@ -1489,7 +1581,7 @@ _bfd_construct_extended_name_table (bfd *abfd,
       else
 	{
 	  struct ar_hdr *hdr = arch_hdr (current);
-	  if (strncmp (normal, hdr->ar_name, thislen) != 0
+	  if (filename_ncmp (normal, hdr->ar_name, thislen) != 0
 	      || (thislen < sizeof hdr->ar_name
 		  && hdr->ar_name[thislen] != ar_padchar (current)))
 	    {
@@ -1537,7 +1629,7 @@ _bfd_construct_extended_name_table (bfd *abfd,
              archive that contains other archives.
              If the path is relative, adjust it relative to
              the containing archive.  */
-          if (last_filename && strcmp (last_filename, filename) == 0)
+          if (last_filename && filename_cmp (last_filename, filename) == 0)
             normal = last_filename;
           else if (! IS_ABSOLUTE_PATH (filename)
                    && ! IS_ABSOLUTE_PATH (abfd->filename))
@@ -1595,6 +1687,103 @@ _bfd_construct_extended_name_table (bfd *abfd,
 	}
     }
 
+  return TRUE;
+}
+
+/* Do not construct an extended name table but transforms name field into
+   its extended form.  */
+
+bfd_boolean
+_bfd_archive_bsd44_construct_extended_name_table (bfd *abfd,
+                                                  char **tabloc,
+                                                  bfd_size_type *tablen,
+                                                  const char **name)
+{
+  unsigned int maxname = ar_maxnamelen (abfd);
+  bfd *current;
+
+  *tablen = 0;
+  *tabloc = NULL;
+  *name = NULL;
+
+  for (current = abfd->archive_head;
+       current != NULL;
+       current = current->archive_next)
+    {
+      const char *normal = normalize (current, current->filename);
+      int has_space = 0;
+      unsigned int len;
+
+      if (normal == NULL)
+	return FALSE;
+
+      for (len = 0; normal[len]; len++)
+        if (normal[len] == ' ')
+          has_space = 1;
+
+      if (len > maxname || has_space)
+	{
+          struct ar_hdr *hdr = arch_hdr (current);
+
+          len = (len + 3) & ~3;
+          arch_eltdata (current)->extra_size = len;
+          _bfd_ar_spacepad (hdr->ar_name, maxname, "#1/%lu", len);
+	}
+    }
+
+  return TRUE;
+}
+
+/* Write an archive header.  */
+
+bfd_boolean
+_bfd_generic_write_ar_hdr (bfd *archive, bfd *abfd)
+{
+  struct ar_hdr *hdr = arch_hdr (abfd);
+
+  if (bfd_bwrite (hdr, sizeof (*hdr), archive) != sizeof (*hdr))
+    return FALSE;
+  return TRUE;
+}
+
+/* Write an archive header using BSD4.4 convention.  */
+
+bfd_boolean
+_bfd_bsd44_write_ar_hdr (bfd *archive, bfd *abfd)
+{
+  struct ar_hdr *hdr = arch_hdr (abfd);
+
+  if (is_bsd44_extended_name (hdr->ar_name))
+    {
+      /* This is a BSD 4.4 extended name.  */
+      const char *fullname = normalize (abfd, abfd->filename);
+      unsigned int len = strlen (fullname);
+      unsigned int padded_len = (len + 3) & ~3;
+
+      BFD_ASSERT (padded_len == arch_eltdata (abfd)->extra_size);
+
+      _bfd_ar_spacepad (hdr->ar_size, sizeof (hdr->ar_size), "%-10ld",
+                        arch_eltdata (abfd)->parsed_size + padded_len);
+
+      if (bfd_bwrite (hdr, sizeof (*hdr), archive) != sizeof (*hdr))
+        return FALSE;
+
+      if (bfd_bwrite (fullname, len, archive) != len)
+        return FALSE;
+      if (len & 3)
+        {
+          static const char pad[3] = { 0, 0, 0 };
+
+          len = 4 - (len & 3);
+          if (bfd_bwrite (pad, len, archive) != len)
+            return FALSE;
+        }
+    }
+  else
+    {
+      if (bfd_bwrite (hdr, sizeof (*hdr), archive) != sizeof (*hdr))
+        return FALSE;
+    }
   return TRUE;
 }
 
@@ -1703,22 +1892,6 @@ bfd_ar_hdr_from_filesystem (bfd *abfd, const char *filename, bfd *member)
   return ared;
 }
 
-/* This is magic required by the "ar" program.  Since it's
-   undocumented, it's undocumented.  You may think that it would take
-   a strong stomach to write this, and it does, but it takes even a
-   stronger stomach to try to code around such a thing!  */
-
-struct ar_hdr *bfd_special_undocumented_glue (bfd *, const char *);
-
-struct ar_hdr *
-bfd_special_undocumented_glue (bfd *abfd, const char *filename)
-{
-  struct areltdata *ar_elt = bfd_ar_hdr_from_filesystem (abfd, filename, 0);
-  if (ar_elt == NULL)
-    return NULL;
-  return (struct ar_hdr *) ar_elt->arch_header;
-}
-
 /* Analogous to stat call.  */
 
 int
@@ -1818,24 +1991,8 @@ bfd_bsd_truncate_arname (bfd *abfd, const char *pathname, char *arhdr)
 {
   struct ar_hdr *hdr = (struct ar_hdr *) arhdr;
   size_t length;
-  const char *filename = strrchr (pathname, '/');
+  const char *filename = lbasename (pathname);
   size_t maxlen = ar_maxnamelen (abfd);
-
-#ifdef HAVE_DOS_BASED_FILE_SYSTEM
-  {
-    /* We could have foo/bar\\baz, or foo\\bar, or d:bar.  */
-    char *bslash = strrchr (pathname, '\\');
-    if (filename == NULL || (bslash != NULL && bslash > filename))
-      filename = bslash;
-    if (filename == NULL && pathname[0] != '\0' && pathname[1] == ':')
-      filename = pathname + 1;
-  }
-#endif
-
-  if (filename == NULL)
-    filename = pathname;
-  else
-    ++filename;
 
   length = strlen (filename);
 
@@ -1866,25 +2023,8 @@ bfd_gnu_truncate_arname (bfd *abfd, const char *pathname, char *arhdr)
 {
   struct ar_hdr *hdr = (struct ar_hdr *) arhdr;
   size_t length;
-  const char *filename = strrchr (pathname, '/');
+  const char *filename = lbasename (pathname);
   size_t maxlen = ar_maxnamelen (abfd);
-
-#ifdef HAVE_DOS_BASED_FILE_SYSTEM
-  {
-    /* We could have foo/bar\\baz, or foo\\bar, or d:bar.  */
-    char *bslash = strrchr (pathname, '\\');
-
-    if (filename == NULL || (bslash != NULL && bslash > filename))
-      filename = bslash;
-    if (filename == NULL && pathname[0] != '\0' && pathname[1] == ':')
-      filename = pathname + 1;
-  }
-#endif
-
-  if (filename == NULL)
-    filename = pathname;
-  else
-    ++filename;
 
   length = strlen (filename);
 
@@ -2004,12 +2144,10 @@ _bfd_write_archive_contents (bfd *arch)
     {
       char buffer[DEFAULT_BUFFERSIZE];
       unsigned int remaining = arelt_size (current);
-      struct ar_hdr *hdr = arch_hdr (current);
 
       /* Write ar header.  */
-      if (bfd_bwrite (hdr, sizeof (*hdr), arch)
-	  != sizeof (*hdr))
-	return FALSE;
+      if (!_bfd_write_ar_hdr (arch, current))
+        return FALSE;
       if (bfd_is_thin_archive (arch))
         continue;
       if (bfd_seek (current, (file_ptr) 0, SEEK_SET) != 0)
@@ -2145,6 +2283,7 @@ _bfd_compute_and_write_armap (bfd *arch, unsigned int elength)
 		  if ((flags & BSF_GLOBAL
 		       || flags & BSF_WEAK
 		       || flags & BSF_INDIRECT
+		       || flags & BSF_GNU_UNIQUE
 		       || bfd_is_com_section (sec))
 		      && ! bfd_is_und_section (sec))
 		    {
@@ -2231,30 +2370,27 @@ bsd_write_armap (bfd *arch,
   bfd_byte temp[4];
   unsigned int count;
   struct ar_hdr hdr;
-  struct stat statbuf;
   long uid, gid;
 
   firstreal = mapsize + elength + sizeof (struct ar_hdr) + SARMAG;
 
-  stat (arch->filename, &statbuf);
+  /* If deterministic, we use 0 as the timestamp in the map.
+     Some linkers may require that the archive filesystem modification
+     time is less than (or near to) the archive map timestamp.  Those
+     linkers should not be used with deterministic mode.  (GNU ld and
+     Gold do not have this restriction.)  */
+  bfd_ardata (arch)->armap_timestamp = 0;
+  uid = 0;
+  gid = 0;
   if ((arch->flags & BFD_DETERMINISTIC_OUTPUT) == 0)
     {
-      /* Remember the timestamp, to keep it holy.  But fudge it a little.  */
-      bfd_ardata (arch)->armap_timestamp = (statbuf.st_mtime
-                                            + ARMAP_TIME_OFFSET);
+      struct stat statbuf;
+
+      if (stat (arch->filename, &statbuf) == 0)
+	bfd_ardata (arch)->armap_timestamp = (statbuf.st_mtime
+					      + ARMAP_TIME_OFFSET);
       uid = getuid();
       gid = getgid();
-    }
-  else
-    {
-      /* If deterministic, we use 0 as the timestamp in the map.
-         Some linkers may require that the archive filesystem modification
-         time is less than (or near to) the archive map timestamp.  Those
-         linkers should not be used with deterministic mode.  (GNU ld and
-         Gold do not have this restriction.)  */
-      bfd_ardata (arch)->armap_timestamp = 0;
-      uid = 0;
-      gid = 0;
     }
 
   memset (&hdr, ' ', sizeof (struct ar_hdr));
@@ -2282,7 +2418,10 @@ bsd_write_armap (bfd *arch,
 	{
 	  do
 	    {
-	      firstreal += arelt_size (current) + sizeof (struct ar_hdr);
+              struct areltdata *ared = arch_eltdata (current);
+
+	      firstreal += (ared->parsed_size + ared->extra_size
+                            + sizeof (struct ar_hdr));
 	      firstreal += firstreal % 2;
 	      current = current->archive_next;
 	    }

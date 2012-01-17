@@ -1,6 +1,6 @@
 /* ldlang.h - linker command language support
    Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of the GNU Binutils.
@@ -240,6 +240,8 @@ typedef struct lang_input_statement_struct
 
   bfd *the_bfd;
 
+  struct flag_info *section_flag_list;
+
   /* Point to the next file - whatever it is, wanders up and down
      archives */
   union lang_statement_union *next;
@@ -249,7 +251,7 @@ typedef struct lang_input_statement_struct
 
   const char *target;
 
-  unsigned int is_archive : 1;
+  unsigned int maybe_archive : 1;
 
   /* 1 means search a set of directories for this file.  */
   unsigned int search_dirs_flag : 1;
@@ -268,20 +270,37 @@ typedef struct lang_input_statement_struct
   /* Whether to search for this entry as a dynamic archive.  */
   unsigned int dynamic : 1;
 
-  /* Whether DT_NEEDED tags should be added for dynamic libraries in
-     DT_NEEDED tags from this entry.  */
-  unsigned int add_needed : 1;
+  /* Set if a DT_NEEDED tag should be added not just for the dynamic library
+     explicitly given by this entry but also for any dynamic libraries in
+     this entry's needed list.  */
+  unsigned int add_DT_NEEDED_for_dynamic : 1;
 
-  /* Whether this entry should cause a DT_NEEDED tag only when
-     satisfying references from regular files, or always.  */
-  unsigned int as_needed : 1;
+  /* Set if this entry should cause a DT_NEEDED tag only when some
+     regular file references its symbols (ie. --as-needed is in effect).  */
+  unsigned int add_DT_NEEDED_for_regular : 1;
 
   /* Whether to include the entire contents of an archive.  */
   unsigned int whole_archive : 1;
 
+  /* Set when bfd opening is successful.  */
   unsigned int loaded : 1;
 
   unsigned int real : 1;
+
+  /* Set if the file does not exist.  */
+  unsigned int missing_file : 1;
+
+#ifdef ENABLE_PLUGINS
+  /* Set if the file was claimed by a plugin.  */
+  unsigned int claimed : 1;
+
+  /* Set if the file was claimed from an archive.  */
+  unsigned int claim_archive : 1;
+
+  /* Set if reloading an --as-needed lib.  */
+  unsigned int reload : 1;
+#endif /* ENABLE_PLUGINS */
+
 } lang_input_statement_type;
 
 typedef struct
@@ -324,6 +343,7 @@ struct lang_wild_statement_struct
   walk_wild_section_handler_t walk_wild_section_handler;
   struct wildcard_list *handler_data[4];
   lang_section_bst_type *tree;
+  struct flag_info *section_flag_list;
 };
 
 typedef struct lang_address_statement_struct
@@ -338,7 +358,7 @@ typedef struct
 {
   lang_statement_header_type header;
   bfd_vma output_offset;
-  size_t size;
+  bfd_size_type size;
   asection *output_section;
   fill_type *fill;
 } lang_padding_statement_type;
@@ -462,6 +482,7 @@ extern lang_statement_list_type file_chain;
 extern lang_statement_list_type input_file_chain;
 
 extern int lang_statement_iteration;
+extern bfd_boolean missing_file;
 
 extern void lang_init
   (void);
@@ -529,7 +550,7 @@ extern void lang_for_each_file
 extern void lang_reset_memory_regions
   (void);
 extern void lang_do_assignments
-  (void);
+  (lang_phase_type);
 
 #define LANG_FOR_EACH_INPUT_STATEMENT(statement)			\
   lang_input_statement_type *statement;					\
@@ -559,7 +580,7 @@ extern lang_output_section_statement_type *lang_output_section_statement_lookup
 extern lang_output_section_statement_type *next_matching_output_section_statement
   (lang_output_section_statement_type *, int);
 extern void ldlang_add_undef
-  (const char *const);
+  (const char *const, bfd_boolean);
 extern void lang_add_output_format
   (const char *, const char *, const char *, int);
 extern void lang_list_init
@@ -575,6 +596,8 @@ extern void lang_add_reloc
    union etree_union *);
 extern void lang_for_each_statement
   (void (*) (lang_statement_union_type *));
+extern void lang_for_each_statement_worker
+  (void (*) (lang_statement_union_type *), lang_statement_union_type *);
 extern void *stat_alloc
   (size_t);
 extern void strip_excluded_output_sections
@@ -609,8 +632,6 @@ extern void lang_leave_overlay
   (etree_type *, int, fill_type *, const char *,
    lang_output_section_phdr_list *, const char *);
 
-extern struct bfd_elf_version_tree *lang_elf_version_info;
-
 extern struct bfd_elf_version_expr *lang_new_vers_pattern
   (struct bfd_elf_version_expr *, const char *, const char *, bfd_boolean);
 extern struct bfd_elf_version_tree *lang_new_vers_node
@@ -638,5 +659,8 @@ extern bfd_boolean load_symbols
 extern bfd_boolean
 ldlang_override_segment_assignment
   (struct bfd_link_info *, bfd *, asection *, asection *, bfd_boolean);
+
+extern void
+lang_ld_feature (char *);
 
 #endif

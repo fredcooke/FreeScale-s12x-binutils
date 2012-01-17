@@ -1,6 +1,6 @@
 /* BFD semi-generic back-end for a.out binaries.
    Copyright 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Cygnus Support.
 
@@ -269,7 +269,7 @@ NAME (aout, reloc_type_lookup) (bfd *abfd, bfd_reloc_code_real_type code)
   int ext = obj_reloc_entry_size (abfd) == RELOC_EXT_SIZE;
 
   if (code == BFD_RELOC_CTOR)
-    switch (bfd_get_arch_info (abfd)->bits_per_address)
+    switch (bfd_arch_bits_per_address (abfd))
       {
       case 32:
 	code = BFD_RELOC_32;
@@ -629,7 +629,9 @@ NAME (aout, some_aout_object_p) (bfd *abfd,
   if (execp->a_entry != 0
       || (execp->a_entry >= obj_textsec (abfd)->vma
 	  && execp->a_entry < (obj_textsec (abfd)->vma
-			       + obj_textsec (abfd)->size)))
+			       + obj_textsec (abfd)->size)
+	  && execp->a_trsize == 0
+	  && execp->a_drsize == 0))
     abfd->flags |= EXEC_P;
 #ifdef STAT_FOR_EXEC
   else
@@ -1808,7 +1810,7 @@ add_to_stringtab (bfd *abfd,
 		  bfd_boolean copy)
 {
   bfd_boolean hash;
-  bfd_size_type index;
+  bfd_size_type str_index;
 
   /* An index of 0 always means the empty string.  */
   if (str == 0 || *str == '\0')
@@ -1820,14 +1822,14 @@ add_to_stringtab (bfd *abfd,
   if ((abfd->flags & BFD_TRADITIONAL_FORMAT) != 0)
     hash = FALSE;
 
-  index = _bfd_stringtab_add (tab, str, hash, copy);
+  str_index = _bfd_stringtab_add (tab, str, hash, copy);
 
-  if (index != (bfd_size_type) -1)
+  if (str_index != (bfd_size_type) -1)
     /* Add BYTES_IN_WORD to the return value to account for the
        space taken up by the string table size.  */
-    index += BYTES_IN_WORD;
+    str_index += BYTES_IN_WORD;
 
-  return index;
+  return str_index;
 }
 
 /* Write out a strtab.  ABFD is already at the right location in the
@@ -3208,7 +3210,8 @@ aout_link_add_object_symbols (bfd *abfd, struct bfd_link_info *info)
 static bfd_boolean
 aout_link_check_ar_symbols (bfd *abfd,
 			    struct bfd_link_info *info,
-			    bfd_boolean *pneeded)
+			    bfd_boolean *pneeded,
+			    bfd **subsbfd)
 {
   struct external_nlist *p;
   struct external_nlist *pend;
@@ -3284,7 +3287,7 @@ aout_link_check_ar_symbols (bfd *abfd,
 	    {
 	      int skip = 0;
 
-	      switch (info->common_skip_ar_aymbols)
+	      switch (info->common_skip_ar_symbols)
 		{
 		case bfd_link_common_skip_text:
 		  skip = (type == (N_TEXT | N_EXT));
@@ -3302,7 +3305,8 @@ aout_link_check_ar_symbols (bfd *abfd,
 		continue;
 	    }
 
-	  if (! (*info->callbacks->add_archive_element) (info, abfd, name))
+	  if (!(*info->callbacks
+		->add_archive_element) (info, abfd, name, subsbfd))
 	    return FALSE;
 	  *pneeded = TRUE;
 	  return TRUE;
@@ -3329,9 +3333,8 @@ aout_link_check_ar_symbols (bfd *abfd,
 			 outside BFD.  We assume that we should link
 			 in the object file.  This is done for the -u
 			 option in the linker.  */
-		      if (! (*info->callbacks->add_archive_element) (info,
-								     abfd,
-								     name))
+		      if (!(*info->callbacks
+			    ->add_archive_element) (info, abfd, name, subsbfd))
 			return FALSE;
 		      *pneeded = TRUE;
 		      return TRUE;
@@ -3340,8 +3343,8 @@ aout_link_check_ar_symbols (bfd *abfd,
 		     symbol.  It is already on the undefs list.  */
 		  h->type = bfd_link_hash_common;
 		  h->u.c.p = (struct bfd_link_hash_common_entry *)
-                      bfd_hash_allocate (&info->hash->table,
-                                         sizeof (struct bfd_link_hash_common_entry));
+		    bfd_hash_allocate (&info->hash->table,
+				       sizeof (struct bfd_link_hash_common_entry));
 		  if (h->u.c.p == NULL)
 		    return FALSE;
 
@@ -3379,7 +3382,8 @@ aout_link_check_ar_symbols (bfd *abfd,
 	     it if the current link symbol is common.  */
 	  if (h->type == bfd_link_hash_undefined)
 	    {
-	      if (! (*info->callbacks->add_archive_element) (info, abfd, name))
+	      if (!(*info->callbacks
+		    ->add_archive_element) (info, abfd, name, subsbfd))
 		return FALSE;
 	      *pneeded = TRUE;
 	      return TRUE;
@@ -3400,21 +3404,36 @@ aout_link_check_archive_element (bfd *abfd,
 				 struct bfd_link_info *info,
 				 bfd_boolean *pneeded)
 {
-  if (! aout_get_external_symbols (abfd))
+  bfd *oldbfd;
+  bfd_boolean needed;
+
+  if (!aout_get_external_symbols (abfd))
     return FALSE;
 
-  if (! aout_link_check_ar_symbols (abfd, info, pneeded))
+  oldbfd = abfd;
+  if (!aout_link_check_ar_symbols (abfd, info, pneeded, &abfd))
     return FALSE;
 
-  if (*pneeded)
+  needed = *pneeded;
+  if (needed)
     {
-      if (! aout_link_add_symbols (abfd, info))
+      /* Potentially, the add_archive_element hook may have set a
+	 substitute BFD for us.  */
+      if (abfd != oldbfd)
+	{
+	  if (!info->keep_memory
+	      && !aout_link_free_symbols (oldbfd))
+	    return FALSE;
+	  if (!aout_get_external_symbols (abfd))
+	    return FALSE;
+	}
+      if (!aout_link_add_symbols (abfd, info))
 	return FALSE;
     }
 
-  if (! info->keep_memory || ! *pneeded)
+  if (!info->keep_memory || !needed)
     {
-      if (! aout_link_free_symbols (abfd))
+      if (!aout_link_free_symbols (abfd))
 	return FALSE;
     }
 
@@ -3532,8 +3551,9 @@ aout_link_includes_newfunc (struct bfd_hash_entry *entry,
    object.  */
 
 static bfd_boolean
-aout_link_write_other_symbol (struct aout_link_hash_entry *h, void * data)
+aout_link_write_other_symbol (struct bfd_hash_entry *bh, void *data)
 {
+  struct aout_link_hash_entry *h = (struct aout_link_hash_entry *) bh;
   struct aout_final_link_info *finfo = (struct aout_final_link_info *) data;
   bfd *output_bfd;
   int type;
@@ -3618,6 +3638,7 @@ aout_link_write_other_symbol (struct aout_link_hash_entry *h, void * data)
     case bfd_link_hash_undefweak:
       type = N_WEAKU;
       val = 0;
+      break;
     case bfd_link_hash_indirect:
       /* We ignore these symbols, since the indirected symbol is
 	 already in the hash table.  */
@@ -3699,7 +3720,7 @@ aout_link_reloc_link_order (struct aout_final_link_info *finfo,
 	     symbol.  */
 	  h->indx = -2;
 	  h->written = FALSE;
-	  if (! aout_link_write_other_symbol (h, (void *) finfo))
+	  if (!aout_link_write_other_symbol (&h->root.root, finfo))
 	    return FALSE;
 	  r_index = h->indx;
 	}
@@ -4057,8 +4078,8 @@ aout_link_input_section_std (struct aout_final_link_info *finfo,
 			    {
 			      h->indx = -2;
 			      h->written = FALSE;
-			      if (! aout_link_write_other_symbol (h,
-								  (void *) finfo))
+			      if (!aout_link_write_other_symbol (&h->root.root,
+								 finfo))
 				return FALSE;
 			    }
 			  r_index = h->indx;
@@ -4399,8 +4420,8 @@ aout_link_input_section_ext (struct aout_final_link_info *finfo,
 			    {
 			      h->indx = -2;
 			      h->written = FALSE;
-			      if (! aout_link_write_other_symbol (h,
-								  (void *) finfo))
+			      if (!aout_link_write_other_symbol (&h->root.root,
+								 finfo))
 				return FALSE;
 			    }
 			  r_index = h->indx;
@@ -5233,8 +5254,6 @@ aout_link_write_symbols (struct aout_final_link_info *finfo, bfd *input_bfd)
 static bfd_boolean
 aout_link_input_bfd (struct aout_final_link_info *finfo, bfd *input_bfd)
 {
-  bfd_size_type sym_count;
-
   BFD_ASSERT (bfd_get_format (input_bfd) == bfd_object);
 
   /* If this is a dynamic object, it may need special handling.  */
@@ -5247,8 +5266,6 @@ aout_link_input_bfd (struct aout_final_link_info *finfo, bfd *input_bfd)
      finfo->info->keep_memory is FALSE.  */
   if (! aout_get_external_symbols (input_bfd))
     return FALSE;
-
-  sym_count = obj_aout_external_sym_count (input_bfd);
 
   /* Write out the symbols and get a map of the new indices.  The map
      is placed into finfo->symbol_map.  */
@@ -5433,7 +5450,7 @@ NAME (aout, final_link) (bfd *abfd,
   /* Allocate buffers to hold section contents and relocs.  */
   aout_info.contents = (bfd_byte *) bfd_malloc (max_contents_size);
   aout_info.relocs = bfd_malloc (max_relocs_size);
-  aout_info.symbol_map = (int *) bfd_malloc (max_sym_count * sizeof (int *));
+  aout_info.symbol_map = (int *) bfd_malloc (max_sym_count * sizeof (int));
   aout_info.output_syms = (struct external_nlist *)
       bfd_malloc ((max_sym_count + 1) * sizeof (struct external_nlist));
   if ((aout_info.contents == NULL && max_contents_size != 0)
@@ -5452,7 +5469,7 @@ NAME (aout, final_link) (bfd *abfd,
     h = aout_link_hash_lookup (aout_hash_table (info), "__DYNAMIC",
 			       FALSE, FALSE, FALSE);
     if (h != NULL)
-      aout_link_write_other_symbol (h, &aout_info);
+      aout_link_write_other_symbol (&h->root.root, &aout_info);
   }
 
   /* The most time efficient way to do the link would be to read all
@@ -5526,9 +5543,9 @@ NAME (aout, final_link) (bfd *abfd,
     }
 
   /* Write out any symbols that we have not already written out.  */
-  aout_link_hash_traverse (aout_hash_table (info),
-			   aout_link_write_other_symbol,
-			   (void *) &aout_info);
+  bfd_hash_traverse (&info->hash->table,
+		     aout_link_write_other_symbol,
+		     &aout_info);
 
   /* Now handle any relocs we were asked to create by the linker.
      These did not come from any input file.  We must do these after

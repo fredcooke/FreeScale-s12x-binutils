@@ -1,6 +1,6 @@
 /* plugin-api.h -- External linker plugin API.  */
 
-/* Copyright 2008 Free Software Foundation, Inc.
+/* Copyright 2009, 2010 Free Software Foundation, Inc.
    Written by Cary Coutant <ccoutant@google.com>.
 
    This file is part of binutils.
@@ -26,8 +26,16 @@
 #ifndef PLUGIN_API_H
 #define PLUGIN_API_H
 
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#elif defined(HAVE_INTTYPES_H)
+#include <inttypes.h>
+#endif
 #include <sys/types.h>
+#if !defined(HAVE_STDINT_H) && !defined(HAVE_INTTYPES_H) && \
+    !defined(UINT64_MAX) && !defined(uint64_t)
+#error can not find uint64_t type
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -85,6 +93,14 @@ struct ld_plugin_symbol
   int resolution;
 };
 
+/* An object's section.  */
+
+struct ld_plugin_section
+{
+  const void* handle;
+  unsigned int shndx;
+};
+
 /* Whether the symbol is a definition, reference, or common, weak or not.  */
 
 enum ld_plugin_symbol_kind
@@ -111,14 +127,41 @@ enum ld_plugin_symbol_visibility
 enum ld_plugin_symbol_resolution
 {
   LDPR_UNKNOWN = 0,
+
+  /* Symbol is still undefined at this point.  */
   LDPR_UNDEF,
+
+  /* This is the prevailing definition of the symbol, with references from
+     regular object code.  */
   LDPR_PREVAILING_DEF,
+
+  /* This is the prevailing definition of the symbol, with no
+     references from regular objects.  It is only referenced from IR
+     code.  */
   LDPR_PREVAILING_DEF_IRONLY,
+
+  /* This definition was pre-empted by a definition in a regular
+     object file.  */
   LDPR_PREEMPTED_REG,
+
+  /* This definition was pre-empted by a definition in another IR file.  */
   LDPR_PREEMPTED_IR,
+
+  /* This symbol was resolved by a definition in another IR file.  */
   LDPR_RESOLVED_IR,
+
+  /* This symbol was resolved by a definition in a regular object
+     linked into the main executable.  */
   LDPR_RESOLVED_EXEC,
-  LDPR_RESOLVED_DYN
+
+  /* This symbol was resolved by a definition in a shared object.  */
+  LDPR_RESOLVED_DYN,
+
+  /* This is the prevailing definition of the symbol, with no
+     references from regular objects.  It is only referenced from IR
+     code, but the symbol is exported and may be referenced from
+     a dynamic object (not seen at link time).  */
+  LDPR_PREVAILING_DEF_IRONLY_EXP
 };
 
 /* The plugin library's "claim file" handler.  */
@@ -174,6 +217,10 @@ enum ld_plugin_status
 (*ld_plugin_get_input_file) (const void *handle,
                              struct ld_plugin_input_file *file);
 
+typedef
+enum ld_plugin_status
+(*ld_plugin_get_view) (const void *handle, const void **viewp);
+
 /* The linker's interface for releasing the input file.  */
 
 typedef
@@ -191,13 +238,84 @@ enum ld_plugin_status
 
 typedef
 enum ld_plugin_status
-(*ld_plugin_add_input_file) (char *pathname);
+(*ld_plugin_add_input_file) (const char *pathname);
+
+/* The linker's interface for adding a library that should be searched.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_add_input_library) (const char *libname);
+
+/* The linker's interface for adding a library path that should be searched.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_set_extra_library_path) (const char *path);
 
 /* The linker's interface for issuing a warning or error message.  */
 
 typedef
 enum ld_plugin_status
 (*ld_plugin_message) (int level, const char *format, ...);
+
+/* The linker's interface for retrieving the number of sections in an object.
+   The handle is obtained in the claim_file handler.  This interface should
+   only be invoked in the claim_file handler.   This function sets *COUNT to
+   the number of sections in the object.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_get_input_section_count) (const void* handle, unsigned int *count);
+
+/* The linker's interface for retrieving the section type of a specific
+   section in an object.  This interface should only be invoked in the
+   claim_file handler.  This function sets *TYPE to an ELF SHT_xxx value.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_get_input_section_type) (const struct ld_plugin_section section,
+                                     unsigned int *type);
+
+/* The linker's interface for retrieving the name of a specific section in
+   an object. This interface should only be invoked in the claim_file handler.
+   This function sets *SECTION_NAME_PTR to a null-terminated buffer allocated
+   by malloc.  The plugin must free *SECTION_NAME_PTR.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_get_input_section_name) (const struct ld_plugin_section section,
+                                     char **section_name_ptr);
+
+/* The linker's interface for retrieving the contents of a specific section
+   in an object.  This interface should only be invoked in the claim_file
+   handler.  This function sets *SECTION_CONTENTS to point to a buffer that is
+   valid until clam_file handler returns.  It sets *LEN to the size of the
+   buffer.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_get_input_section_contents) (const struct ld_plugin_section section,
+                                         const unsigned char **section_contents,
+                                         size_t* len);
+
+/* The linker's interface for specifying the desired order of sections.
+   The sections should be specifed using the array SECTION_LIST in the
+   order in which they should appear in the final layout.  NUM_SECTIONS
+   specifies the number of entries in each array.  This should be invoked
+   in the all_symbols_read handler.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_update_section_order) (const struct ld_plugin_section *section_list,
+				   unsigned int num_sections);
+
+/* The linker's interface for specifying that reordering of sections is
+   desired so that the linker can prepare for it.  This should be invoked
+   before update_section_order, preferably in the claim_file handler.  */
+
+typedef
+enum ld_plugin_status
+(*ld_plugin_allow_section_ordering) (void);
 
 enum ld_plugin_level
 {
@@ -224,7 +342,19 @@ enum ld_plugin_tag
   LDPT_ADD_INPUT_FILE,
   LDPT_MESSAGE,
   LDPT_GET_INPUT_FILE,
-  LDPT_RELEASE_INPUT_FILE
+  LDPT_RELEASE_INPUT_FILE,
+  LDPT_ADD_INPUT_LIBRARY,
+  LDPT_OUTPUT_NAME,
+  LDPT_SET_EXTRA_LIBRARY_PATH,
+  LDPT_GNU_LD_VERSION,
+  LDPT_GET_VIEW,
+  LDPT_GET_INPUT_SECTION_COUNT,
+  LDPT_GET_INPUT_SECTION_TYPE,
+  LDPT_GET_INPUT_SECTION_NAME,
+  LDPT_GET_INPUT_SECTION_CONTENTS,
+  LDPT_UPDATE_SECTION_ORDER,
+  LDPT_ALLOW_SECTION_ORDERING,
+  LDPT_GET_SYMBOLS_V2
 };
 
 /* The plugin transfer vector.  */
@@ -244,7 +374,16 @@ struct ld_plugin_tv
     ld_plugin_add_input_file tv_add_input_file;
     ld_plugin_message tv_message;
     ld_plugin_get_input_file tv_get_input_file;
+    ld_plugin_get_view tv_get_view;
     ld_plugin_release_input_file tv_release_input_file;
+    ld_plugin_add_input_library tv_add_input_library;
+    ld_plugin_set_extra_library_path tv_set_extra_library_path;
+    ld_plugin_get_input_section_count tv_get_input_section_count;
+    ld_plugin_get_input_section_type tv_get_input_section_type;
+    ld_plugin_get_input_section_name tv_get_input_section_name;
+    ld_plugin_get_input_section_contents tv_get_input_section_contents;
+    ld_plugin_update_section_order tv_update_section_order;
+    ld_plugin_allow_section_ordering tv_allow_section_ordering;
   } tv_u;
 };
 

@@ -1,7 +1,7 @@
 #source: eh6.s
 #ld: --gc-sections -shared
 #readelf: -wf
-#target: x86_64-*-linux-gnu i?86-*-linux-gnu
+#target: x86_64-*-linux-gnu i?86-*-linux-gnu i?86-*-gnu*
 
 Contents of the .eh_frame section:
 
@@ -11,7 +11,7 @@ Contents of the .eh_frame section:
   Code alignment factor: 1
   Data alignment factor: .*
   Return address column: .*
-  Augmentation data:     80 .* 1b
+  Augmentation data:     9[bc] .* 1b
 
   DW_CFA_nop
 #pass

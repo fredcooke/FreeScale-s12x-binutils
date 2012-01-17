@@ -1,6 +1,6 @@
 /* listing.c - maintain assembly listings
    Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
@@ -90,6 +90,7 @@
                         on a line.  */
 
 #include "as.h"
+#include "filenames.h"
 #include "obstack.h"
 #include "safe-ctype.h"
 #include "input-file.h"
@@ -257,7 +258,7 @@ file_info (const char *file_name)
 
   while (p != (file_info_type *) NULL)
     {
-      if (strcmp (p->filename, file_name) == 0)
+      if (filename_cmp (p->filename, file_name) == 0)
 	return p;
       p = p->next;
     }
@@ -318,7 +319,7 @@ listing_newline (char *ps)
   if (ps == NULL)
     {
       if (line == last_line
-	  && !(last_file && file && strcmp (file, last_file)))
+	  && !(last_file && file && filename_cmp (file, last_file)))
 	return;
 
       new_i = (list_info_type *) xmalloc (sizeof (list_info_type));
@@ -342,24 +343,26 @@ listing_newline (char *ps)
 	  int seen_quote = 0;
 	  int seen_slash = 0;
 
-	  for (copy = input_line_pointer - 1;
+	  for (copy = input_line_pointer;
 	       *copy && (seen_quote
 			 || is_end_of_line [(unsigned char) *copy] != 1);
 	       copy++)
 	    {
-	      if (*copy == '\\')
-		seen_slash = ! seen_slash;
-	      else if (*copy == '"' && seen_slash)
-		seen_quote = ! seen_quote;
+	      if (seen_slash)
+		seen_slash = 0;
+	      else if (*copy == '\\')
+		seen_slash = 1;
+	      else if (*copy == '"')
+		seen_quote = !seen_quote;
 	    }
 
-	  len = (copy - input_line_pointer) + 2;
+	  len = copy - input_line_pointer + 1;
 
 	  copy = (char *) xmalloc (len);
 
 	  if (copy != NULL)
 	    {
-	      char *src = input_line_pointer - 1;
+	      char *src = input_line_pointer;
 	      char *dest = copy;
 
 	      while (--len)
@@ -1043,11 +1046,11 @@ print_source (file_info_type *  current_file,
       while (current_file->linenum < list->hll_line
 	     && !current_file->at_end)
 	{
-	  cached_line * cache = cached_lines + next_free_line;
 	  char *p;
 
+	  cache = cached_lines + next_free_line;
 	  cache->file = current_file;
-	  cache->line = current_file->linenum;
+	  cache->line = current_file->linenum + 1;
 	  cache->buffer[0] = 0;
 	  p = buffer_line (current_file, cache->buffer, width);
 
@@ -1073,17 +1076,22 @@ print_source (file_info_type *  current_file,
 static int
 debugging_pseudo (list_info_type *list, const char *line)
 {
+#ifdef OBJ_ELF
   static int in_debug;
   int was_debug;
+#endif
 
   if (list->debugging)
     {
+#ifdef OBJ_ELF
       in_debug = 1;
+#endif
       return 1;
     }
-
+#ifdef OBJ_ELF
   was_debug = in_debug;
   in_debug = 0;
+#endif
 
   while (ISSPACE (*line))
     line++;
@@ -1144,7 +1152,6 @@ listing_listing (char *name ATTRIBUTE_UNUSED)
 {
   list_info_type *list = head;
   file_info_type *current_hll_file = (file_info_type *) NULL;
-  char *message;
   char *buffer;
   char *p;
   int show_listing = 1;
@@ -1209,8 +1216,6 @@ listing_listing (char *name ATTRIBUTE_UNUSED)
 	{
 	  /* Scan down the list and print all the stuff which can be done
 	     with this line (or lines).  */
-	  message = 0;
-
 	  if (list->hll_file)
 	    current_hll_file = list->hll_file;
 
@@ -1409,14 +1414,6 @@ listing_eject (int ignore ATTRIBUTE_UNUSED)
     listing_tail->edict = EDICT_EJECT;
 }
 
-void
-listing_flags (int ignore ATTRIBUTE_UNUSED)
-{
-  while ((*input_line_pointer++) && (*input_line_pointer != '\n'))
-    input_line_pointer++;
-
-}
-
 /* Turn listing on or off.  An argument of 0 means to turn off
    listing.  An argument of 1 means to turn on listing.  An argument
    of 2 means to turn off listing, but as of the next line; that is,
@@ -1557,12 +1554,6 @@ listing_source_file (const char *file)
 #else
 
 /* Dummy functions for when compiled without listing enabled.  */
-
-void
-listing_flags (int ignore)
-{
-  s_ignore (0);
-}
 
 void
 listing_list (int on)

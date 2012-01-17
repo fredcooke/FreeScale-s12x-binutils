@@ -50,7 +50,7 @@ static const char * comment_start = "0x";
 
 static int
 avr_operand (unsigned int insn, unsigned int insn2, unsigned int pc, int constraint,
-             char *buf, char *comment, int regs, int *sym, bfd_vma *sym_addr)
+             char *opcode_str, char *buf, char *comment, int regs, int *sym, bfd_vma *sym_addr)
 {
   int ok = 1;
   *sym = 0;
@@ -118,8 +118,19 @@ avr_operand (unsigned int insn, unsigned int insn2, unsigned int pc, int constra
 
     case 'z':
       *buf++ = 'Z';
-      if (insn & 0x1)
-	*buf++ = '+';
+
+      /* Check for post-increment. */
+      char *s;
+      for (s = opcode_str; *s; ++s)
+        {
+          if (*s == '+')
+            {
+	      if (insn & (1 << (15 - (s - opcode_str))))
+		*buf++ = '+';
+              break;
+            }
+        }
+
       *buf = '\0';
       if (AVR_UNDEF_P (insn))
 	sprintf (comment, _("undefined"));
@@ -227,6 +238,10 @@ avr_operand (unsigned int insn, unsigned int insn2, unsigned int pc, int constra
       }
       break;
       
+    case 'E':
+      sprintf (buf, "%d", (insn >> 4) & 15);
+      break;
+      
     case '?':
       *buf = '\0';
       break;
@@ -287,7 +302,9 @@ print_insn_avr (bfd_vma addr, disassemble_info *info)
       
       avr_bin_masks = xmalloc (nopcodes * sizeof (unsigned int));
 
-      for (opcode = avr_opcodes, maskptr = avr_bin_masks; opcode->name; opcode++, maskptr++)
+      for (opcode = avr_opcodes, maskptr = avr_bin_masks;
+	   opcode->name;
+	   opcode++, maskptr++)
 	{
 	  char * s;
 	  unsigned int bin = 0;
@@ -329,7 +346,8 @@ print_insn_avr (bfd_vma addr, disassemble_info *info)
 
   if (opcode->name)
     {
-      char *op = opcode->constraints;
+      char *constraints = opcode->constraints;
+      char *opcode_str = opcode->opcode;
 
       insn2 = 0;
       ok = 1;
@@ -340,14 +358,14 @@ print_insn_avr (bfd_vma addr, disassemble_info *info)
 	  cmd_len = 4;
 	}
 
-      if (*op && *op != '?')
+      if (*constraints && *constraints != '?')
 	{
-	  int regs = REGISTER_P (*op);
+	  int regs = REGISTER_P (*constraints);
 
-	  ok = avr_operand (insn, insn2, addr, *op, op1, comment1, 0, &sym_op1, &sym_addr1);
+	  ok = avr_operand (insn, insn2, addr, *constraints, opcode_str, op1, comment1, 0, &sym_op1, &sym_addr1);
 
-	  if (ok && *(++op) == ',')
-	    ok = avr_operand (insn, insn2, addr, *(++op), op2,
+	  if (ok && *(++constraints) == ',')
+	    ok = avr_operand (insn, insn2, addr, *(++constraints), opcode_str, op2,
 			      *comment1 ? comment2 : comment1, regs, &sym_op2, &sym_addr2);
 	}
     }

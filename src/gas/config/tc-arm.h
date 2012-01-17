@@ -183,6 +183,7 @@ void arm_copy_symbol_attributes (symbolS *, symbolS *);
   (!(FIX)->fx_pcrel					\
    || (FIX)->fx_r_type == BFD_RELOC_ARM_GOT32		\
    || (FIX)->fx_r_type == BFD_RELOC_32			\
+   || ((FIX)->fx_addsy != NULL && S_IS_WEAK ((FIX)->fx_addsy))	\
    || TC_FORCE_RELOCATION (FIX))
 
 /* Force output of R_ARM_REL32 relocations against thumb function symbols.
@@ -190,6 +191,12 @@ void arm_copy_symbol_attributes (symbolS *, symbolS *);
 #define TC_FORCE_RELOCATION_SUB_SAME(FIX, SEG)	\
   (THUMB_IS_FUNC ((FIX)->fx_addsy)		\
    || !SEG_NORMAL (SEG))
+
+#define TC_FORCE_RELOCATION_ABS(FIX)			\
+  (((FIX)->fx_pcrel					\
+    && (FIX)->fx_r_type != BFD_RELOC_32			\
+    && (FIX)->fx_r_type != BFD_RELOC_ARM_GOT32)		\
+   || TC_FORCE_RELOCATION(FIX))
 
 #define TC_CONS_FIX_NEW cons_fix_new_arm
 

@@ -1,5 +1,5 @@
 /* Mach-O object file format for gas, the assembler.
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2011, 2012 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -18,12 +18,32 @@
    Software Foundation, 51 Franklin Street - Fifth Floor, Boston, MA
    02110-1301, USA.  */
 
+#ifndef _OBJ_MACH_O_H
+#define _OBJ_MACH_O_H
+
 /* Tag to validate Mach-O object file format processing */
 #define OBJ_MACH_O 1
+
+#include "bfd/mach-o.h"
 
 #include "targ-cpu.h"
 
 #define OUTPUT_FLAVOR bfd_target_mach_o_flavour
+
+/* We want to control how the sections are pre-defined on startup.  */
+#define obj_begin() mach_o_begin ()
+extern void mach_o_begin (void);
+
+/* All our align expressions are power of two.  */
+#define USE_ALIGN_PTWO
+
+/* Common symbols can carry alignment information.  */
+#ifndef S_SET_ALIGN
+#define S_SET_ALIGN(S,V) do {\
+  bfd_mach_o_asymbol *___s = (bfd_mach_o_asymbol *) symbol_get_bfdsym (S);\
+  ___s->n_desc = (___s->n_desc & 0xf0ff) | (((V) & 0x0f) << 8);\
+} while (0)
+#endif
 
 extern const pseudo_typeS mach_o_pseudo_table[];
 
@@ -36,4 +56,15 @@ extern const pseudo_typeS mach_o_pseudo_table[];
 #define obj_read_begin_hook()	{;}
 #define obj_symbol_new_hook(s)	{;}
 
+#define obj_frob_label(s) obj_macho_frob_label(s)
+extern void obj_macho_frob_label (struct symbol *);
+
+#define obj_frob_symbol(s, punt) punt = obj_macho_frob_symbol(s)
+extern int obj_macho_frob_symbol (struct symbol *);
+
 #define EMIT_SECTION_SYMBOLS		0
+
+#define OBJ_PROCESS_STAB(SEG,W,S,T,O,D)	obj_mach_o_process_stab(W,S,T,O,D)
+extern void obj_mach_o_process_stab (int, const char *,int, int, int);
+
+#endif /* _OBJ_MACH_O_H */

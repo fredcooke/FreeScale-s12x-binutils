@@ -1,6 +1,7 @@
 /* BFD back-end for Renesas Super-H COFF binaries.
    Copyright 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2011
+   Free Software Foundation, Inc.
    Contributed by Cygnus Support.
    Written by Steve Chamberlain, <sac@cygnus.com>.
    Relaxing code written by Ian Lance Taylor, <ian@cygnus.com>.
@@ -517,7 +518,7 @@ sh_coff_reloc_type_lookup (abfd, code)
     if (sh_reloc_map[i].bfd_reloc_val == code)
       return &sh_coff_howtos[(int) sh_reloc_map[i].shcoff_reloc_val];
 
-  fprintf (stderr, "SH Error: unknown reloc type %d\n", code);
+  (*_bfd_error_handler) (_("SH Error: unknown reloc type %d"), code);
   return NULL;
 }
 
@@ -3184,6 +3185,7 @@ const bfd_target shcoff_small_vec =
   '_',				/* leading symbol underscore */
   '/',				/* ar_pad_char */
   15,				/* ar_max_namelen */
+  0,				/* match priority.  */
   bfd_getb64, bfd_getb_signed_64, bfd_putb64,
   bfd_getb32, bfd_getb_signed_32, bfd_putb32,
   bfd_getb16, bfd_getb_signed_16, bfd_putb16, /* data */
@@ -3228,6 +3230,7 @@ const bfd_target shlcoff_small_vec =
   '_',				/* leading symbol underscore */
   '/',				/* ar_pad_char */
   15,				/* ar_max_namelen */
+  0,				/* match priority.  */
   bfd_getl64, bfd_getl_signed_64, bfd_putl64,
   bfd_getl32, bfd_getl_signed_32, bfd_putl32,
   bfd_getl16, bfd_getl_signed_16, bfd_putl16, /* data */

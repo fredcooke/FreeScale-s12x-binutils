@@ -8,6 +8,9 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* Should ar and ranlib use -D behavior by default? */
+#undef DEFAULT_AR_DETERMINISTIC
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #undef ENABLE_NLS
@@ -70,9 +73,6 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
-/* Is fopen64 available? */
-#undef HAVE_FOPEN64
-
 /* Define to 1 if you have the `getc_unlocked' function. */
 #undef HAVE_GETC_UNLOCKED
 
@@ -102,9 +102,6 @@
 
 /* Define to 1 if you have the `setmode' function. */
 #undef HAVE_SETMODE
-
-/* Is stat64 available? */
-#undef HAVE_STAT64
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -230,9 +227,6 @@
 
 /* Number of bits in a file offset, on hosts where this is settable. */
 #undef _FILE_OFFSET_BITS
-
-/* Enable LFS */
-#undef _LARGEFILE64_SOURCE
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES

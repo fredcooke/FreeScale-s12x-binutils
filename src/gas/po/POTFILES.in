@@ -7,6 +7,8 @@ bignum.h
 bit_fix.h
 cgen.c
 cgen.h
+compress-debug.c
+compress-debug.h
 cond.c
 config/atof-ieee.c
 config/atof-vax.c
@@ -57,6 +59,8 @@ config/tc-d30v.c
 config/tc-d30v.h
 config/tc-dlx.c
 config/tc-dlx.h
+config/tc-epiphany.c
+config/tc-epiphany.h
 config/tc-fr30.c
 config/tc-fr30.h
 config/tc-frv.c
@@ -87,11 +91,8 @@ config/tc-m32r.c
 config/tc-m32r.h
 config/tc-m68hc11.c
 config/tc-m68hc11.h
-config/tc-mc9s12x.h
 config/tc-m68k.c
 config/tc-m68k.h
-config/tc-maxq.c
-config/tc-maxq.h
 config/tc-mcore.c
 config/tc-mcore.h
 config/tc-mep.c
@@ -123,6 +124,8 @@ config/tc-pj.c
 config/tc-pj.h
 config/tc-ppc.c
 config/tc-ppc.h
+config/tc-rx.c
+config/tc-rx.h
 config/tc-s390.c
 config/tc-s390.h
 config/tc-score.c
@@ -141,6 +144,12 @@ config/tc-tic4x.c
 config/tc-tic4x.h
 config/tc-tic54x.c
 config/tc-tic54x.h
+config/tc-tic6x.c
+config/tc-tic6x.h
+config/tc-tilegx.c
+config/tc-tilegx.h
+config/tc-tilepro.c
+config/tc-tilepro.h
 config/tc-v850.c
 config/tc-v850.h
 config/tc-vax.c
@@ -191,6 +200,8 @@ config/te-tmips.h
 config/te-vms.c
 config/te-vxworks.h
 config/te-wince-pe.h
+config/tc-xgate.c
+config/tc-xgate.h
 config/xtensa-relax.c
 config/xtensa-relax.h
 depend.c

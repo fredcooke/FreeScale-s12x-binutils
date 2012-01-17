@@ -3,12 +3,16 @@
 if [istarget z80-*-*] then {
 # test redefinitions
     run_dump_test "redef"
+# test parsing of equ definitions
+    run_dump_test "equ"
 # test parsing of " and '
     run_dump_test "quotes"
 # test suffixes
     run_dump_test "suffix"
 # test assembling and disassembling instructions involving offsets
     run_dump_test "offset"
+# test assembling instruction with offset that is a label defined later
+    run_dump_test "atend"
 # test for data transfer instructions
     run_dump_test "ld-group"
 # test for block instructions

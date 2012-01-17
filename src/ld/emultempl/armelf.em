@@ -1,6 +1,6 @@
 # This shell script emits a C file. -*- C -*-
 #   Copyright 1991, 1993, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-#   2004, 2005, 2006, 2007, 2008, 2009
+#   2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 #   Free Software Foundation, Inc.
 #
 # This file is part of the GNU Binutils.
@@ -41,6 +41,8 @@ static int fix_cortex_a8 = -1;
 static int no_enum_size_warning = 0;
 static int no_wchar_size_warning = 0;
 static int pic_veneer = 0;
+static int merge_exidx_entries = -1;
+static int fix_arm1176 = 1;
 
 static void
 gld${EMULATION_NAME}_before_parse (void)
@@ -66,7 +68,7 @@ arm_elf_before_allocation (void)
 
   /* We should be able to set the size of the interworking stub section.  We
      can't do it until later if we have dynamic sections, though.  */
-  if (! elf_hash_table (&link_info)->dynamic_sections_created)
+  if (elf_hash_table (&link_info)->dynobj == NULL)
     {
       /* Here we rummage through the found bfds to collect glue information.  */
       LANG_FOR_EACH_INPUT_STATEMENT (is)
@@ -276,7 +278,8 @@ gld${EMULATION_NAME}_after_allocation (void)
       /* Build a sorted list of input text sections, then use that to process
 	 the unwind table index.  */
       unsigned int list_size = 10;
-      asection **sec_list = xmalloc (list_size * sizeof (asection *));
+      asection **sec_list = (asection **)
+          xmalloc (list_size * sizeof (asection *));
       unsigned int sec_count = 0;
 
       LANG_FOR_EACH_INPUT_STATEMENT (is)
@@ -302,8 +305,8 @@ gld${EMULATION_NAME}_after_allocation (void)
 		  if (sec_count == list_size)
 		    {
 		      list_size *= 2;
-		      sec_list = xrealloc (sec_list,
-					   list_size * sizeof (asection *));
+		      sec_list = (asection **) 
+                          xrealloc (sec_list, list_size * sizeof (asection *));
 		    }
 
 		  sec_list[sec_count++] = sec;
@@ -313,7 +316,8 @@ gld${EMULATION_NAME}_after_allocation (void)
 	
       qsort (sec_list, sec_count, sizeof (asection *), &compare_output_sec_vma);
       
-      if (elf32_arm_fix_exidx_coverage (sec_list, sec_count, &link_info))
+      if (elf32_arm_fix_exidx_coverage (sec_list, sec_count, &link_info,
+					   merge_exidx_entries))
 	need_laying_out = 1;
       
       free (sec_list);
@@ -401,7 +405,7 @@ gld${EMULATION_NAME}_finish (void)
       h = bfd_link_hash_lookup (link_info.hash, entry_symbol.name,
 				FALSE, FALSE, TRUE);
       eh = (struct elf_link_hash_entry *)h;
-      if (!h || ELF_ST_TYPE(eh->type) != STT_ARM_TFUNC)
+      if (!h || eh->target_internal != ST_BRANCH_TO_THUMB)
 	return;
     }
 
@@ -461,7 +465,8 @@ arm_elf_create_output_section_statements (void)
 				   target2_type, fix_v4bx, use_blx,
 				   vfp11_denorm_fix, no_enum_size_warning,
 				   no_wchar_size_warning,
-				   pic_veneer, fix_cortex_a8);
+				   pic_veneer, fix_cortex_a8, 
+				   fix_arm1176);
 
   stub_file = lang_add_input_file ("linker stubs",
  				   lang_input_file_is_fake_enum,
@@ -525,6 +530,9 @@ PARSE_AND_LIST_PROLOGUE='
 #define OPTION_NO_WCHAR_SIZE_WARNING	313
 #define OPTION_FIX_CORTEX_A8		314
 #define OPTION_NO_FIX_CORTEX_A8		315
+#define OPTION_NO_MERGE_EXIDX_ENTRIES   316
+#define OPTION_FIX_ARM1176		317
+#define OPTION_NO_FIX_ARM1176		318
 '
 
 PARSE_AND_LIST_SHORTOPTS=p
@@ -546,13 +554,16 @@ PARSE_AND_LIST_LONGOPTS='
   { "no-wchar-size-warning", no_argument, NULL, OPTION_NO_WCHAR_SIZE_WARNING},
   { "fix-cortex-a8", no_argument, NULL, OPTION_FIX_CORTEX_A8 },
   { "no-fix-cortex-a8", no_argument, NULL, OPTION_NO_FIX_CORTEX_A8 },
+  { "no-merge-exidx-entries", no_argument, NULL, OPTION_NO_MERGE_EXIDX_ENTRIES },
+  { "fix-arm1176", no_argument, NULL, OPTION_FIX_ARM1176 },
+  { "no-fix-arm1176", no_argument, NULL, OPTION_NO_FIX_ARM1176 },
 '
 
 PARSE_AND_LIST_OPTIONS='
   fprintf (file, _("  --thumb-entry=<sym>         Set the entry point to be Thumb symbol <sym>\n"));
   fprintf (file, _("  --be8                       Output BE8 format image\n"));
-  fprintf (file, _("  --target1=rel               Interpret R_ARM_TARGET1 as R_ARM_REL32\n"));
-  fprintf (file, _("  --target1=abs               Interpret R_ARM_TARGET1 as R_ARM_ABS32\n"));
+  fprintf (file, _("  --target1-rel               Interpret R_ARM_TARGET1 as R_ARM_REL32\n"));
+  fprintf (file, _("  --target1-abs               Interpret R_ARM_TARGET1 as R_ARM_ABS32\n"));
   fprintf (file, _("  --target2=<type>            Specify definition of R_ARM_TARGET2\n"));
   fprintf (file, _("  --fix-v4bx                  Rewrite BX rn as MOV pc, rn for ARMv4\n"));
   fprintf (file, _("  --fix-v4bx-interworking     Rewrite BX rn branch to ARMv4 interworking veneer\n"));
@@ -560,19 +571,21 @@ PARSE_AND_LIST_OPTIONS='
   fprintf (file, _("  --vfp11-denorm-fix          Specify how to fix VFP11 denorm erratum\n"));
   fprintf (file, _("  --no-enum-size-warning      Don'\''t warn about objects with incompatible\n"
 		   "                                enum sizes\n"));
-  fprintf (file, _("  --no-wchar-size-warning     Don'\''t warn about objects with incompatible"
+  fprintf (file, _("  --no-wchar-size-warning     Don'\''t warn about objects with incompatible\n"
 		   "                                wchar_t sizes\n"));
   fprintf (file, _("  --pic-veneer                Always generate PIC interworking veneers\n"));
   fprintf (file, _("\
-   --stub-group-size=N   Maximum size of a group of input sections that can be\n\
-                           handled by one stub section.  A negative value\n\
-                           locates all stubs after their branches (with a\n\
-                           group size of -N), while a positive value allows\n\
-                           two groups of input sections, one before, and one\n\
-                           after each stub section.  Values of +/-1 indicate\n\
-                           the linker should choose suitable defaults.\n"
- 		   ));
+  --stub-group-size=N         Maximum size of a group of input sections that\n\
+                               can be handled by one stub section.  A negative\n\
+                               value locates all stubs after their branches\n\
+                               (with a group size of -N), while a positive\n\
+                               value allows two groups of input sections, one\n\
+                               before, and one after each stub section.\n\
+                               Values of +/-1 indicate the linker should\n\
+                               choose suitable defaults.\n"));
   fprintf (file, _("  --[no-]fix-cortex-a8        Disable/enable Cortex-A8 Thumb-2 branch erratum fix\n"));
+  fprintf (file, _("  --no-merge-exidx-entries    Disable merging exidx entries\n"));
+  fprintf (file, _("  --[no-]fix-arm1176          Disable/enable ARM1176 BLX immediate erratum fix\n"));
 '
 
 PARSE_AND_LIST_ARGS_CASES='
@@ -651,6 +664,18 @@ PARSE_AND_LIST_ARGS_CASES='
 
     case OPTION_NO_FIX_CORTEX_A8:
       fix_cortex_a8 = 0;
+      break;
+
+   case OPTION_NO_MERGE_EXIDX_ENTRIES:
+      merge_exidx_entries = 0;
+      break;
+
+   case OPTION_FIX_ARM1176:
+      fix_arm1176 = 1;
+      break;
+
+   case OPTION_NO_FIX_ARM1176:
+      fix_arm1176 = 0;
       break;
 '
 

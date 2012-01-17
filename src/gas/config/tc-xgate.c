@@ -104,10 +104,11 @@ static int oper2_bit_length = 0;
 static int oper3_present = 0;
 static int oper3_bit_length = 0;
 
+
 //static struct mcu_type_s mcu_types[] =
 //{
 //  {"xgatev1",       XGATE_V1,    cpuxgate}, //todo user proper arch defined in bfd
-//  {"xgatev2",       XGATE_V2,    cpuxgate}, //exmc9gateelf.o
+//  {"xgatev2",       XGATE_V2,    cpuxgate},
 //  {"xgatev3",       XGATE_V2,    cpuxgate}
 //};
 

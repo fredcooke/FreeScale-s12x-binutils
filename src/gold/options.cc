@@ -1,6 +1,6 @@
 // options.c -- handle command line options for gold
 
-// Copyright 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright 2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of gold.
@@ -50,7 +50,7 @@ namespace options
 {
 
 // This flag is TRUE if we should register the command-line options as they
-// are constructed.  It is set after contruction of the options within
+// are constructed.  It is set after construction of the options within
 // class Position_dependent_options.
 static bool ready_to_register = false;
 
@@ -59,7 +59,7 @@ static std::vector<const One_option*> registered_options;
 
 // These are set up at the same time -- the variables that accept one
 // dash, two, or require -z.  A single variable may be in more than
-// one of thes data structures.
+// one of these data structures.
 typedef Unordered_map<std::string, One_option*> Option_map;
 static Option_map* long_options = NULL;
 static One_option* short_options[128];
@@ -170,6 +170,15 @@ help()
     printf(" %s", *p);
   printf("\n");
 
+  printf(_("%s: supported emulations:"), gold::program_name);
+  supported_names.clear();
+  gold::supported_emulation_names(&supported_names);
+  for (std::vector<const char*>::const_iterator p = supported_names.begin();
+       p != supported_names.end();
+       ++p)
+    printf(" %s", *p);
+  printf("\n");
+
   // REPORT_BUGS_TO is defined in bfd/bfdver.h.
   const char* report = REPORT_BUGS_TO;
   if (*report != '\0')
@@ -189,7 +198,7 @@ parse_uint(const char* option_name, const char* arg, int* retval)
 {
   char* endptr;
   *retval = strtol(arg, &endptr, 0);
-  if (*endptr != '\0' || retval < 0)
+  if (*endptr != '\0' || *retval < 0)
     gold_fatal(_("%s: invalid option value (expected an integer): %s"),
                option_name, arg);
 }
@@ -205,7 +214,7 @@ parse_int(const char* option_name, const char* arg, int* retval)
 }
 
 void
-parse_uint64(const char* option_name, const char* arg, uint64_t *retval)
+parse_uint64(const char* option_name, const char* arg, uint64_t* retval)
 {
   char* endptr;
   *retval = strtoull(arg, &endptr, 0);
@@ -219,6 +228,17 @@ parse_double(const char* option_name, const char* arg, double* retval)
 {
   char* endptr;
   *retval = strtod(arg, &endptr);
+  if (*endptr != '\0')
+    gold_fatal(_("%s: invalid option value "
+		 "(expected a floating point number): %s"),
+	       option_name, arg);
+}
+
+void
+parse_percent(const char* option_name, const char* arg, double* retval)
+{
+  char* endptr;
+  *retval = strtod(arg, &endptr) / 100.0;
   if (*endptr != '\0')
     gold_fatal(_("%s: invalid option value "
 		 "(expected a floating point number): %s"),
@@ -288,8 +308,11 @@ General_options::parse_help(const char*, const char*, Command_line*)
 void
 General_options::parse_version(const char* opt, const char*, Command_line*)
 {
-  gold::print_version(opt[0] == '-' && opt[1] == 'v');
-  ::exit(EXIT_SUCCESS);
+  bool print_short = (opt[0] == '-' && opt[1] == 'v');
+  gold::print_version(print_short);
+  this->printed_version_ = true;
+  if (!print_short)
+    ::exit(EXIT_SUCCESS);
 }
 
 void
@@ -297,9 +320,18 @@ General_options::parse_V(const char*, const char*, Command_line*)
 {
   gold::print_version(true);
   this->printed_version_ = true;
+
   printf(_("  Supported targets:\n"));
   std::vector<const char*> supported_names;
   gold::supported_target_names(&supported_names);
+  for (std::vector<const char*>::const_iterator p = supported_names.begin();
+       p != supported_names.end();
+       ++p)
+    printf("   %s\n", *p);
+
+  printf(_("  Supported emulations:\n"));
+  supported_names.clear();
+  gold::supported_emulation_names(&supported_names);
   for (std::vector<const char*>::const_iterator p = supported_names.begin();
        p != supported_names.end();
        ++p)
@@ -311,6 +343,34 @@ General_options::parse_defsym(const char*, const char* arg,
                               Command_line* cmdline)
 {
   cmdline->script_options().define_symbol(arg);
+}
+
+void
+General_options::parse_incremental(const char*, const char*,
+                                   Command_line*)
+{
+  this->incremental_mode_ = INCREMENTAL_AUTO;
+}
+
+void
+General_options::parse_no_incremental(const char*, const char*,
+                                      Command_line*)
+{
+  this->incremental_mode_ = INCREMENTAL_OFF;
+}
+
+void
+General_options::parse_incremental_full(const char*, const char*,
+					Command_line*)
+{
+  this->incremental_mode_ = INCREMENTAL_FULL;
+}
+
+void
+General_options::parse_incremental_update(const char*, const char*,
+					  Command_line*)
+{
+  this->incremental_mode_ = INCREMENTAL_UPDATE;
 }
 
 void
@@ -338,11 +398,19 @@ General_options::parse_incremental_unknown(const char*, const char*,
 }
 
 void
+General_options::parse_incremental_startup_unchanged(const char*, const char*,
+						     Command_line*)
+{
+  this->implicit_incremental_ = true;
+  this->incremental_startup_disposition_ = INCREMENTAL_UNCHANGED;
+}
+
+void
 General_options::parse_library(const char*, const char* arg,
                                Command_line* cmdline)
 {
   Input_file_argument::Input_file_type type;
-  const char *name;
+  const char* name;
   if (arg[0] == ':')
     {
       type = Input_file_argument::INPUT_FILE_TYPE_SEARCHED_FILE;
@@ -395,6 +463,63 @@ General_options::parse_just_symbols(const char*, const char* arg,
   cmdline->inputs().add_file(file);
 }
 
+// Handle --section-start.
+
+void
+General_options::parse_section_start(const char*, const char* arg,
+				     Command_line*)
+{
+  const char* eq = strchr(arg, '=');
+  if (eq == NULL)
+    {
+      gold_error(_("invalid argument to --section-start; "
+		   "must be SECTION=ADDRESS"));
+      return;
+    }
+
+  std::string section_name(arg, eq - arg);
+
+  ++eq;
+  const char* val_start = eq;
+  if (eq[0] == '0' && (eq[1] == 'x' || eq[1] == 'X'))
+    eq += 2;
+  if (*eq == '\0')
+    {
+      gold_error(_("--section-start address missing"));
+      return;
+    }
+  uint64_t addr = 0;
+  hex_init();
+  for (; *eq != '\0'; ++eq)
+    {
+      if (!hex_p(*eq))
+	{
+	  gold_error(_("--section-start argument %s is not a valid hex number"),
+		     val_start);
+	  return;
+	}
+      addr <<= 4;
+      addr += hex_value(*eq);
+    }
+
+  this->section_starts_[section_name] = addr;
+}
+
+// Look up a --section-start value.
+
+bool
+General_options::section_start(const char* secname, uint64_t* paddr) const
+{
+  if (this->section_starts_.empty())
+    return false;
+  std::map<std::string, uint64_t>::const_iterator p =
+    this->section_starts_.find(secname);
+  if (p == this->section_starts_.end())
+    return false;
+  *paddr = p->second;
+  return true;
+}
+
 void
 General_options::parse_static(const char*, const char*, Command_line*)
 {
@@ -439,8 +564,22 @@ General_options::parse_end_group(const char*, const char*,
   cmdline->inputs().end_group();
 }
 
+void
+General_options::parse_start_lib(const char*, const char*,
+                                 Command_line* cmdline)
+{
+  cmdline->inputs().start_lib(cmdline->position_dependent_options());
+}
+
+void
+General_options::parse_end_lib(const char*, const char*,
+                               Command_line* cmdline)
+{
+  cmdline->inputs().end_lib();
+}
+
 // The function add_excluded_libs() in ld/ldlang.c of GNU ld breaks up a list
-// of names seperated by commas or colons and puts them in a linked list.
+// of names separated by commas or colons and puts them in a linked list.
 // We implement the same parsing of names here but store names in an unordered
 // map to speed up searching of names.
 
@@ -448,7 +587,7 @@ void
 General_options::parse_exclude_libs(const char*, const char* arg,
                                     Command_line*)
 {
-  const char *p = arg;
+  const char* p = arg;
 
   while (*p != '\0')
     {
@@ -468,7 +607,7 @@ General_options::parse_exclude_libs(const char*, const char* arg,
 // wild-card and matches any given name.
 
 bool
-General_options::check_excluded_libs (const std::string &name) const
+General_options::check_excluded_libs(const std::string &name) const
 {
   Unordered_set<std::string>::const_iterator p;
 
@@ -482,7 +621,7 @@ General_options::check_excluded_libs (const std::string &name) const
     return true;
 
   // First strip off any directories in name.
-  const char *basename = lbasename(name.c_str());
+  const char* basename = lbasename(name.c_str());
 
   // Try finding an exact match.
   p = excluded_libs_.find(std::string(basename));
@@ -526,6 +665,32 @@ General_options::string_to_object_format(const char* arg)
     }
 }
 
+void
+General_options::parse_fix_v4bx(const char*, const char*,
+                                Command_line*)
+{
+  this->fix_v4bx_ = FIX_V4BX_REPLACE;
+}
+
+void
+General_options::parse_fix_v4bx_interworking(const char*, const char*,
+					     Command_line*)
+{
+  this->fix_v4bx_ = FIX_V4BX_INTERWORKING;
+}
+
+void
+General_options::parse_EB(const char*, const char*, Command_line*)
+{
+  this->endianness_ = ENDIANNESS_BIG;
+}
+
+void
+General_options::parse_EL(const char*, const char*, Command_line*)
+{
+  this->endianness_ = ENDIANNESS_LITTLE;
+}
+
 } // End namespace gold.
 
 namespace
@@ -541,7 +706,7 @@ usage()
 }
 
 void
-usage(const char* msg, const char *opt)
+usage(const char* msg, const char* opt)
 {
   fprintf(stderr,
           _("%s: %s: %s\n"),
@@ -746,9 +911,21 @@ namespace gold
 
 General_options::General_options()
   : printed_version_(false),
-    execstack_status_(General_options::EXECSTACK_FROM_INPUT), static_(false),
-    do_demangle_(false), plugins_(),
-    incremental_disposition_(INCREMENTAL_CHECK), implicit_incremental_(false)
+    execstack_status_(EXECSTACK_FROM_INPUT),
+    icf_status_(ICF_NONE),
+    static_(false),
+    do_demangle_(false),
+    plugins_(NULL),
+    dynamic_list_(),
+    incremental_mode_(INCREMENTAL_OFF),
+    incremental_disposition_(INCREMENTAL_STARTUP),
+    incremental_startup_disposition_(INCREMENTAL_CHECK),
+    implicit_incremental_(false),
+    excluded_libs_(),
+    symbols_to_retain_(),
+    section_starts_(),
+    fix_v4bx_(FIX_V4BX_NONE),
+    endianness_(ENDIANNESS_NOT_SET)
 {
   // Turn off option registration once construction is complete.
   gold::options::ready_to_register = false;
@@ -944,32 +1121,47 @@ General_options::finalize()
                  program_name);
 #endif
 
+  std::string libpath;
   if (this->user_set_Y())
     {
-      std::string s = this->Y();
-      if (s.compare(0, 2, "P,") == 0)
-	s.erase(0, 2);
+      libpath = this->Y();
+      if (libpath.compare(0, 2, "P,") == 0)
+	libpath.erase(0, 2);
+    }
+  else if (!this->nostdlib())
+    {
+#ifndef NATIVE_LINKER
+#define NATIVE_LINKER 0
+#endif
+      const char* p = LIB_PATH;
+      if (strcmp(p, "::DEFAULT::") != 0)
+	libpath = p;
+      else if (NATIVE_LINKER
+	       || this->user_set_sysroot()
+	       || *TARGET_SYSTEM_ROOT != '\0')
+	{
+	  this->add_to_library_path_with_sysroot("/lib");
+	  this->add_to_library_path_with_sysroot("/usr/lib");
+	}
+      else
+	this->add_to_library_path_with_sysroot(TOOLLIBDIR);
+    }
 
+  if (!libpath.empty())
+    {
       size_t pos = 0;
       size_t next_pos;
       do
 	{
-	  next_pos = s.find(':', pos);
+	  next_pos = libpath.find(':', pos);
 	  size_t len = (next_pos == std::string::npos
 			? next_pos
 			: next_pos - pos);
 	  if (len != 0)
-	    this->add_to_library_path_with_sysroot(s.substr(pos, len).c_str());
+	    this->add_to_library_path_with_sysroot(libpath.substr(pos, len));
 	  pos = next_pos + 1;
 	}
       while (next_pos != std::string::npos);
-    }
-  else
-    {
-      // Even if they don't specify it, we add -L /lib and -L /usr/lib.
-      // FIXME: We should only do this when configured in native mode.
-      this->add_to_library_path_with_sysroot("/lib");
-      this->add_to_library_path_with_sysroot("/usr/lib");
     }
 
   // Parse the contents of -retain-symbols-file into a set.
@@ -991,6 +1183,14 @@ General_options::finalize()
         }
     }
 
+  // -Bgroup implies --unresolved-symbols=report-all.
+  if (this->Bgroup() && !this->user_set_unresolved_symbols())
+    this->set_unresolved_symbols("report-all");
+
+  // -shared implies --allow-shlib-undefined.  Currently
+  // ---allow-shlib-undefined controls warnings issued based on the
+  // -symbol table.  --unresolved-symbols controls warnings issued
+  // -based on relocations.
   if (this->shared() && !this->user_set_allow_shlib_undefined())
     this->set_allow_shlib_undefined(true);
 
@@ -1008,6 +1208,14 @@ General_options::finalize()
     gold_fatal(_("-shared and -r are incompatible"));
   if (this->pie() && this->relocatable())
     gold_fatal(_("-pie and -r are incompatible"));
+
+  if (!this->shared())
+    {
+      if (this->filter() != NULL)
+	gold_fatal(_("-F/--filter may not used without -shared"));
+      if (this->any_auxiliary())
+	gold_fatal(_("-f/--auxiliary may not be used without -shared"));
+    }
 
   // TODO: implement support for -retain-symbols-file with -r, if needed.
   if (this->relocatable() && this->retain_symbols_file())
@@ -1027,9 +1235,40 @@ General_options::finalize()
 		 "[0.0, 1.0)"),
 	       this->hash_bucket_empty_fraction());
 
-  if (this->implicit_incremental_ && !this->incremental())
+  if (this->implicit_incremental_ && this->incremental_mode_ == INCREMENTAL_OFF)
     gold_fatal(_("Options --incremental-changed, --incremental-unchanged, "
                  "--incremental-unknown require the use of --incremental"));
+
+  // Check for options that are not compatible with incremental linking.
+  // Where an option can be disabled without seriously changing the semantics
+  // of the link, we turn the option off; otherwise, we issue a fatal error.
+
+  if (this->incremental_mode_ != INCREMENTAL_OFF)
+    {
+      if (this->relocatable())
+	gold_fatal(_("incremental linking is not compatible with -r"));
+      if (this->emit_relocs())
+	gold_fatal(_("incremental linking is not compatible with "
+		     "--emit-relocs"));
+      if (this->has_plugins())
+	gold_fatal(_("incremental linking is not compatible with --plugin"));
+      if (this->gc_sections())
+	{
+	  gold_warning(_("ignoring --gc-sections for an incremental link"));
+	  this->set_gc_sections(false);
+	}
+      if (this->icf_enabled())
+	{
+	  gold_warning(_("ignoring --icf for an incremental link"));
+	  this->set_icf_status(ICF_NONE);
+	}
+      if (strcmp(this->compress_debug_sections(), "none") != 0)
+	{
+	  gold_warning(_("ignoring --compress-debug-sections for an "
+			 "incremental link"));
+	  this->set_compress_debug_sections("none");
+	}
+    }
 
   // FIXME: we can/should be doing a lot more sanity checking here.
 }
@@ -1075,17 +1314,24 @@ Search_directory::add_sysroot(const char* sysroot,
 
 // Add a file to the list.
 
-void
-Input_arguments::add_file(const Input_file_argument& file)
+Input_argument&
+Input_arguments::add_file(Input_file_argument& file)
 {
-  if (!this->in_group_)
-    this->input_argument_list_.push_back(Input_argument(file));
-  else
+  file.set_arg_serial(++this->file_count_);
+  if (this->in_group_)
     {
       gold_assert(!this->input_argument_list_.empty());
       gold_assert(this->input_argument_list_.back().is_group());
-      this->input_argument_list_.back().group()->add_file(file);
+      return this->input_argument_list_.back().group()->add_file(file);
     }
+  if (this->in_lib_)
+    {
+      gold_assert(!this->input_argument_list_.empty());
+      gold_assert(this->input_argument_list_.back().is_lib());
+      return this->input_argument_list_.back().lib()->add_file(file);
+    }
+  this->input_argument_list_.push_back(Input_argument(file));
+  return this->input_argument_list_.back();
 }
 
 // Start a group.
@@ -1095,6 +1341,8 @@ Input_arguments::start_group()
 {
   if (this->in_group_)
     gold_fatal(_("May not nest groups"));
+  if (this->in_lib_)
+    gold_fatal(_("may not nest groups in libraries"));
   Input_file_group* group = new Input_file_group();
   this->input_argument_list_.push_back(Input_argument(group));
   this->in_group_ = true;
@@ -1108,6 +1356,30 @@ Input_arguments::end_group()
   if (!this->in_group_)
     gold_fatal(_("Group end without group start"));
   this->in_group_ = false;
+}
+
+// Start a lib.
+
+void
+Input_arguments::start_lib(const Position_dependent_options& options)
+{
+  if (this->in_lib_)
+    gold_fatal(_("may not nest libraries"));
+  if (this->in_group_)
+    gold_fatal(_("may not nest libraries in groups"));
+  Input_file_lib* lib = new Input_file_lib(options);
+  this->input_argument_list_.push_back(Input_argument(lib));
+  this->in_lib_ = true;
+}
+
+// End a lib.
+
+void
+Input_arguments::end_lib()
+{
+  if (!this->in_lib_)
+    gold_fatal(_("lib end without lib start"));
+  this->in_lib_ = false;
 }
 
 // Command_line options.
@@ -1204,6 +1476,17 @@ Command_line::process(int argc, const char** argv)
 
   // Normalize the options and ensure they don't contradict each other.
   this->options_.finalize();
+}
+
+// Finalize the version script options and return them.
+
+const Version_script_info&
+Command_line::version_script()
+{
+  this->options_.finalize_dynamic_list();
+  Version_script_info* vsi = this->script_options_.version_script_info();
+  vsi->finalize();
+  return *vsi;
 }
 
 } // End namespace gold.

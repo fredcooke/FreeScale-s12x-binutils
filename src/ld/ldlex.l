@@ -1,7 +1,9 @@
+%option nounput
+
 %{
 
-/* Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+/* Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Steve Chamberlain of Cygnus Support.
 
@@ -22,7 +24,6 @@
    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
    MA 02110-1301, USA.  */
 
-#include "sysdep.h"
 #include "bfd.h"
 #include "safe-ctype.h"
 #include "bfdlink.h"
@@ -59,7 +60,9 @@ const char *lex_string = NULL;
 #undef YY_INPUT
 #define YY_INPUT(buf,result,max_size) result = yy_input (buf, max_size)
 
+#ifndef YY_NO_UNPUT
 #define YY_NO_UNPUT
+#endif
 
 #define MAX_INCLUDE_DEPTH 10
 static YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
@@ -98,7 +101,7 @@ CMDFILENAMECHAR1  [_a-zA-Z0-9\/\.\\_\+\$\:\[\]\\\,\=\&\!\<\>\~]
 FILENAMECHAR1	[_a-zA-Z\/\.\\\$\_\~]
 SYMBOLCHARN     [_a-zA-Z\/\.\\\$\_\~0-9]
 FILENAMECHAR	[_a-zA-Z0-9\/\.\-\_\+\=\$\:\[\]\\\,\~]
-WILDCHAR	[_a-zA-Z0-9\/\.\-\_\+\=\$\:\[\]\\\,\~\?\*]
+WILDCHAR	[_a-zA-Z0-9\/\.\-\_\+\=\$\:\[\]\\\,\~\?\*\^\!]
 WHITE		[ \t\n\r]+
 
 NOCFILENAMECHAR	[_a-zA-Z0-9\/\.\-\_\+\$\:\[\]\\\~]
@@ -240,6 +243,7 @@ V_IDENTIFIER [*?.$_a-zA-Z\[\]\-\!\^\\]([*?.$_a-zA-Z0-9\[\]\-\!\^\\]|::)*
 <BOTH,SCRIPT,EXPRESSION,MRI>";"		{ RTOKEN(';');}
 <BOTH,SCRIPT>"MEMORY"			{ RTOKEN(MEMORY);}
 <BOTH,SCRIPT>"REGION_ALIAS"		{ RTOKEN(REGION_ALIAS);}
+<BOTH,SCRIPT>"LD_FEATURE"		{ RTOKEN(LD_FEATURE);}
 <BOTH,SCRIPT,EXPRESSION>"ORIGIN"	{ RTOKEN(ORIGIN);}
 <BOTH,SCRIPT>"VERSION"			{ RTOKEN(VERSIONK);}
 <EXPRESSION,BOTH,SCRIPT>"BLOCK"		{ RTOKEN(BLOCK);}
@@ -296,6 +300,7 @@ V_IDENTIFIER [*?.$_a-zA-Z\[\]\-\!\^\\]([*?.$_a-zA-Z0-9\[\]\-\!\^\\]|::)*
 <BOTH,SCRIPT>"SORT_BY_NAME"		{ RTOKEN(SORT_BY_NAME); }
 <BOTH,SCRIPT>"SORT_BY_ALIGNMENT"	{ RTOKEN(SORT_BY_ALIGNMENT); }
 <BOTH,SCRIPT>"SORT"			{ RTOKEN(SORT_BY_NAME); }
+<BOTH,SCRIPT>"SORT_BY_INIT_PRIORITY"	{ RTOKEN(SORT_BY_INIT_PRIORITY); }
 <EXPRESSION,BOTH,SCRIPT>"NOLOAD"	{ RTOKEN(NOLOAD);}
 <EXPRESSION,BOTH,SCRIPT>"DSECT"		{ RTOKEN(DSECT);}
 <EXPRESSION,BOTH,SCRIPT>"COPY"		{ RTOKEN(COPY);}
@@ -308,6 +313,7 @@ V_IDENTIFIER [*?.$_a-zA-Z\[\]\-\!\^\\]([*?.$_a-zA-Z0-9\[\]\-\!\^\\]|::)*
 <BOTH,SCRIPT>"org"			{ RTOKEN(ORIGIN);}
 <BOTH,SCRIPT>"l"			{ RTOKEN( LENGTH);}
 <BOTH,SCRIPT>"len"			{ RTOKEN( LENGTH);}
+<EXPRESSION,BOTH,SCRIPT>"INPUT_SECTION_FLAGS"	{ RTOKEN(INPUT_SECTION_FLAGS); }
 <EXPRESSION,BOTH,SCRIPT>"INCLUDE"	{ RTOKEN(INCLUDE);}
 <BOTH,SCRIPT>"PHDRS"			{ RTOKEN (PHDRS); }
 <EXPRESSION,BOTH,SCRIPT>"AT"		{ RTOKEN(AT);}
@@ -684,7 +690,7 @@ lex_warn_invalid (char *where, char *what)
 
   if (! ISPRINT (*what))
     {
-      sprintf (buf, "\\%03o", (unsigned int) *what);
+      sprintf (buf, "\\%03o", *(unsigned char *) what);
       what = buf;
     }
 

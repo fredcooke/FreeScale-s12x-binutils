@@ -252,19 +252,16 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
     {
       pos++;
       format = M6811_OP_PAGE2;
-      printf("\n yes M6811_OPCODE_PAGE2\n");
     }
   else if (code == M6811_OPCODE_PAGE3 && arch == cpu6811)
     {
       pos++;
       format = M6811_OP_PAGE3;
-      printf("\n yes M6811_OPCODE_PAGE3\n");
     }
   else if (code == M6811_OPCODE_PAGE4 && arch == cpu6811)
     {
       pos++;
       format = M6811_OP_PAGE4;
-      printf("\n yes M6811_OPCODE_PAGE4\n");
     }
 
   /* We are in page2,3,4; get the real opcode.  */
@@ -315,7 +312,6 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info, int arch)
   /* Scan the opcode table until we find the opcode
      with the corresponding page.  */
   opcode = m68hc11_opcodes;
-  printf("\n starting print_ins %d and %d \n",opcode->arch,arch);  // returns 1 and 2 , return 1 and 6 in mc9s12x
   for (i = 0; i < m68hc11_num_opcodes; i++, opcode++)
     {
       int offset;

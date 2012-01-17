@@ -1,6 +1,6 @@
 /* SuperH SH64-specific support for 64-bit ELF
-   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-   Free Software Foundation, Inc.
+   Copyright 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010, 2011 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -89,25 +89,13 @@ struct elf_sh64_link_hash_entry
   struct elf_sh64_pcrel_relocs_copied *pcrel_relocs_copied;
 };
 
-/* sh ELF linker hash table.  */
-
-struct elf_sh64_link_hash_table
-{
-  struct elf_link_hash_table root;
-};
-
 /* Traverse an sh ELF linker hash table.  */
 
-#define sh64_elf64_link_hash_traverse(table, func, info)		\
-  (elf_link_hash_traverse						\
-   (&(table)->root,							\
+#define sh64_elf64_link_hash_traverse(table, func, info)	\
+  (elf_link_hash_traverse					\
+   ((table),							\
     (bfd_boolean (*) (struct elf_link_hash_entry *, void *)) (func), \
     (info)))
-
-/* Get the sh ELF linker hash table from a link_info structure.  */
-
-#define sh64_elf64_hash_table(p) \
-  ((struct elf_sh64_link_hash_table *) ((p)->hash))
 
 static bfd_reloc_status_type sh_elf64_ignore_reloc
   (bfd *, arelent *, asymbol *, void *, asection *, bfd *, char **);
@@ -1642,7 +1630,11 @@ sh_elf64_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 				 STT_DATALABEL on the way to it.  */
 			      | ((h->other & STO_SH5_ISA32) != 0
 				 && ! seen_stt_datalabel));
-	      else if (!info->relocatable)
+	      else if (!info->relocatable
+		       && (_bfd_elf_section_offset (output_bfd, info,
+						    input_section,
+						    rel->r_offset)
+			   != (bfd_vma) -1))
 		{
 		  (*_bfd_error_handler)
 		    (_("%B(%A+0x%lx): unresolvable %s relocation against symbol `%s'"),
@@ -1670,15 +1662,8 @@ sh_elf64_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 	}
 
       if (sec != NULL && elf_discarded_section (sec))
-	{
-	  /* For relocs against symbols from removed linkonce sections,
-	     or sections discarded by a linker script, we just want the
-	     section contents zeroed.  Avoid any special processing.  */
-	  _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
-	  rel->r_info = 0;
-	  rel->r_addend = 0;
-	  continue;
-	}
+	RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
+					 rel, relend, howto, contents);
 
       if (info->relocatable)
 	continue;
@@ -3084,22 +3069,22 @@ sh64_elf64_link_hash_newfunc (struct bfd_hash_entry *entry,
 static struct bfd_link_hash_table *
 sh64_elf64_link_hash_table_create (bfd *abfd)
 {
-  struct elf_sh64_link_hash_table *ret;
+  struct elf_link_hash_table *ret;
 
-  ret = ((struct elf_sh64_link_hash_table *)
-	 bfd_malloc (sizeof (struct elf_sh64_link_hash_table)));
-  if (ret == (struct elf_sh64_link_hash_table *) NULL)
+  ret = (struct elf_link_hash_table *) bfd_malloc (sizeof (* ret));
+  if (ret == (struct elf_link_hash_table *) NULL)
     return NULL;
 
-  if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
+  if (!_bfd_elf_link_hash_table_init (ret, abfd,
 				      sh64_elf64_link_hash_newfunc,
-				      sizeof (struct elf_sh64_link_hash_entry)))
+				      sizeof (struct elf_sh64_link_hash_entry),
+				      GENERIC_ELF_DATA))
     {
       free (ret);
       return NULL;
     }
 
-  return &ret->root.root;
+  return &ret->root;
 }
 
 inline static void
@@ -3441,9 +3426,6 @@ sh64_elf64_discard_copies (struct elf_sh64_link_hash_entry *h,
 {
   struct elf_sh64_pcrel_relocs_copied *s;
 
-  if (h->root.root.type == bfd_link_hash_warning)
-    h = (struct elf_sh64_link_hash_entry *) h->root.root.u.i.link;
-
   /* We only discard relocs for symbols defined in a regular object.  */
   if (!h->root.def_regular)
     return TRUE;
@@ -3497,7 +3479,7 @@ sh64_elf64_size_dynamic_sections (bfd *output_bfd,
      We allocated space for them in the check_relocs routine, but we
      will not fill them in in the relocate_section routine.  */
   if (info->shared && info->symbolic)
-    sh64_elf64_link_hash_traverse (sh64_elf64_hash_table (info),
+    sh64_elf64_link_hash_traverse (elf_hash_table (info),
 				   sh64_elf64_discard_copies, NULL);
 
   /* The check_relocs and adjust_dynamic_symbol entry points have

@@ -1,6 +1,6 @@
 /* BFD back-end for s-record objects.
    Copyright 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2011
    Free Software Foundation, Inc.
    Written by Steve Chamberlain of Cygnus Support <sac@cygnus.com>.
 
@@ -1252,6 +1252,7 @@ srec_print_symbol (bfd *abfd,
 #define srec_bfd_get_relocated_section_contents   bfd_generic_get_relocated_section_contents
 #define srec_bfd_relax_section                    bfd_generic_relax_section
 #define srec_bfd_gc_sections                      bfd_generic_gc_sections
+#define srec_bfd_lookup_section_flags             bfd_generic_lookup_section_flags
 #define srec_bfd_merge_sections                   bfd_generic_merge_sections
 #define srec_bfd_is_group_section                 bfd_generic_is_group_section
 #define srec_bfd_discard_group                    bfd_generic_discard_group
@@ -1261,6 +1262,8 @@ srec_print_symbol (bfd *abfd,
 #define srec_bfd_link_hash_table_free             _bfd_generic_link_hash_table_free
 #define srec_bfd_link_add_symbols                 _bfd_generic_link_add_symbols
 #define srec_bfd_link_just_syms                   _bfd_generic_link_just_syms
+#define srec_bfd_copy_link_hash_symbol_type \
+  _bfd_generic_copy_link_hash_symbol_type
 #define srec_bfd_final_link                       _bfd_generic_final_link
 #define srec_bfd_link_split_section               _bfd_generic_link_split_section
 
@@ -1278,6 +1281,7 @@ const bfd_target srec_vec =
   0,				/* Leading underscore.  */
   ' ',				/* AR_pad_char.  */
   16,				/* AR_max_namelen.  */
+  0,				/* match priority.  */
   bfd_getb64, bfd_getb_signed_64, bfd_putb64,
   bfd_getb32, bfd_getb_signed_32, bfd_putb32,
   bfd_getb16, bfd_getb_signed_16, bfd_putb16,	/* Data.  */
@@ -1333,6 +1337,7 @@ const bfd_target symbolsrec_vec =
   0,				/* Leading underscore.  */
   ' ',				/* AR_pad_char.  */
   16,				/* AR_max_namelen.  */
+  0,				/* match priority.  */
   bfd_getb64, bfd_getb_signed_64, bfd_putb64,
   bfd_getb32, bfd_getb_signed_32, bfd_putb32,
   bfd_getb16, bfd_getb_signed_16, bfd_putb16,	/* Data.  */

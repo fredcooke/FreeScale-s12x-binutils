@@ -1,6 +1,6 @@
 /* Generic BFD library interface and support routines.
    Copyright 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Written by Cygnus Support.
 
@@ -151,6 +151,24 @@ CODE_FRAGMENT
 .     will be consistent from run to run.  *}
 .#define BFD_DETERMINISTIC_OUTPUT 0x4000
 .
+.  {* Compress sections in this BFD.  *}
+.#define BFD_COMPRESS 0x8000
+.
+.  {* Decompress sections in this BFD.  *}
+.#define BFD_DECOMPRESS 0x10000
+.
+.  {* BFD is a dummy, for plugins.  *}
+.#define BFD_PLUGIN 0x20000
+.
+.  {* Flags bits to be saved in bfd_preserve_save.  *}
+.#define BFD_FLAGS_SAVED \
+.  (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS | BFD_PLUGIN)
+.
+.  {* Flags bits which are for BFD use only.  *}
+.#define BFD_FLAGS_FOR_BFD_USE_MASK \
+.  (BFD_IN_MEMORY | BFD_COMPRESS | BFD_DECOMPRESS | BFD_LINKER_CREATED \
+.   | BFD_PLUGIN | BFD_TRADITIONAL_FORMAT | BFD_DETERMINISTIC_OUTPUT)
+.
 .  {* Currently my_archive is tested before adding origin to
 .     anything. I believe that this can become always an add of
 .     origin, with origin set to 0 for non archive files.  *}
@@ -286,6 +304,10 @@ CODE_FRAGMENT
 .
 .  {* Set if this is a thin archive.  *}
 .  unsigned int is_thin_archive : 1;
+.
+.  {* Set if only required symbols should be added in the link hash table for
+.     this object.  Used by VMS linkers.  *}
+.  unsigned int selective_search : 1;
 .};
 .
 */
@@ -504,10 +526,12 @@ DESCRIPTION
 void
 bfd_perror (const char *message)
 {
+  fflush (stdout);
   if (message == NULL || *message == '\0')
     fprintf (stderr, "%s\n", bfd_errmsg (bfd_get_error ()));
   else
     fprintf (stderr, "%s: %s\n", message, bfd_errmsg (bfd_get_error ()));
+  fflush (stderr);
 }
 
 /*
@@ -704,6 +728,7 @@ _bfd_default_error_handler (const char *fmt, ...)
   va_end (ap);
 
   putc ('\n', stderr);
+  fflush (stderr);
 }
 
 /* This is a function pointer to the routine which should handle BFD
@@ -1006,7 +1031,8 @@ bfd_get_sign_extend_vma (bfd *abfd)
       || strcmp (name, "pe-x86-64") == 0
       || strcmp (name, "pei-x86-64") == 0
       || strcmp (name, "pe-arm-wince-little") == 0
-      || strcmp (name, "pei-arm-wince-little") == 0)
+      || strcmp (name, "pei-arm-wince-little") == 0
+      || strcmp (name, "aixcoff-rs6000") == 0)
     return 1;
 
   if (CONST_STRNEQ (name, "mach-o"))
@@ -1348,6 +1374,9 @@ DESCRIPTION
 .#define bfd_gc_sections(abfd, link_info) \
 .	BFD_SEND (abfd, _bfd_gc_sections, (abfd, link_info))
 .
+.#define bfd_lookup_section_flags(link_info, flag_info) \
+.	BFD_SEND (abfd, _bfd_lookup_section_flags, (link_info, flag_info))
+.
 .#define bfd_merge_sections(abfd, link_info) \
 .	BFD_SEND (abfd, _bfd_merge_sections, (abfd, link_info))
 .
@@ -1624,7 +1653,7 @@ bfd_preserve_save (bfd *abfd, struct bfd_preserve *preserve)
 
   abfd->tdata.any = NULL;
   abfd->arch_info = &bfd_default_arch_struct;
-  abfd->flags &= BFD_IN_MEMORY;
+  abfd->flags &= BFD_FLAGS_SAVED;
   abfd->sections = NULL;
   abfd->section_last = NULL;
   abfd->section_count = 0;

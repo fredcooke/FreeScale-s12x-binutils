@@ -1,6 +1,6 @@
 /* ldemul.c -- clearing house for ld emulation states
    Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2005, 2007, 2008, 2009
+   2001, 2002, 2003, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of the GNU Binutils.
@@ -219,7 +219,7 @@ after_parse_default (void)
 	  is_vma = *send == '\0';
 	}
       if (!is_vma)
-	ldlang_add_undef (entry_symbol.name);
+	ldlang_add_undef (entry_symbol.name, entry_from_cmdline);
     }
 }
 

@@ -1,6 +1,6 @@
 // gold.h -- general definitions for gold   -*- C++ -*-
 
-// Copyright 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright 2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 // Written by Ian Lance Taylor <iant@google.com>.
 
 // This file is part of gold.
@@ -27,6 +27,7 @@
 #include "ansidecl.h"
 
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <stdint.h>
 #include <sys/types.h>
@@ -35,7 +36,7 @@
   // The Solaris version of locale.h always includes libintl.h.  If we
   // have been configured with --disable-nls then ENABLE_NLS will not
   // be defined and the dummy definitions of bindtextdomain (et al)
-  // below will conflict with the defintions in libintl.h.  So we
+  // below will conflict with the definitions in libintl.h.  So we
   // define these values to prevent the bogus inclusion of libintl.h.
 # define _LIBINTL_H
 # define _LIBGETTEXT_H
@@ -121,7 +122,7 @@ struct hash<T*>
 
 #define Unordered_set std::set
 #define Unordered_map std::map
-#define Unordered_map std::multimap
+#define Unordered_multimap std::multimap
 
 #define reserve_unordered_map(map, n)
 
@@ -133,11 +134,6 @@ extern "C" ssize_t pread(int, void*, size_t, off_t);
 
 #ifndef HAVE_FTRUNCATE
 extern "C" int ftruncate(int, off_t);
-#endif
-
-#ifndef HAVE_MREMAP
-#define MREMAP_MAYMOVE 1
-extern "C" void *mremap(void *, size_t, size_t, int, ...);
 #endif
 
 #ifndef HAVE_FFSLL
@@ -171,6 +167,15 @@ class Output_file;
 template<int size, bool big_endian>
 struct Relocate_info;
 
+// Exit status codes.
+
+enum Exit_status
+{
+  GOLD_OK = EXIT_SUCCESS,
+  GOLD_ERR = EXIT_FAILURE,
+  GOLD_FALLBACK = EXIT_FAILURE + 1
+};
+
 // Some basic types.  For these we use lower case initial letters.
 
 // For an offset in an input or output file, use off_t.  Note that
@@ -188,7 +193,7 @@ extern const char* program_name;
 // This function is called to exit the program.  Status is true to
 // exit success (0) and false to exit failure (1).
 extern void
-gold_exit(bool status) ATTRIBUTE_NORETURN;
+gold_exit(Exit_status status) ATTRIBUTE_NORETURN;
 
 // This function is called to emit an error message and then
 // immediately exit with failure.
@@ -207,6 +212,13 @@ gold_warning(const char* msg, ...) ATTRIBUTE_PRINTF_1;
 // This function is called to print an informational message.
 extern void
 gold_info(const char* msg, ...) ATTRIBUTE_PRINTF_1;
+
+// This function is called to emit an error message and then
+// immediately exit with fallback status (e.g., when
+// --incremental-update fails and the link needs to be restarted
+// with --incremental-full).
+extern void
+gold_fallback(const char* format, ...) ATTRIBUTE_NORETURN ATTRIBUTE_PRINTF_1;
 
 // Work around a bug in gcc 4.3.0.  http://gcc.gnu.org/PR35546 .  This
 // can probably be removed after the bug has been fixed for a while.
@@ -347,6 +359,67 @@ inline bool
 is_prefix_of(const char* prefix, const char* str)
 {
   return strncmp(prefix, str, strlen(prefix)) == 0;
+}
+
+const char* const cident_section_start_prefix = "__start_";
+const char* const cident_section_stop_prefix = "__stop_";
+
+// Returns true if the name is a valid C identifier
+inline bool
+is_cident(const char* name)
+{
+  return (name[strspn(name,
+	 	      ("0123456789"
+		       "ABCDEFGHIJKLMNOPWRSTUVWXYZ"
+		       "abcdefghijklmnopqrstuvwxyz"
+		       "_"))]
+	  == '\0');
+}
+
+// We sometimes need to hash strings.  Ideally we should use std::tr1::hash or
+// __gnu_cxx::hash on some systems but there is no guarantee that either
+// one is available.  For portability, we define simple string hash functions.
+
+template<typename Char_type>
+inline size_t
+string_hash(const Char_type* s, size_t length)
+{
+  // This is the hash function used by the dynamic linker for
+  // DT_GNU_HASH entries.  I compared this to a Fowler/Noll/Vo hash
+  // for a C++ program with 385,775 global symbols.  This hash
+  // function was very slightly worse.  However, it is much faster to
+  // compute.  Overall wall clock time was a win.
+  const unsigned char* p = reinterpret_cast<const unsigned char*>(s);
+  size_t h = 5381;
+  for (size_t i = 0; i < length * sizeof(Char_type); ++i)
+    h = h * 33 + *p++;
+  return h;
+}
+
+// Same as above except we expect the string to be zero terminated.
+
+template<typename Char_type>
+inline size_t
+string_hash(const Char_type* s)
+{
+  const unsigned char* p = reinterpret_cast<const unsigned char*>(s);
+  size_t h = 5381;
+  for (size_t i = 0; s[i] != 0; ++i)
+    {
+      for (size_t j = 0; j < sizeof(Char_type); j++)
+	h = h * 33 + *p++;
+    }
+
+  return h;
+}
+
+// Return whether STRING contains a wildcard character.  This is used
+// to speed up matching.
+
+inline bool
+is_wildcard_string(const char* s)
+{
+  return strpbrk(s, "?*[") != NULL;
 }
 
 } // End namespace gold.

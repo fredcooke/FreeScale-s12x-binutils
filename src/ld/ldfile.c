@@ -1,6 +1,7 @@
 /* Linker file opening and searching.
    Copyright 1991, 1992, 1993, 1994, 1995, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
 
    This file is part of the GNU Binutils.
 
@@ -34,6 +35,10 @@
 #include "ldemul.h"
 #include "libiberty.h"
 #include "filenames.h"
+#ifdef ENABLE_PLUGINS
+#include "plugin-api.h"
+#include "plugin.h"
+#endif /* ENABLE_PLUGINS */
 
 const char * ldfile_input_filename;
 bfd_boolean  ldfile_assumed_script = FALSE;
@@ -146,11 +151,19 @@ ldfile_try_open_bfd (const char *attempt,
       return FALSE;
     }
 
+  /* Linker needs to decompress sections.  */
+  entry->the_bfd->flags |= BFD_DECOMPRESS;
+
   /* If we are searching for this file, see if the architecture is
      compatible with the output file.  If it isn't, keep searching.
      If we can't open the file as an object file, stop the search
      here.  If we are statically linking, ensure that we don't link
-     a dynamic object.  */
+     a dynamic object.
+
+     In the code below, it's OK to exit early if the check fails,
+     closing the checked BFD and returning FALSE, but if the BFD
+     checks out compatible, do not exit early returning TRUE, or
+     the plugins will not get a chance to claim the file.  */
 
   if (entry->search_dirs_flag || !entry->dynamic)
     {
@@ -259,7 +272,7 @@ ldfile_try_open_bfd (const char *attempt,
 		      return FALSE;
 		    }
 		}
-	      return TRUE;
+	      goto success;
 	    }
 
 	  if (!entry->dynamic && (entry->the_bfd->flags & DYNAMIC) != 0)
@@ -289,7 +302,37 @@ ldfile_try_open_bfd (const char *attempt,
 	    }
 	}
     }
+success:
+#ifdef ENABLE_PLUGINS
+  /* If plugins are active, they get first chance to claim
+     any successfully-opened input file.  We skip archives
+     here; the plugin wants us to offer it the individual
+     members when we enumerate them, not the whole file.  We
+     also ignore corefiles, because that's just weird.  It is
+     a needed side-effect of calling  bfd_check_format with
+     bfd_object that it sets the bfd's arch and mach, which
+     will be needed when and if we want to bfd_create a new
+     one using this one as a template.  */
+  if (bfd_check_format (entry->the_bfd, bfd_object)
+      && plugin_active_plugins_p ()
+      && !no_more_claiming)
+    {
+      int fd = open (attempt, O_RDONLY | O_BINARY);
+      if (fd >= 0)
+	{
+	  struct ld_plugin_input_file file;
 
+	  file.name = attempt;
+	  file.offset = 0;
+	  file.filesize = lseek (fd, 0, SEEK_END);
+	  file.fd = fd;
+	  plugin_maybe_claim (&file, entry);
+	}
+    }
+#endif /* ENABLE_PLUGINS */
+
+  /* It opened OK, the format checked out, and the plugins have had
+     their chance to claim it, so this is success.  */
   return TRUE;
 }
 
@@ -306,7 +349,7 @@ ldfile_open_file_search (const char *arch,
 
   /* If this is not an archive, try to open it in the current
      directory first.  */
-  if (! entry->is_archive)
+  if (! entry->maybe_archive)
     {
       if (entry->sysrooted && IS_ABSOLUTE_PATH (entry->filename))
 	{
@@ -343,7 +386,7 @@ ldfile_open_file_search (const char *arch,
 	    }
 	}
 
-      if (entry->is_archive)
+      if (entry->maybe_archive)
 	string = concat (search->name, slash, lib, entry->filename,
 			 arch, suffix, (const char *) NULL);
       else
@@ -363,7 +406,10 @@ ldfile_open_file_search (const char *arch,
   return FALSE;
 }
 
-/* Open the input file specified by ENTRY.  */
+/* Open the input file specified by ENTRY.
+   PR 4437: Do not stop on the first missing file, but
+   continue processing other input files in case there
+   are more errors to report.  */
 
 void
 ldfile_open_file (lang_input_statement_type *entry)
@@ -375,11 +421,15 @@ ldfile_open_file (lang_input_statement_type *entry)
     {
       if (ldfile_try_open_bfd (entry->filename, entry))
 	return;
-      if (strcmp (entry->filename, entry->local_sym_name) != 0)
-	einfo (_("%F%P: %s (%s): No such file: %E\n"),
+
+      if (filename_cmp (entry->filename, entry->local_sym_name) != 0)
+	einfo (_("%P: cannot find %s (%s): %E\n"),
 	       entry->filename, entry->local_sym_name);
       else
-	einfo (_("%F%P: %s: No such file: %E\n"), entry->local_sym_name);
+	einfo (_("%P: cannot find %s: %E\n"), entry->local_sym_name);
+
+      entry->missing_file = TRUE;
+      missing_file = TRUE;
     }
   else
     {
@@ -406,13 +456,18 @@ ldfile_open_file (lang_input_statement_type *entry)
 	 again.  */
       if (found)
 	entry->search_dirs_flag = FALSE;
-      else if (entry->sysrooted
+      else
+	{
+	  if (entry->sysrooted
 	       && ld_sysroot
 	       && IS_ABSOLUTE_PATH (entry->local_sym_name))
-	einfo (_("%F%P: cannot find %s inside %s\n"),
-	       entry->local_sym_name, ld_sysroot);
-      else
-	einfo (_("%F%P: cannot find %s\n"), entry->local_sym_name);
+	    einfo (_("%P: cannot find %s inside %s\n"),
+		   entry->local_sym_name, ld_sysroot);
+	  else
+	    einfo (_("%P: cannot find %s\n"), entry->local_sym_name);
+	  entry->missing_file = TRUE;
+	  missing_file = TRUE;
+	}
     }
 }
 
@@ -476,7 +531,6 @@ check_for_scripts_dir (char *dir)
 
    SCRIPTDIR (passed from Makefile)
 	     (adjusted according to the current location of the binary)
-   SCRIPTDIR (passed from Makefile)
    the dir where this program is (for using it from the build tree).  */
 
 static char *
@@ -499,10 +553,6 @@ find_scripts_dir (void)
 	return dir;
       free (dir);
     }
-
-  if (check_for_scripts_dir (SCRIPTDIR))
-    /* We've been installed normally.  */
-    return SCRIPTDIR;
 
   /* Look for "ldscripts" in the dir where our binary is.  */
   dir = make_relative_prefix (program_name, ".", ".");

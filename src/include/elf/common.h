@@ -1,6 +1,6 @@
 /* ELF support for BFD.
    Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    Written by Fred Fish @ Cygnus Support, from information published
@@ -11,7 +11,7 @@
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
+   the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
 
    This program is distributed in the hope that it will be useful,
@@ -21,8 +21,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
-
+   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
+   MA 02110-1301, USA.  */
 
 /* This file is part of ELF support for BFD, and contains the portions
    that are common to both the internal and external representations.
@@ -62,8 +62,8 @@
 #define ELFOSABI_NONE	      0	/* UNIX System V ABI */
 #define ELFOSABI_HPUX	      1	/* HP-UX operating system */
 #define ELFOSABI_NETBSD	      2	/* NetBSD */
-#define ELFOSABI_LINUX	      3	/* GNU/Linux */
-#define ELFOSABI_HURD	      4	/* GNU/Hurd */
+#define ELFOSABI_GNU	      3	/* GNU */
+#define ELFOSABI_LINUX	      3	/* Alias for ELFOSABI_GNU */
 #define ELFOSABI_SOLARIS      6	/* Solaris */
 #define ELFOSABI_AIX	      7	/* AIX */
 #define ELFOSABI_IRIX	      8	/* IRIX */
@@ -74,6 +74,9 @@
 #define ELFOSABI_OPENVMS     13	/* OpenVMS */
 #define ELFOSABI_NSK	     14	/* Hewlett-Packard Non-Stop Kernel */
 #define ELFOSABI_AROS	     15	/* AROS */
+#define ELFOSABI_FENIXOS     16 /* FenixOS */
+#define ELFOSABI_C6000_ELFABI 64 /* Bare-metal TMS320C6000 */
+#define ELFOSABI_C6000_LINUX 65 /* Linux TMS320C6000 */
 #define ELFOSABI_ARM	     97	/* ARM */
 #define ELFOSABI_STANDALONE 255	/* Standalone (embedded) application */
 
@@ -156,7 +159,7 @@
 #define EM_MMA		 54	/* Fujitsu Multimedia Accelerator */
 #define EM_PCP		 55	/* Siemens PCP */
 #define EM_NCPU		 56	/* Sony nCPU embedded RISC processor */
-#define EM_NDR1		 57	/* Denso NDR1 microprocesspr */
+#define EM_NDR1		 57	/* Denso NDR1 microprocessor */
 #define EM_STARCORE	 58	/* Motorola Star*Core processor */
 #define EM_ME16		 59	/* Toyota ME16 processor */
 #define EM_ST100	 60	/* STMicroelectronics ST100 processor */
@@ -186,7 +189,7 @@
 #define EM_FR30		 84	/* Fujitsu FR30 */
 #define EM_D10V		 85	/* Mitsubishi D10V */
 #define EM_D30V		 86	/* Mitsubishi D30V */
-#define EM_V850		 87	/* NEC v850 */
+#define EM_V850		 87	/* Renesas V850 (formerly NEC V850) */
 #define EM_M32R		 88	/* Renesas M32R (formerly Mitsubishi M32R) */
 #define EM_MN10300	 89	/* Matsushita MN10300 */
 #define EM_MN10200	 90	/* Matsushita MN10200 */
@@ -214,7 +217,7 @@
 #define EM_DXP		112	/* Icera Semiconductor Inc. Deep Execution Processor */
 #define EM_ALTERA_NIOS2	113	/* Altera Nios II soft-core processor */
 #define EM_CRX		114	/* National Semiconductor CRX */
-#define EM_XGATE	115	/* Motorola XGATE embedded processor */
+//#define EM_XGATE	115	/* Freescale XGATE embedded processor */
 #define EM_C166		116	/* Infineon C16x/XC16x processor */
 #define EM_M16C		117	/* Renesas M16C series microprocessors */
 #define EM_DSPIC30F	118	/* Microchip Technology dsPIC30F Digital Signal Controller */
@@ -240,9 +243,9 @@
 #define EM_VIDEOCORE3	137	/* Broadcom VideoCore III processor */
 #define EM_LATTICEMICO32 138	/* RISC processor for Lattice FPGA architecture */
 #define EM_SE_C17	139	/* Seiko Epson C17 family */
-#define EM_res140	140	/* Reserved */
-#define EM_res141	141	/* Reserved */
-#define EM_res142	142	/* Reserved */
+#define EM_TI_C6000	140	/* Texas Instruments TMS320C6000 DSP family */
+#define EM_TI_C2000	141	/* Texas Instruments TMS320C2000 DSP family */
+#define EM_TI_C5500	142	/* Texas Instruments TMS320C55x DSP family */
 #define EM_res143	143	/* Reserved */
 #define EM_res144	144	/* Reserved */
 #define EM_res145	145	/* Reserved */
@@ -282,7 +285,7 @@
 #define EM_ETPU		178	/* Freescale Extended Time Processing Unit */
 #define EM_SLE9X	179	/* Infineon Technologies SLE9X core */
 #define EM_L1OM		180	/* Intel L1OM */
-#define EM_INTEL181	181	/* Reserved by Intel */
+#define EM_K1OM		181	/* Intel K1OM */
 #define EM_INTEL182	182	/* Reserved by Intel */
 #define EM_res183	183	/* Reserved by ARM */
 #define EM_res184	184	/* Reserved by ARM */
@@ -291,8 +294,12 @@
 #define EM_TILE64	187	/* Tilera TILE64 multicore architecture family */
 #define EM_TILEPRO	188	/* Tilera TILEPro multicore architecture family */
 #define EM_MICROBLAZE	189	/* Xilinx MicroBlaze 32-bit RISC soft processor core */
-#define EM_MC9S12X	 190	/* Motorola M68HC12 */
-#define EM_MC9XGATE	 192	/* Motorola M68HC12 */
+#define EM_CUDA		190	/* NVIDIA CUDA architecture */
+#define EM_TILEGX	191	/* Tilera TILE-Gx multicore architecture family */
+#define EM_RL78		197	/* Renesas RL78 family.  */
+#define EM_78K0R	199	/* Renesas 78K0R.  */
+
+#define EM_XGATE        200     /* Freescale XGATE embedded processor */
 
 /* If it is necessary to assign new unofficial EM_* values, please pick large
    random numbers (0x8523, 0xa7f2, etc.) to minimize the chances of collision
@@ -398,12 +405,17 @@
 
 #define EM_MICROBLAZE_OLD	0xbaab	/* Old MicroBlaze */
 
+#define EM_ADAPTEVA_EPIPHANY   0x1223  /* Adapteva's Epiphany architecture.  */
+
 /* See the above comment before you add a new EM_* value here.  */
 
 /* Values for e_version.  */
 
 #define EV_NONE		0		/* Invalid ELF version */
 #define EV_CURRENT	1		/* Current version */
+
+/* Value for e_phnum. */
+#define PN_XNUM		0xffff		/* Extended numbering */
 
 /* Values for program header, p_type field.  */
 
@@ -497,6 +509,15 @@
 #define SHF_MASKOS	0x0FF00000	/* New value, Oct 4, 1999 Draft */
 #define SHF_MASKPROC	0xF0000000	/* Processor-specific semantics */
 
+/* This used to be implemented as a processor specific section flag.
+   We just make it generic.  */
+#define SHF_EXCLUDE	0x80000000	/* Link editor is to exclude
+					   this section from executable
+					   and shared library that it
+					   builds when those objects
+					   are not to be further
+					   relocated.  */
+
 /* Values of note segment descriptor types for core files.  */
 
 #define NT_PRSTATUS	1		/* Contains copy of prstatus struct */
@@ -510,6 +531,26 @@
 					/*   note name must be "LINUX".  */
 #define NT_PPC_VSX	0x102		/* PowerPC VSX registers */
 					/*   note name must be "LINUX".  */
+#define NT_X86_XSTATE	0x202		/* x86 XSAVE extended state */
+					/*   note name must be "LINUX".  */
+#define NT_S390_HIGH_GPRS 0x300		/* S/390 upper halves of GPRs  */
+					/*   note name must be "LINUX".  */
+#define NT_S390_TIMER	0x301		/* S390 timer */
+					/*   note name must be "LINUX".  */
+#define NT_S390_TODCMP	0x302		/* S390 TOD clock comparator */
+					/*   note name must be "LINUX".  */
+#define NT_S390_TODPREG	0x303		/* S390 TOD programmable register */
+					/*   note name must be "LINUX".  */
+#define NT_S390_CTRS	0x304		/* S390 control registers */
+					/*   note name must be "LINUX".  */
+#define NT_S390_PREFIX	0x305		/* S390 prefix register */
+					/*   note name must be "LINUX".  */
+#define NT_S390_LAST_BREAK      0x306   /* S390 breaking event address */
+					/*   note name must be "LINUX".  */
+#define NT_S390_SYSTEM_CALL     0x307   /* S390 system call restart data */
+					/*   note name must be "LINUX".  */
+#define NT_ARM_VFP	0x400		/* ARM VFP registers */
+					/*   note name must be "LINUX".  */
 
 /* Note segments for core files on dir-style procfs systems.  */
 
@@ -520,6 +561,8 @@
 #define NT_LWPSINFO	17		/* Has a struct lwpsinfo_t */
 #define NT_WIN32PSTATUS	18		/* Has a struct win32_pstatus */
 
+/* Note segment for SystemTap probes.  */
+#define NT_STAPSDT	3
 
 /* Note segments for core files on NetBSD systems.  Note name
    must start with "NetBSD-CORE".  */
@@ -795,10 +838,16 @@
 #define VER_DEF_CURRENT		1
 
 /* These constants appear in the vd_flags field of a Elf32_Verdef
-   structure.  */
+   structure.
+
+   Cf. the Solaris Linker and Libraries Guide, Ch. 7, Object File Format,
+   Versioning Sections, for a description:
+
+   http://docs.sun.com/app/docs/doc/819-0690/chapter6-93046?l=en&a=view  */
 
 #define VER_FLG_BASE		0x1
 #define VER_FLG_WEAK		0x2
+#define VER_FLG_INFO		0x4
 
 /* These special constants can be found in an Elf32_Versym field.  */
 

@@ -87,13 +87,17 @@ Sized_binary_test()
   Read_symbols_data sd;
   object->read_symbols(&sd);
   delete sd.section_headers;
+  sd.section_headers = NULL;
   delete sd.section_names;
+  sd.section_names = NULL;
   delete sd.symbols;
+  sd.symbols = NULL;
   delete sd.symbol_names;
+  sd.symbol_names = NULL;
 
-  Sized_relobj<size, big_endian>* relobj =
-    static_cast<Sized_relobj<size, big_endian>*>(object);
-  typename Sized_relobj<size, big_endian>::Address value;
+  Sized_relobj_file<size, big_endian>* relobj =
+    static_cast<Sized_relobj_file<size, big_endian>*>(object);
+  typename Sized_relobj_file<size, big_endian>::Address value;
   bool is_ordinary;
   CHECK(relobj->symbol_section_and_value(0, &value, &is_ordinary) == 0);
   CHECK(is_ordinary);

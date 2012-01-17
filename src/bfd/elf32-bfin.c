@@ -1,5 +1,6 @@
 /* ADI Blackfin BFD support for 32-bit ELF.
-   Copyright 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -103,7 +104,7 @@ bfin_pcrel24_reloc (bfd *abfd,
   /* if rightshift is 1 and the number odd, return error.  */
   if (howto->rightshift && (relocation & 0x01))
     {
-      fprintf(stderr, "relocation should be even number\n");
+      (*_bfd_error_handler) (_("relocation should be even number"));
       return bfd_reloc_overflow;
     }
 
@@ -359,7 +360,7 @@ bfin_bfd_reloc (bfd *abfd,
   /* If rightshift is 1 and the number odd, return error.  */
   if (howto->rightshift && (relocation & 0x01))
     {
-      fprintf(stderr, "relocation should be even number\n");
+      (*_bfd_error_handler) (_("relocation should be even number"));
       return bfd_reloc_overflow;
     }
 
@@ -1119,6 +1120,22 @@ bfin_reloc_type_lookup (bfd * abfd ATTRIBUTE_UNUSED,
   return (reloc_howto_type *) NULL;
 }
 
+/* Set by ld emulation if --code-in-l1.  */
+bfd_boolean elf32_bfin_code_in_l1 = 0;
+
+/* Set by ld emulation if --data-in-l1.  */
+bfd_boolean elf32_bfin_data_in_l1 = 0;
+
+static void
+elf32_bfin_final_write_processing (bfd *abfd,
+				   bfd_boolean linker ATTRIBUTE_UNUSED)
+{
+  if (elf32_bfin_code_in_l1)
+    elf_elfheader (abfd)->e_flags |= EF_BFIN_CODE_IN_L1;
+  if (elf32_bfin_data_in_l1)
+    elf_elfheader (abfd)->e_flags |= EF_BFIN_DATA_IN_L1;
+}
+
 /* Return TRUE if the name is a local label.
    bfin local labels begin with L$.  */
 static bfd_boolean
@@ -1428,15 +1445,8 @@ bfin_relocate_section (bfd * output_bfd,
 	}
 
       if (sec != NULL && elf_discarded_section (sec))
-	{
-	  /* For relocs against symbols from removed linkonce sections,
-	     or sections discarded by a linker script, we just want the
-	     section contents zeroed.  Avoid any special processing.  */
-	  _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
-	  rel->r_info = 0;
-	  rel->r_addend = 0;
-	  continue;
-	}
+	RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
+					 rel, relend, howto, contents);
 
       if (info->relocatable)
 	continue;
@@ -1575,7 +1585,9 @@ bfin_relocate_section (bfd * output_bfd,
          because such sections are not SEC_ALLOC and thus ld.so will
          not process them.  */
       if (unresolved_reloc
-	  && !((input_section->flags & SEC_DEBUGGING) != 0 && h->def_dynamic))
+	  && !((input_section->flags & SEC_DEBUGGING) != 0 && h->def_dynamic)
+	  && _bfd_elf_section_offset (output_bfd, info, input_section,
+				      rel->r_offset) != (bfd_vma) -1)
 	{
 	  (*_bfd_error_handler)
 	    (_("%B(%A+0x%lx): unresolvable relocation against symbol `%s'"),
@@ -1716,8 +1728,8 @@ bfin_gc_sweep_hook (bfd * abfd,
 extern const bfd_target bfd_elf32_bfinfdpic_vec;
 #define IS_FDPIC(bfd) ((bfd)->xvec == &bfd_elf32_bfinfdpic_vec)
 
-/* An extension of the elf hash table data structure, containing some
-   additional Blackfin-specific data.  */
+/* An extension of the elf hash table data structure,
+   containing some additional Blackfin-specific data.  */
 struct bfinfdpic_elf_link_hash_table
 {
   struct elf_link_hash_table elf;
@@ -1748,7 +1760,8 @@ struct bfinfdpic_elf_link_hash_table
 /* Get the Blackfin ELF linker hash table from a link_info structure.  */
 
 #define bfinfdpic_hash_table(info) \
-  ((struct bfinfdpic_elf_link_hash_table *) ((info)->hash))
+  (elf_hash_table_id ((struct elf_link_hash_table *) ((info)->hash)) \
+  == BFIN_ELF_DATA ? ((struct bfinfdpic_elf_link_hash_table *) ((info)->hash)) : NULL)
 
 #define bfinfdpic_got_section(info) \
   (bfinfdpic_hash_table (info)->sgot)
@@ -1814,7 +1827,8 @@ bfinfdpic_elf_link_hash_table_create (bfd *abfd)
 
   if (!_bfd_elf_link_hash_table_init (&ret->elf, abfd,
 				      _bfd_elf_link_hash_newfunc,
-				      sizeof (struct elf_link_hash_entry)))
+				      sizeof (struct elf_link_hash_entry),
+				      BFIN_ELF_DATA))
     {
       free (ret);
       return NULL;
@@ -2652,15 +2666,8 @@ bfinfdpic_relocate_section (bfd * output_bfd,
 	}
 
       if (sec != NULL && elf_discarded_section (sec))
-	{
-	  /* For relocs against symbols from removed linkonce sections,
-	     or sections discarded by a linker script, we just want the
-	     section contents zeroed.  Avoid any special processing.  */
-	  _bfd_clear_contents (howto, input_bfd, contents + rel->r_offset);
-	  rel->r_info = 0;
-	  rel->r_addend = 0;
-	  continue;
-	}
+	RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
+					 rel, relend, howto, contents);
 
       if (info->relocatable)
 	continue;
@@ -2726,7 +2733,9 @@ bfinfdpic_relocate_section (bfd * output_bfd,
 	default:
 	non_fdpic:
 	  picrel = NULL;
-	  if (h && ! BFINFDPIC_SYM_LOCAL (info, h))
+	  if (h && ! BFINFDPIC_SYM_LOCAL (info, h)
+	      && _bfd_elf_section_offset (output_bfd, info, input_section,
+					  rel->r_offset) != (bfd_vma) -1)
 	    {
 	      info->callbacks->warning
 		(info, _("relocation references symbol not defined in the module"),
@@ -3098,10 +3107,10 @@ bfinfdpic_relocate_section (bfd * output_bfd,
 	  if (silence_segment_error == 1)
 	    silence_segment_error =
 	      (strlen (input_bfd->filename) == 6
-	       && strcmp (input_bfd->filename, "crt0.o") == 0)
+	       && filename_cmp (input_bfd->filename, "crt0.o") == 0)
 	      || (strlen (input_bfd->filename) > 6
-		  && strcmp (input_bfd->filename
-			     + strlen (input_bfd->filename) - 7,
+		  && filename_cmp (input_bfd->filename
+				   + strlen (input_bfd->filename) - 7,
 			     "/crt0.o") == 0)
 	      ? -1 : 0;
 #endif
@@ -3376,7 +3385,6 @@ _bfin_create_got_section (bfd *abfd, struct bfd_link_info *info)
   struct elf_link_hash_entry *h;
   const struct elf_backend_data *bed = get_elf_backend_data (abfd);
   int ptralign;
-  int offset;
 
   /* This function may be called more than once.  */
   s = bfd_get_section_by_name (abfd, ".got");
@@ -3454,16 +3462,8 @@ _bfin_create_got_section (bfd *abfd, struct bfd_link_info *info)
 	return FALSE;
 
       bfinfdpic_gotfixup_section (info) = s;
-      offset = -2048;
-      flags = BSF_GLOBAL;
-    }
-  else
-    {
-      offset = 2048;
-      flags = BSF_GLOBAL | BSF_WEAK;
     }
 
-  flags = pltflags;
   pltflags |= SEC_CODE;
   if (bed->plt_not_loaded)
     pltflags &= ~ (SEC_CODE | SEC_LOAD | SEC_HAS_CONTENTS);
@@ -3481,7 +3481,6 @@ _bfin_create_got_section (bfd *abfd, struct bfd_link_info *info)
     {
       /* Define the symbol _PROCEDURE_LINKAGE_TABLE_ at the start of the
 	 .plt section.  */
-      struct elf_link_hash_entry *h;
       struct bfd_link_hash_entry *bh = NULL;
 
       if (! (_bfd_generic_link_add_one_symbol
@@ -5105,11 +5104,12 @@ elf32_bfin_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
   if (new_flags & EF_BFIN_FDPIC)
     new_flags &= ~EF_BFIN_PIC;
 
-#ifdef DEBUG
+#ifndef DEBUG
+  if (0)
+#endif
   (*_bfd_error_handler) ("old_flags = 0x%.8lx, new_flags = 0x%.8lx, init = %s, filename = %s",
 			 old_flags, new_flags, elf_flags_init (obfd) ? "yes" : "no",
 			 bfd_get_filename (ibfd));
-#endif
 
   if (!elf_flags_init (obfd))			/* First call, no flags set.  */
     {
@@ -5193,7 +5193,8 @@ bfin_link_hash_table_create (bfd * abfd)
 
   if (!_bfd_elf_link_hash_table_init (&ret->root, abfd,
 				      bfin_link_hash_newfunc,
-				      sizeof (struct elf_link_hash_entry)))
+				      sizeof (struct elf_link_hash_entry),
+				      BFIN_ELF_DATA))
     {
       free (ret);
       return NULL;
@@ -5279,7 +5280,8 @@ bfin_finish_dynamic_symbol (bfd * output_bfd,
 	  && (info->symbolic
 	      || h->dynindx == -1 || h->forced_local) && h->def_regular)
 	{
-	  fprintf(stderr, "*** check this relocation %s\n", __FUNCTION__);
+	  (*_bfd_error_handler) (_("*** check this relocation %s"),
+				 __FUNCTION__);
 	  rela.r_info = ELF32_R_INFO (0, R_BFIN_PCREL24);
 	  rela.r_addend = bfd_get_signed_32 (output_bfd,
 					     (sgot->contents
@@ -5452,9 +5454,6 @@ bfin_discard_copies (struct elf_link_hash_entry *h, PTR inf)
 {
   struct bfd_link_info *info = (struct bfd_link_info *) inf;
   struct bfin_pcrel_relocs_copied *s;
-
-  if (h->root.type == bfd_link_hash_warning)
-    h = (struct elf_link_hash_entry *) h->root.u.i.link;
 
   if (!h->def_regular || (!info->symbolic && !h->forced_local))
     {
@@ -5763,6 +5762,7 @@ struct bfd_elf_special_section const elf32_bfin_special_sections[] =
 #define TARGET_LITTLE_SYM		bfd_elf32_bfin_vec
 #define TARGET_LITTLE_NAME		"elf32-bfin"
 #define ELF_ARCH			bfd_arch_bfin
+#define ELF_TARGET_ID			BFIN_ELF_DATA
 #define ELF_MACHINE_CODE		EM_BLACKFIN
 #define ELF_MAXPAGESIZE			0x1000
 #define elf_symbol_leading_char		'_'
@@ -5805,6 +5805,8 @@ struct bfd_elf_special_section const elf32_bfin_special_sections[] =
                                         elf32_bfin_set_private_flags
 #define bfd_elf32_bfd_print_private_bfd_data \
                                         elf32_bfin_print_private_bfd_data
+#define elf_backend_final_write_processing \
+                                        elf32_bfin_final_write_processing
 #define elf_backend_reloc_type_class    elf32_bfin_reloc_type_class
 #define elf_backend_can_gc_sections 1
 #define elf_backend_special_sections	elf32_bfin_special_sections
