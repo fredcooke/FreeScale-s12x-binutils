@@ -13,13 +13,15 @@ BUILDDIR="${WORKDIR}"/build
 NEWLIBDIR=newlib-1.18.0
 BINUTILSPKGS="binutils-s12x binutils-xgate"
 GCCTARBALL="gcc-mc9s12x_3.3.6+3.1+dfsg-3+7.tar.gz"
-ARCHS="i386 amd64"
+#ARCHS="i386 amd64"
+ARCHS="i386"
 
 # Builds the deb pkgs.  Assumes pdebuild has been setup and configured
 # previously and has the rootimages setup for the distros specified
 #
 function build_debs {
-DEB_RELEASES="natty maverick lucid karmic jaunty"
+#DEB_RELEASES="natty maverick lucid karmic jaunty"
+DEB_RELEASES="squeeze"
 for dist in `echo "${DEB_RELEASES}"` ; do
 	for arch in `echo ${ARCHS}` ; do
 		echo "Building for Distro $dist Arch $arch"
