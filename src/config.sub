@@ -319,7 +319,7 @@ case $basic_machine in
 	c6x)
 		basic_machine=tic6x-unknown
 		;;
-	m6811 | m68hc11 | m6812 | m68hc12 | picochip | 9hcs12x)
+	m6811 | m68hc11 | m6812 | m68hc12 | picochip | m68hcs12x)
 		# Motorola 68HC11/12.
 		basic_machine=$basic_machine-unknown
 		os=-none
