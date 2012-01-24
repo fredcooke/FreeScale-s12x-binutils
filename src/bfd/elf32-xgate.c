@@ -56,68 +56,7 @@ static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
 /* Use REL instead of RELA to save space */
 #define USE_REL	1
 
-/* The 68HC12 microcontroler has a memory bank switching system
-   with a 16Kb window in the 64Kb address space.  The extended memory
-   is mapped in the 16Kb window (at 0x8000).  The page register controls
-   which 16Kb bank is mapped.  The call/rtc instructions take care of
-   bank switching in function calls/returns.
-
-   For GNU Binutils to work, we consider there is a physical memory
-   at 0..0x0ffff and a kind of virtual memory above that.  Symbols
-   in virtual memory have their addresses treated in a special way
-   when disassembling and when linking.
-
-   For the linker to work properly, we must always relocate the virtual
-   memory as if it is mapped at 0x8000.  When a 16-bit relocation is
-   made in the virtual memory, we check that it does not cross the
-   memory bank where it is used.  This would involve a page change
-   which would be wrong.  The 24-bit relocation is for that and it
-   treats the address as a physical address + page number.
-
-
-					Banked
-					Address Space
-                                        |               |       Page n
-					+---------------+ 0x1010000
-                                        |               |
-                                        | jsr _foo      |
-                                        | ..            |       Page 3
-                                        | _foo:         |
-					+---------------+ 0x100C000
-					|	        |
-                                        | call _bar     |
-					| ..	        |	Page 2
-					| _bar:	        |
-					+---------------+ 0x1008000
-				/------>|	        |
-				|	| call _foo     |	Page 1
-				|	|       	|
-				|	+---------------+ 0x1004000
-      Physical			|	|	        |
-      Address Space		|	|	        |	Page 0
-				|	|	        |
-    +-----------+ 0x00FFFF	|	+---------------+ 0x1000000
-    |		|		|
-    | call _foo	|		|
-    |		|		|
-    +-----------+ 0x00BFFF -+---/
-    |		|           |
-    |		|	    |
-    |		| 16K	    |
-    |		|	    |
-    +-----------+ 0x008000 -+
-    |		|
-    |		|
-    =		=
-    |		|
-    |		|
-    +-----------+ 0000
-
-
-   The 'call _foo' must be relocated with page 3 and 16-bit address
-   mapped at 0x8000.
-
-   The 3-bit and 16-bit PC rel relocation is only used by 68HC12.  */
+/* todo add brief  */
 
 static reloc_howto_type elf_xgate_howto_table[] = {
 /* This reloc does nothing.  */
@@ -150,20 +89,20 @@ HOWTO (R_XGATE_8, /* type */
 		0x00ff, /* dst_mask */
 		FALSE), /* pcrel_offset */
 
-/* A 8 bit absolute relocation (upper address) */
-HOWTO (R_XGATE_HI8, /* type */
-		8, /* rightshift */
-		0, /* size (0 = byte, 1 = short, 2 = long) */
-		8, /* bitsize */
-		FALSE, /* pc_relative */
-		0, /* bitpos */
-		complain_overflow_bitfield, /* complain_on_overflow */
-		bfd_elf_generic_reloc, /* special_function */
-		"R_XGATE_HI8", /* name */
-		FALSE, /* partial_inplace */
-		0x00ff, /* src_mask */
-		0x00ff, /* dst_mask */
-		FALSE), /* pcrel_offset */
+///* A 8 bit absolute relocation (upper address) */
+//HOWTO (R_XGATE_HI8, /* type */
+//		8, /* rightshift */
+//		0, /* size (0 = byte, 1 = short, 2 = long) */
+//		8, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_bitfield, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_XGATE_HI8", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
 
 /* A 8 bit absolute relocation (upper address) */
 HOWTO (R_XGATE_LO8, /* type */
@@ -480,7 +419,7 @@ struct xgate_reloc_map
 static const struct xgate_reloc_map xgate_reloc_map[] = {
     {BFD_RELOC_NONE, R_XGATE_NONE,},
     {BFD_RELOC_8, R_XGATE_8},
-    {BFD_RELOC_XGATE_HI8, R_XGATE_HI8},
+//    {BFD_RELOC_XGATE_HI8, R_XGATE_HI8},
     {BFD_RELOC_XGATE_LO8, R_XGATE_LO8},
     {BFD_RELOC_8_PCREL, R_XGATE_PCREL_8},
     {BFD_RELOC_16_PCREL, R_XGATE_PCREL_16},
