@@ -104,20 +104,20 @@ HOWTO (R_XGATE_8, /* type */
 //		0x00ff, /* dst_mask */
 //		FALSE), /* pcrel_offset */
 
-/* A 8 bit absolute relocation (upper address) */
-HOWTO (R_XGATE_LO8, /* type */
-		0, /* rightshift */
-		0, /* size (0 = byte, 1 = short, 2 = long) */
-		8, /* bitsize */
-		FALSE, /* pc_relative */
-		0, /* bitpos */
-		complain_overflow_dont, /* complain_on_overflow */
-		bfd_elf_generic_reloc, /* special_function */
-		"R_XGATE_LO8", /* name */
-		FALSE, /* partial_inplace */
-		0x00ff, /* src_mask */
-		0x00ff, /* dst_mask */
-		FALSE), /* pcrel_offset */
+///* A 8 bit absolute relocation (upper address) */
+//HOWTO (R_XGATE_LO8, /* type */
+//		0, /* rightshift */
+//		0, /* size (0 = byte, 1 = short, 2 = long) */
+//		8, /* bitsize */
+//		FALSE, /* pc_relative */
+//		0, /* bitpos */
+//		complain_overflow_dont, /* complain_on_overflow */
+//		bfd_elf_generic_reloc, /* special_function */
+//		"R_XGATE_LO8", /* name */
+//		FALSE, /* partial_inplace */
+//		0x00ff, /* src_mask */
+//		0x00ff, /* dst_mask */
+//		FALSE), /* pcrel_offset */
 
 /* A 8 bit PC-rel relocation */
 HOWTO (R_XGATE_PCREL_8, /* type */
@@ -420,7 +420,7 @@ static const struct xgate_reloc_map xgate_reloc_map[] = {
     {BFD_RELOC_NONE, R_XGATE_NONE,},
     {BFD_RELOC_8, R_XGATE_8},
 //    {BFD_RELOC_XGATE_HI8, R_XGATE_HI8},
-    {BFD_RELOC_XGATE_LO8, R_XGATE_LO8},
+//    {BFD_RELOC_XGATE_LO8, R_XGATE_LO8},
     {BFD_RELOC_8_PCREL, R_XGATE_PCREL_8},
     {BFD_RELOC_16_PCREL, R_XGATE_PCREL_16},
     {BFD_RELOC_16, R_XGATE_16},
