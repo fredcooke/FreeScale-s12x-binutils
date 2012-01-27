@@ -968,7 +968,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
   char r_name[20] = { 0 };
   unsigned int pp_fix = 0;
   unsigned short max_size = 0;
-  char reg_expected = 0;
+//  char reg_expected = 0;
   int i;
   *bit_width = 0;
   /* reset */
@@ -992,7 +992,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	    pp_fix = INCREMENT;
 	  else if (*str == 'r' || *str == 'R')
 	    {
-	      reg_expected = 1;
+//	      reg_expected = 1;
 	      str = extract_word (str, r_name, sizeof (r_name));
 	      if (ISDIGIT (r_name[1]))
 		{
