@@ -62,7 +62,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
   struct xgate_opcode *opcodePTR = (struct xgate_opcode*) xgate_opcodes;
   unsigned int *operMaskPTR = 0;
   unsigned int *operMaskRegPTR = 0;
-  unsigned int operandBits = 0;
+  //unsigned int operandBits = 0;
   unsigned int operandRegisterBits = 0;
   signed int relAddr = 0;
   signed int operandOne = 0;
@@ -96,6 +96,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
       initialized = 1;
   }
    /* read 16 bits */
+  bytesRead += XGATE_TWO_BYTES;
   status = read_memory(memaddr, buffer, XGATE_TWO_BYTES, info);
   if (status == 0)
     {
@@ -132,8 +133,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
         }
       if (found)
         {
-          bytesRead = opcodePTR->size;
-          operandBits = ~(*operMaskPTR) & 0xFFFF;
+          //operandBits = ~(*operMaskPTR) & 0xFFFF;
           (*info->fprintf_func)(info->stream, "%s", opcodePTR->name);
           //int operand = 0;
           //int operandSize = 0;
