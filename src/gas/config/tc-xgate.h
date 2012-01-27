@@ -76,13 +76,14 @@ extern int xgate_parse_long_option (char *);
 extern struct relax_type md_relax_table[];
 
 /* GAS only handles relaxations for pc-relative data targeting addresses
-   in the same segment, so we have to handle the rest on our own.  */
-#define md_relax_frag(SEG, FRAGP, STRETCH)		\
+   in the same segment, we have to encode all other cases  */
+//todo impliment this
+/* #define md_relax_frag(SEG, FRAGP, STRETCH)		\
  ((FRAGP)->fr_symbol != NULL				\
   && S_GET_SEGMENT ((FRAGP)->fr_symbol) == (SEG)	\
   ? relax_frag (SEG, FRAGP, STRETCH)			\
   : xgate_relax_frag (SEG, FRAGP, STRETCH))
-extern long xgate_relax_frag (segT, fragS*, long);
+extern long xgate_relax_frag (segT, fragS*, long); */
 
 #define TC_HANDLES_FX_DONE
 

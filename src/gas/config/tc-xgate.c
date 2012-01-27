@@ -73,8 +73,8 @@ unsigned short
 xgate_apply_operand (unsigned short new_mask,
 			unsigned short *oper_bits_availiable,
 			unsigned short mask, unsigned char n_bits);
-static unsigned int xgate_operands (struct xgate_opcode *opcode,
-				       char **line);
+void xgate_operands (struct xgate_opcode *opcode, char **line);
+
 static unsigned int xgate_operand (struct xgate_opcode *opcode,
 				      int *bit_width, int where,
 				      char **op_con, char **line);
@@ -399,7 +399,7 @@ md_assemble(char *input_line)
   struct xgate_opcode *macro_opcode = 0;
   struct xgate_opcode_handle *opcode_handle = 0;
   char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
-  unsigned short opcode_bin = 0;
+//  unsigned short opcode_bin = 0;
   char op_name[9] = { 0 };
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
@@ -437,20 +437,21 @@ md_assemble(char *input_line)
         }
       else if (opcode->size == 2)
         { /* if size is one word assemble that native insn */
-          opcode_bin = xgate_operands(opcode, &input_line);
+          xgate_operands(opcode, &input_line);
         }
       else
         { /* if insns is a simplified instruction expand it out */
           macroClipping = 1;
-          char constraintString[50];
           unsigned int i;
-          /* extract formal constraint string */
-          for (i = 0, p = opcode->constraints; *p != ';'; i++, p++)
+          /* skip past our ';' separator */
+          for (i = strlen(opcode->constraints), p = opcode->constraints;  i > 0; i--, p++)
             {
-              constraintString[i] = *p;
+              if (*p == ';')
+                {
+                  p++;
+                  break;
+                }
             }
-          p++;
-          constraintString[i] = 0;
           input_line = skip_whitespace(input_line);
           char *macro_inline = input_line;
           /* loop though the macro's opcode list and apply operands to each real opcode*/
@@ -461,7 +462,7 @@ md_assemble(char *input_line)
               if (!(opcode_handle = (struct xgate_opcode_handle *) hash_find(
                   xgate_hash, op_name)))
                 {
-                  as_bad(_(":real opcode handle not found in hash"));
+                  as_bad(_(": processing macro, real opcode handle not found in hash"));
                   break;
                 }
               else
@@ -469,7 +470,7 @@ md_assemble(char *input_line)
                   sh_format = xgate_detect_format(input_line);
                   macro_opcode = xgate_find_match(opcode_handle,
                       opcode_handle->number_of_modes, sh_format);
-                  opcode_bin = xgate_operands(macro_opcode, &input_line);
+                  xgate_operands(macro_opcode, &input_line);
                 }
             }
         }
@@ -480,25 +481,36 @@ md_assemble(char *input_line)
 /* Force truly undefined symbols to their maximum size, and generally set up
  the frag list to be relaxed.  */
 int
-md_estimate_size_before_relax (fragS * fragP, asection * segment)
+md_estimate_size_before_relax (fragS *fragp, asection *seg)
 {
-  int temp = fragP->fr_fix;
-  int temp2 = segment->entsize;
-  temp2 = temp;
-  return 0;
+  /* If symbol is undefined or located in a different section,
+     select the largest supported relocation.  */
+  relax_substateT subtype;
+  relax_substateT rlx_state[] = {0, 2};
+
+  for (subtype = 0; subtype < ARRAY_SIZE (rlx_state); subtype += 2)
+    {
+      if (fragp->fr_subtype == rlx_state[subtype]
+          && (!S_IS_DEFINED (fragp->fr_symbol)
+              || seg != S_GET_SEGMENT (fragp->fr_symbol)))
+        {
+          fragp->fr_subtype = rlx_state[subtype + 1];
+          break;
+        }
+    }
+
+  if (fragp->fr_subtype >= ARRAY_SIZE (md_relax_table))
+    abort ();
+
+  return md_relax_table[fragp->fr_subtype].rlx_length;
 }
 
-long
-xgate_relax_frag (segT seg ATTRIBUTE_UNUSED, fragS * fragP,
-		     long stretch ATTRIBUTE_UNUSED)
-{
-  //printf("\n in relax_frag");
-  int temp = fragP->fr_var;
-  int temp2;
-  temp2 = temp;
-
-  return 1;
-}
+//long
+//xgate_relax_frag (segT seg ATTRIBUTE_UNUSED, fragS * fragP,
+//		     long stretch ATTRIBUTE_UNUSED)
+//{
+//  //TODO
+//}
 
 /* Relocation, relaxation and frag conversions.  */
 
@@ -555,8 +567,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
   char *where;
   long value = *valP;
-  int op_type;
-  int opcode = 0;
+   int opcode = 0;
   ldiv_t result;
   /* if the fixup is done mark it done so no further symbol resolution will take place */
   if (fixP->fx_addsy == (symbolS *) NULL)
@@ -566,7 +577,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
   /* We don't actually support subtracting a symbol.  */
   if (fixP->fx_subsy != (symbolS *) NULL)
     as_bad_where(fixP->fx_file, fixP->fx_line, _("Expression too complex."));
-  op_type = fixP->fx_r_type;
   where = fixP->fx_frag->fr_literal + fixP->fx_where;
   opcode = bfd_getl16(where);
   int mask = 0;
@@ -722,14 +732,13 @@ skip_whitespace (char *s)
 static char *
 extract_word (char *from, char *to, int limit)
 {
-  char *op_start;
   char *op_end;
   int size = 0;
   /* Drop leading whitespace.  */
   from = skip_whitespace (from);
   *to = 0;
   /* Find the op code end.  */
-  for (op_start = op_end = from; *op_end != 0 && is_part_of_name (*op_end);)
+  for (op_end = from; *op_end != 0 && is_part_of_name (*op_end);)
     {
       to[size++] = *op_end++;
       if (size + 1 >= limit)
@@ -825,9 +834,8 @@ cmp_opcode (struct xgate_opcode *op1, struct xgate_opcode *op2)
   return strcmp (op1->name, op2->name);
 }
 
-/* Parse instruction operands.
- Return binary opcode.  */
-static unsigned int
+/* Parse instruction operands */
+void
 xgate_operands(struct xgate_opcode *opcode, char **line)
 {
   char *frag = xgate_new_instruction(opcode->size);
@@ -945,7 +953,8 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
     }
   prev = bin;
   *line = str;
-  return bin;
+  //return bin;
+  return;
 }
 
 static unsigned int
