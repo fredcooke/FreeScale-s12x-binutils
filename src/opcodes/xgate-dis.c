@@ -29,7 +29,7 @@
 #include "ansidecl.h"
 #include "opcode/xgate.h"
 
-#define XGATE_TWO_BYTES      02 /* two bytes */
+#define XGATE_TWO_BYTES      0x02 /* two bytes */
 #define XGATE_NINE_BITS      0x1FF
 #define XGATE_TEN_BITS       0x3FF
 #define XGATE_NINE_SIGNBIT   0x100
@@ -62,12 +62,10 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
   struct xgate_opcode *opcodePTR = (struct xgate_opcode*) xgate_opcodes;
   unsigned int *operMaskPTR = 0;
   unsigned int *operMaskRegPTR = 0;
-  //unsigned int operandBits = 0;
   unsigned int operandRegisterBits = 0;
   signed int relAddr = 0;
   signed int operandOne = 0;
   signed int operandTwo = 0;
-  //signed int operandThree = 0;
   int found = 0;
   bfd_byte buffer[4];
 
@@ -103,13 +101,6 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
       raw_code = buffer[0];
       raw_code <<= 8;
       raw_code += buffer[1];
-      /* special case for brk instruction */
-      //if memory reads 0x0 print instruction doesn't seem to be called at all
-      //if(raw_code == 0)
-      //  {
-      //    (*info->fprintf_func) (info->stream, "brk");
-      //    return 2;
-      //  }
       /* todo since we have macros and alias codes make this print all possible matches instead of just the first */
       for (i = 0,
           opcodePTR = (struct xgate_opcode*) xgate_opcodes,
@@ -133,10 +124,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
         }
       if (found)
         {
-          //operandBits = ~(*operMaskPTR) & 0xFFFF;
           (*info->fprintf_func)(info->stream, "%s", opcodePTR->name);
-          //int operand = 0;
-          //int operandSize = 0;
           /*  First we compare the shorthand format of the constraints. If we still are unable to pinpoint the operands
            we analyze the opcodes constraint string. */
           switch (opcodePTR->sh_format)
