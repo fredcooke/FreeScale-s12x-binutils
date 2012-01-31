@@ -54,7 +54,7 @@ static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
 #define ELF_TARGET_ID           XGATE_ELF_DATA
 
 /* Use REL instead of RELA to save space */
-#define USE_REL	1
+//#define USE_REL	1
 
 /* todo add brief  */
 
@@ -506,8 +506,6 @@ xgate_info_to_howto_rel (bfd *abfd ATTRIBUTE_UNUSED,
 }
 
 
-/* Far trampoline generation.  */
-
 /* Build a 68HC12 trampoline stub.  */
 static bfd_boolean
 xgate_elf_build_one_stub (struct bfd_hash_entry *gen_entry, void *in_arg)
@@ -546,7 +544,7 @@ xgate_elf_build_one_stub (struct bfd_hash_entry *gen_entry, void *in_arg)
       + stub_entry->target_section->output_offset
       + stub_entry->target_section->output_section->vma);
   phys_addr = xgate_phys_addr (&htab->pinfo, sym_value);
-  phys_page = xgate_phys_page (&htab->pinfo, sym_value);
+//  phys_page = xgate_phys_page (&htab->pinfo, sym_value);
 
   /* ldy #%page(sym) */
   bfd_put_8 (stub_bfd, 0xCD, loc);
@@ -596,111 +594,33 @@ xgate_elf_bfd_link_hash_table_create (bfd *abfd)
   return &ret->root.root;
 }
 
-static bfd_boolean
-xgate_elf_set_mach_from_flags (bfd *abfd)
-{
-  //printf("\n in elf_set_mach_from_flags");
-  flagword flags = elf_elfheader (abfd)->e_flags;
-
-  switch (flags & EF_XGATE_MACH_MASK)
-  {
-  case EF_XGATE_MACH:
-    bfd_default_set_arch_mach (abfd, bfd_arch_xgate, bfd_mach_xgate);
-    /* TODO bfd_mach_mc9s12x does not work as a parameter(0 instead) re-make headers maybe....
-     * UPDATE SEEMS TO WORK NOW */
-
-    // 	 bfd_default_set_arch_mach (abfd, bfd_arch_m68hc12, bfd_mach_m6812s);  /* for testing */
-    break;
-    //   case EF_XGATE_MACH:
-    //     bfd_default_set_arch_mach (abfd, bfd_arch_mc9s12x, bfd_mach_mc9s12x);
-    //     break;
-    //   case EF_XGATE_GENERIC:
-    //    bfd_default_set_arch_mach (abfd, bfd_arch_mc9s12x,
-    //                                bfd_mach_mc9s12x_default);
-    //     break;
-  default:
-    return FALSE;
-  }
-  return TRUE;
-}
-
-/* Specific sections:
-   - The .page0 is a data section that is mapped in [0x0000..0x00FF].
-     Page0 accesses are faster on the M68HC12.
-   - The .vectors is the section that represents the interrupt
-     vectors.
-   - The .xgate section is starts in 0xE08800 or as xgate sees it 0x0800
- */
-static const struct bfd_elf_special_section elf32_xgate_special_sections[] =
-    {
-        { STRING_COMMA_LEN (".eeprom"),   0, SHT_PROGBITS, SHF_ALLOC + SHF_WRITE },
-        { STRING_COMMA_LEN (".page0"),    0, SHT_PROGBITS, SHF_ALLOC + SHF_WRITE },
-        { STRING_COMMA_LEN (".softregs"), 0, SHT_NOBITS,   SHF_ALLOC + SHF_WRITE },
-        { STRING_COMMA_LEN (".vectors"),  0, SHT_PROGBITS, SHF_ALLOC },
-        //  { STRING_COMMA_LEN (".xgate"),    0, SHT_PROGBITS, SHF_ALLOC + SHF_WRITE },
-        { NULL,                       0,  0, 0,            0 }
-    };
-
-#define ELF_ARCH		bfd_arch_xgate
-//#define ELF_ARCH                bfd_arch_mc9s12x
-#define ELF_MACHINE_CODE	EM_XGATE
-
-//#define ELF_MACHINE_CODE	EM_68HC12 /* testing value */
-#define ELF_MAXPAGESIZE		0x1000
-
-#define TARGET_BIG_SYM          bfd_elf32_xgate_vec
-#define TARGET_BIG_NAME		"elf32-xgate"
-
-#define elf_info_to_howto	0
-#define elf_info_to_howto_rel	     xgate_info_to_howto_rel  /* TODO figure out why this has to be here */
-#define elf_backend_check_relocs     elf32_xgate_check_relocs
-#define elf_backend_relocate_section elf32_xgate_relocate_section
-#define elf_backend_object_p		xgate_elf_set_mach_from_flags
-#define elf_backend_final_write_processing	0
-#define elf_backend_can_gc_sections		1
-#define elf_backend_special_sections elf32_xgate_special_sections
-#define elf_backend_post_process_headers     elf32_xgate_post_process_headers
-#define elf_backend_add_symbol_hook  elf32_xgate_add_symbol_hook
-
-#define bfd_elf32_bfd_link_hash_table_create \
-    xgate_elf_bfd_link_hash_table_create
-#define bfd_elf32_bfd_link_hash_table_free \
-    xgate_elf_bfd_link_hash_table_free
-#define bfd_elf32_bfd_merge_private_bfd_data \
-    _bfd_xgate_elf_merge_private_bfd_data
-#define bfd_elf32_bfd_set_private_flags	_bfd_xgate_elf_set_private_flags
-#define bfd_elf32_bfd_print_private_bfd_data \
-    _bfd_xgate_elf_print_private_bfd_data
-
-#include "elf32-target.h"
-/* TODO
- * I dont think you can.
- *  make sure commenting out the above is OK  the elf32-target file ends up in the build directory*/
-
-/* ############################################################################################################################################
- * included from hc1x.c ??????
-
- Motorola 68HC11/HC12-specific support for 32-bit ELF
-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009 Free Software Foundation, Inc.
-   Contributed by Stephane Carrez (stcarrez@nerim.fr)
-
-   This file is part of BFD, the Binary File Descriptor library.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+//static bfd_boolean
+//xgate_elf_set_mach_from_flags (bfd *abfd)
+//{
+//  //printf("\n in elf_set_mach_from_flags");
+//  flagword flags = elf_elfheader (abfd)->e_flags;
+//
+//  switch (flags & EF_XGATE_MACH_MASK)
+//  {
+//  case EF_XGATE_MACH:
+//    bfd_default_set_arch_mach (abfd, bfd_arch_xgate, bfd_mach_xgate);
+//    /* TODO bfd_mach_mc9s12x does not work as a parameter(0 instead) re-make headers maybe....
+//     * UPDATE SEEMS TO WORK NOW */
+//
+//    // 	 bfd_default_set_arch_mach (abfd, bfd_arch_m68hc12, bfd_mach_m6812s);  /* for testing */
+//    break;
+//    //   case EF_XGATE_MACH:
+//    //     bfd_default_set_arch_mach (abfd, bfd_arch_mc9s12x, bfd_mach_mc9s12x);
+//    //     break;
+//    //   case EF_XGATE_GENERIC:
+//    //    bfd_default_set_arch_mach (abfd, bfd_arch_mc9s12x,
+//    //                                bfd_mach_mc9s12x_default);
+//    //     break;
+//  default:
+//    return FALSE;
+//  }
+//  return TRUE;
+//}
 
 #define xgate_stub_hash_lookup(table, string, create, copy) \
     ((struct elf32_xgate_stub_hash_entry *) \
@@ -857,37 +777,37 @@ xgate_add_stub (const char *stub_name, asection *section,
    file.  We use it for identify far symbols and force a loading of
    the trampoline handler.  */
 
-bfd_boolean
-elf32_xgate_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
-    Elf_Internal_Sym *sym,
-    const char **namep ATTRIBUTE_UNUSED,
-    flagword *flagsp ATTRIBUTE_UNUSED,
-    asection **secp ATTRIBUTE_UNUSED,
-    bfd_vma *valp ATTRIBUTE_UNUSED)
-{
-  //printf("\n in xgate_add_symbol_hook");
-  if (sym->st_other & STO_XGATE_FAR)
-    {
-    struct elf_link_hash_entry *h;
-
-    h = (struct elf_link_hash_entry *)
-	    bfd_link_hash_lookup (info->hash, "__far_trampoline",
-	        FALSE, FALSE, FALSE);
-    if (h == NULL)
-      {
-      struct bfd_link_hash_entry* entry = NULL;
-
-      _bfd_generic_link_add_one_symbol (info, abfd,
-          "__far_trampoline",
-          BSF_GLOBAL,
-          bfd_und_section_ptr,
-          (bfd_vma) 0, (const char*) NULL,
-          FALSE, FALSE, &entry);
-      }
-
-    }
-  return TRUE;
-}
+//bfd_boolean
+//elf32_xgate_add_symbol_hook (bfd *abfd, struct bfd_link_info *info,
+//    Elf_Internal_Sym *sym,
+//    const char **namep ATTRIBUTE_UNUSED,
+//    flagword *flagsp ATTRIBUTE_UNUSED,
+//    asection **secp ATTRIBUTE_UNUSED,
+//    bfd_vma *valp ATTRIBUTE_UNUSED)
+//{
+//  //printf("\n in xgate_add_symbol_hook");
+//  if (sym->st_other & STO_XGATE_FAR)
+//    {
+//    struct elf_link_hash_entry *h;
+//
+//    h = (struct elf_link_hash_entry *)
+//	    bfd_link_hash_lookup (info->hash, "__far_trampoline",
+//	        FALSE, FALSE, FALSE);
+//    if (h == NULL)
+//      {
+//      struct bfd_link_hash_entry* entry = NULL;
+//
+//      _bfd_generic_link_add_one_symbol (info, abfd,
+//          "__far_trampoline",
+//          BSF_GLOBAL,
+//          bfd_und_section_ptr,
+//          (bfd_vma) 0, (const char*) NULL,
+//          FALSE, FALSE, &entry);
+//      }
+//
+//    }
+//  return TRUE;
+//}
 
 /* External entry points for sizing and building linker stubs.  */
 
@@ -991,7 +911,7 @@ elf32_xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
     struct bfd_link_info *info,
     asection * (*add_stub_section) (const char*, asection*))
 {
-  //printf("\n in size stubs");
+  printf("\n in size stubs");
   bfd *input_bfd;
   asection *section;
   Elf_Internal_Sym *local_syms, **all_local_syms;
@@ -1057,7 +977,7 @@ elf32_xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
       input_bfd = input_bfd->link_next, bfd_indx++)
     {
     Elf_Internal_Shdr *symtab_hdr;
-    //Elf_Internal_Sym *local_syms;
+    Elf_Internal_Sym *local_syms;
     struct elf_link_hash_entry ** sym_hashes;
 
     sym_hashes = elf_sym_hashes (input_bfd);
@@ -1125,10 +1045,6 @@ elf32_xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
           bfd_boolean is_far;
 
           sym = local_syms + r_indx;
-          is_far = (sym && (sym->st_other & STO_XGATE_FAR));
-          if (!is_far)
-            continue;
-
           if (sym->st_shndx >= elf_numsections (input_bfd))
             sym_sec = NULL;
           else
@@ -1160,7 +1076,7 @@ elf32_xgate_size_stubs (bfd *output_bfd, bfd *stub_bfd,
               || hash->root.type == bfd_link_hash_defweak
               || hash->root.type == bfd_link_hash_new)
             {
-            if (!(hash->other & STO_XGATE_FAR))
+            //if (!(hash->other & STO_XGATE_FAR))
               continue;
             }
           else if (hash->root.type == bfd_link_hash_undefweak)
@@ -1308,7 +1224,7 @@ elf32_xgate_build_stubs (bfd *abfd, struct bfd_link_info *info)
   struct xgate_elf_link_hash_table *htab;
   struct xgate_scan_param param;
 
-  xgate_elf_get_bank_parameters (info);
+  //xgate_elf_get_bank_parameters (info);
   htab = xgate_elf_hash_table (info);
 
   for (stub_sec = htab->stub_bfd->sections;
@@ -1353,64 +1269,64 @@ elf32_xgate_build_stubs (bfd *abfd, struct bfd_link_info *info)
   return TRUE;
 }
 
-void
-xgate_elf_get_bank_parameters (struct bfd_link_info *info)
-{
-  //printf("\n in get bank parameters");
-  unsigned i;
-  struct xgate_page_info *pinfo;
-  struct bfd_link_hash_entry *h;
-
-  pinfo = &xgate_elf_hash_table (info)->pinfo;
-  if (pinfo->bank_param_initialized)
-    return;
-
-  pinfo->bank_virtual = XGATE_BANK_VIRT;
-  pinfo->bank_mask = XGATE_BANK_MASK;
-  pinfo->bank_physical = XGATE_BANK_BASE;
-  pinfo->bank_shift = XGATE_BANK_SHIFT;
-  pinfo->bank_size = 1 << XGATE_BANK_SHIFT;
-
-  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_START_NAME,
-      FALSE, FALSE, TRUE);
-  if (h != (struct bfd_link_hash_entry*) NULL
-      && h->type == bfd_link_hash_defined)
-    pinfo->bank_physical = (h->u.def.value
-        + h->u.def.section->output_section->vma
-        + h->u.def.section->output_offset);
-
-  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_VIRTUAL_NAME,
-      FALSE, FALSE, TRUE);
-  if (h != (struct bfd_link_hash_entry*) NULL
-      && h->type == bfd_link_hash_defined)
-    pinfo->bank_virtual = (h->u.def.value
-        + h->u.def.section->output_section->vma
-        + h->u.def.section->output_offset);
-
-  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_SIZE_NAME,
-      FALSE, FALSE, TRUE);
-  if (h != (struct bfd_link_hash_entry*) NULL
-      && h->type == bfd_link_hash_defined)
-    pinfo->bank_size = (h->u.def.value
-        + h->u.def.section->output_section->vma
-        + h->u.def.section->output_offset);
-
-  pinfo->bank_shift = 0;
-  for (i = pinfo->bank_size; i != 0; i >>= 1)
-    pinfo->bank_shift++;
-  pinfo->bank_shift--;
-  pinfo->bank_mask = (1 << pinfo->bank_shift) - 1;
-  pinfo->bank_physical_end = pinfo->bank_physical + pinfo->bank_size;
-  pinfo->bank_param_initialized = 1;
-
-  h = bfd_link_hash_lookup (info->hash, "__far_trampoline", FALSE,
-      FALSE, TRUE);
-  if (h != (struct bfd_link_hash_entry*) NULL
-      && h->type == bfd_link_hash_defined)
-    pinfo->trampoline_addr = (h->u.def.value
-        + h->u.def.section->output_section->vma
-        + h->u.def.section->output_offset);
-}
+//void
+//xgate_elf_get_bank_parameters (struct bfd_link_info *info)
+//{
+//  //printf("\n in get bank parameters");
+//  unsigned i;
+//  struct xgate_page_info *pinfo;
+//  struct bfd_link_hash_entry *h;
+//
+//  pinfo = &xgate_elf_hash_table (info)->pinfo;
+//  if (pinfo->bank_param_initialized)
+//    return;
+//
+//  pinfo->bank_virtual = XGATE_BANK_VIRT;
+//  pinfo->bank_mask = XGATE_BANK_MASK;
+//  pinfo->bank_physical = XGATE_BANK_BASE;
+//  pinfo->bank_shift = XGATE_BANK_SHIFT;
+//  pinfo->bank_size = 1 << XGATE_BANK_SHIFT;
+//
+//  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_START_NAME,
+//      FALSE, FALSE, TRUE);
+//  if (h != (struct bfd_link_hash_entry*) NULL
+//      && h->type == bfd_link_hash_defined)
+//    pinfo->bank_physical = (h->u.def.value
+//        + h->u.def.section->output_section->vma
+//        + h->u.def.section->output_offset);
+//
+//  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_VIRTUAL_NAME,
+//      FALSE, FALSE, TRUE);
+//  if (h != (struct bfd_link_hash_entry*) NULL
+//      && h->type == bfd_link_hash_defined)
+//    pinfo->bank_virtual = (h->u.def.value
+//        + h->u.def.section->output_section->vma
+//        + h->u.def.section->output_offset);
+//
+//  h = bfd_link_hash_lookup (info->hash, BFD_XGATE_BANK_SIZE_NAME,
+//      FALSE, FALSE, TRUE);
+//  if (h != (struct bfd_link_hash_entry*) NULL
+//      && h->type == bfd_link_hash_defined)
+//    pinfo->bank_size = (h->u.def.value
+//        + h->u.def.section->output_section->vma
+//        + h->u.def.section->output_offset);
+//
+//  pinfo->bank_shift = 0;
+//  for (i = pinfo->bank_size; i != 0; i >>= 1)
+//    pinfo->bank_shift++;
+//  pinfo->bank_shift--;
+//  pinfo->bank_mask = (1 << pinfo->bank_shift) - 1;
+//  pinfo->bank_physical_end = pinfo->bank_physical + pinfo->bank_size;
+//  pinfo->bank_param_initialized = 1;
+//
+//  h = bfd_link_hash_lookup (info->hash, "__far_trampoline", FALSE,
+//      FALSE, TRUE);
+//  if (h != (struct bfd_link_hash_entry*) NULL
+//      && h->type == bfd_link_hash_defined)
+//    pinfo->trampoline_addr = (h->u.def.value
+//        + h->u.def.section->output_section->vma
+//        + h->u.def.section->output_offset);
+//}
 
 /* Return 1 if the address is in banked memory.
    This can be applied to a virtual address and to a physical address.  */
@@ -1443,20 +1359,20 @@ xgate_phys_addr (struct xgate_page_info *pinfo, bfd_vma addr)
   return addr;
 }
 
-/* Return the page number corresponding to an address in banked memory.  */
-bfd_vma
-xgate_phys_page (struct xgate_page_info *pinfo, bfd_vma addr)
-{
-  printf("\n in phys_page and address is %lu", addr);
-  if (addr < pinfo->bank_virtual)
-    return 0;
-
-  /* Map the address to the memory bank.  */
-  addr -= pinfo->bank_virtual;
-  addr >>= pinfo->bank_shift;
-  addr &= 0x0ff;
-  return addr;
-}
+///* Return the page number corresponding to an address in banked memory.  */
+//bfd_vma
+//xgate_phys_page (struct xgate_page_info *pinfo, bfd_vma addr)
+//{
+//  printf("\n in phys_page and address is %lu", addr);
+//  if (addr < pinfo->bank_virtual)
+//    return 0;
+//
+//  /* Map the address to the memory bank.  */
+//  addr -= pinfo->bank_virtual;
+//  addr >>= pinfo->bank_shift;
+//  addr &= 0x0ff;
+//  return addr;
+//}
 
 /* This function is used for relocs which are only used for relaxing,
    which the linker should otherwise ignore.  */
@@ -1589,7 +1505,7 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
   sym_hashes = elf_sym_hashes (input_bfd);
 
   /* Get memory bank parameters.  */
-  xgate_elf_get_bank_parameters (info);
+ // xgate_elf_get_bank_parameters (info);
   pinfo = &xgate_elf_hash_table (info)->pinfo;
 
   rel = relocs;
@@ -1619,7 +1535,6 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
         || r_type == R_XGATE_GNU_VTINHERIT )
       continue;
 
-#undef elf_info_to_howto_rel  /* TODO fix so this is not necessary */
     (*ebd->elf_info_to_howto_rel) (input_bfd, &arel, rel);
     howto = arel.howto;
 
@@ -1639,7 +1554,7 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
       //printf("\n values output_sectoin->%lu output_offset->%lu st_value%lu test-value-%lu", sec->output_section->vma, sec->output_offset, sym->st_value, sec->vma);
 
-      is_far = (sym && (sym->st_other & STO_XGATE_FAR));
+      //is_far = (sym && (sym->st_other & STO_XGATE_FAR));
       //printf("\n relocation is->%lu before processing reloc code", (unsigned long int)relocation );
       if (is_far)
         stub_name = (bfd_elf_string_from_elf_section
@@ -1655,7 +1570,7 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           h, sec, relocation, unresolved_reloc,
           warned);
 
-      is_far = (h && (h->other & STO_XGATE_FAR));
+      //is_far = (h && (h->other & STO_XGATE_FAR));
       stub_name = h->root.root.string;
       }
 
@@ -1716,12 +1631,10 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
         }
       }
 
-
-
     /* Do the memory bank mapping.  */
-    ////printf("\n about to do relocation bank mapping relocation-%ld ammend-%ld",(long int) relocation,(long int) rel->r_addend);
+
     phys_addr = xgate_phys_addr (pinfo, relocation + rel->r_addend);
-    phys_page = xgate_phys_page (pinfo, relocation + rel->r_addend);
+//    phys_page = xgate_phys_page (pinfo, relocation + rel->r_addend);
 
 
     switch (r_type)
@@ -1781,7 +1694,7 @@ elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
           + input_section->output_offset
           + rel->r_offset;
 
-      insn_page = xgate_phys_page (pinfo, insn_addr);
+ //     insn_page = xgate_phys_page (pinfo, insn_addr);
 
       if (xgate_addr_is_banked (pinfo, relocation + rel->r_addend)
           && xgate_addr_is_banked (pinfo, insn_addr)
@@ -1966,7 +1879,7 @@ _bfd_xgate_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
    *
    Check ABI compatibility.
   if ((new_flags & E_M68HC11_I32) != (old_flags & E_M68HC11_I32))
-    {
+    {  xgate_elf_get_bank_parameters
       (*_bfd_error_handler)
 	(_("%B: linking files compiled for 16-bit integers (-mshort) "
            "and others for 32-bit integers"), ibfd);
@@ -1982,7 +1895,7 @@ _bfd_xgate_elf_merge_private_bfd_data (bfd *ibfd, bfd *obfd)
 
   Processor compatibility.
   if (!EF_M68HC11_CAN_MERGE_MACH (new_flags, old_flags))
-    {
+    { exgateelfb
       (*_bfd_error_handler)
 	(_("%B: linking files compiled for HCS12 with "
            "others compiled for HC12"), ibfd);
@@ -2056,16 +1969,11 @@ _bfd_xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
     fprintf (file, _("64-bit double, "));
   else
     fprintf (file, _("32-bit double, "));
-  /* TODO reduce to 1 target */
-  if (strcmp (bfd_get_target (abfd), "elf32-mc9s12X") == 0)
+    /* TODO reduce to 1 target */
+  if (strcmp (bfd_get_target (abfd), "elf32-xgate") == 0)
     fprintf (file, _("cpu=XGATE]"));
-  else if (elf_elfheader (abfd)->e_flags & EF_XGATE_MACH)
-    fprintf (file, _("cpu=XGATE]"));
-  else
-    fprintf (file, _("cpu=XGATE]"));
-
-  if (elf_elfheader (abfd)->e_flags & E_XGATE_BANKS)
-    fprintf (file, _(" [memory=bank-model]"));
+//  if (elf_elfheader (abfd)->e_flags & E_XGATE_BANKS)
+//    fprintf (file, _(" [memory=global-model]"));
   else
     fprintf (file, _(" [memory=flat]"));
 
@@ -2086,26 +1994,70 @@ static void scan_sections_for_abi (bfd *abfd ATTRIBUTE_UNUSED,
 
 /* Tweak the OSABI field of the elf header.  */
 
-void
-elf32_xgate_post_process_headers (bfd *abfd, struct bfd_link_info *link_info)
-{
-  //printf("\n in xgate_post_process_headers");
-  struct xgate_scan_param param;
+//void
+//elf32_xgate_post_process_headers (bfd *abfd, struct bfd_link_info *link_info)
+//{
+//  //printf("\n in xgate_post_process_headers");
+//  struct xgate_scan_param param;
+//
+//  if (link_info == 0)
+//    return;
+//
+//  xgate_elf_get_bank_parameters (link_info);
+//
+//  param.use_memory_banks = FALSE;
+//  param.pinfo = &xgate_elf_hash_table (link_info)->pinfo;
+//  bfd_map_over_sections (abfd, scan_sections_for_abi, &param);
+//  if (param.use_memory_banks)
+//    {
+//    Elf_Internal_Ehdr * i_ehdrp;
+//
+//    i_ehdrp = elf_elfheader (abfd);
+//    i_ehdrp->e_flags |= E_XGATE_BANKS;
+//    }
+//}
 
-  if (link_info == 0)
-    return;
+#define ELF_ARCH                bfd_arch_xgate
+#define ELF_MACHINE_CODE        EM_XGATE
 
-  xgate_elf_get_bank_parameters (link_info);
+#define ELF_MAXPAGESIZE         0x1000
 
-  param.use_memory_banks = FALSE;
-  param.pinfo = &xgate_elf_hash_table (link_info)->pinfo;
-  bfd_map_over_sections (abfd, scan_sections_for_abi, &param);
-  if (param.use_memory_banks)
-    {
-    Elf_Internal_Ehdr * i_ehdrp;
+#define TARGET_BIG_SYM          bfd_elf32_xgate_vec
+#define TARGET_BIG_NAME         "elf32-xgate"
 
-    i_ehdrp = elf_elfheader (abfd);
-    i_ehdrp->e_flags |= E_XGATE_BANKS;
-    }
-}
+#define elf_info_to_howto       0
 
+#define elf_info_to_howto_rel        xgate_info_to_howto_rel
+
+//#define elf_backend_check_relocs     elf32_xgate_check_relocs
+#define elf_backend_check_relocs     0
+
+#define elf_backend_relocate_section elf32_xgate_relocate_section
+
+//#define elf_backend_object_p  xgate_elf_set_mach_from_flags
+#define elf_backend_object_p  0
+
+#define elf_backend_final_write_processing      0
+
+#define elf_backend_can_gc_sections             1
+
+//#define elf_backend_special_sections elf32_xgate_special_sections
+#define elf_backend_special_sections 0
+
+//#define elf_backend_post_process_headers     elf32_xgate_post_process_headers
+#define elf_backend_post_process_headers     0
+
+//#define elf_backend_add_symbol_hook  elf32_xgate_add_symbol_hook
+#define elf_backend_add_symbol_hook  0
+
+#define bfd_elf32_bfd_link_hash_table_create \
+    xgate_elf_bfd_link_hash_table_create
+#define bfd_elf32_bfd_link_hash_table_free \
+    xgate_elf_bfd_link_hash_table_free
+#define bfd_elf32_bfd_merge_private_bfd_data \
+    _bfd_xgate_elf_merge_private_bfd_data
+#define bfd_elf32_bfd_set_private_flags _bfd_xgate_elf_set_private_flags
+#define bfd_elf32_bfd_print_private_bfd_data \
+    _bfd_xgate_elf_print_private_bfd_data
+
+#include "elf32-target.h"
