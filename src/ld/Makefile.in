@@ -2840,11 +2840,11 @@ em68hc12elfb.c: $(srcdir)/emulparams/m68hc12elfb.sh \
   $(srcdir)/scripttempl/elfm68hc12.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68hc12elfb "$(tdir_m68hc12b)"
 exgateelf.c: $(srcdir)/emulparams/xgateelf.sh \
-  $(srcdir)/emultempl/xgateelf.em $(ELF_DEPS) \
+  $(srcdir)/emultempl/elf32.em $(ELF_DEPS) \
   $(srcdir)/scripttempl/elfxgate.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} xgateelf "$(tdir_xgate)"
 exgateelfb.c: $(srcdir)/emulparams/xgateelfb.sh \
-  $(srcdir)/emultempl/xgateelf.em $(ELF_DEPS) \
+  $(srcdir)/emultempl/elf32.em $(ELF_DEPS) \
   $(srcdir)/scripttempl/elfxgate.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} xgateelfb "$(tdir_xgate)"  
 em68k4knbsd.c:	$(srcdir)/emulparams/m68k4knbsd.sh \
