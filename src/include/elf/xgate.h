@@ -68,21 +68,11 @@ END_RELOC_NUMBERS (R_XGATE_max)
 /* Doubles are 64-bit long.  */
 #define E_XGATE_F64   0x000000002
 
-
-
 #define EF_XGATE_MACH_MASK 0xF0
-#define EF_XGATE_GENERIC   0x00 /* Generic XGATE backward compatibility.  */
-#define EF_XGATE_MACH     0x20 /* 68HCS12 microcontroller.  */
 
-/* True if we can merge machines.  A generic HC12 can work on any proc
-   but once we have specific code, merge is not possible.  */
+#define EF_XGATE_MACH   0x20 /* XGATE microcontroller.  */
 
-#define EF_XGATE_CAN_MERGE_MACH EF_XGATE_MACH   /* effectively disable merger since this is s12x ONLY */
-
-/* Special values for the st_other field in the symbol table.  These
-   are used for 68HC12 to identify far functions (must be called with
-   'call' and returns with 'rtc').  */
-//#define STO_XGATE_FAR 0x80
+#define E_XGATE_GLOBAL  0x20
 
 /* Identify interrupt handlers.  This is used by the debugger to
    correctly compute the stack frame.  */
