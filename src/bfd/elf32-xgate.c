@@ -40,15 +40,12 @@ static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
 (bfd *, bfd_reloc_code_real_type);
 static void xgate_info_to_howto_rel
 (bfd *, arelent *, Elf_Internal_Rela *);
-
-/* Trampoline generation.  */
 static bfd_boolean xgate_elf_size_one_stub
 (struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean xgate_elf_build_one_stub
 (struct bfd_hash_entry *gen_entry, void *in_arg);
 static struct bfd_link_hash_table* xgate_elf_bfd_link_hash_table_create
 (bfd*);
-
 static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
 
 #define ELF_TARGET_ID           XGATE_ELF_DATA
