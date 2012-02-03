@@ -4490,10 +4490,6 @@ value and a 8-bit page number.  The symbol address is transformed
 to follow the 16K memory bank of MC9S12X (seen as mapped in the window).  */
   BFD_RELOC_XGATE_24,
 
-/* Motorola XGATE reloc.
-This is the 5 bits of a value.  */
-  BFD_RELOC_XGATE_5B,
-
 /*   */
   BFD_RELOC_XGATE_PCREL_9,
 
