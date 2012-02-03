@@ -4456,14 +4456,6 @@ This is the 5 bits of a value.  */
   BFD_RELOC_M68HC12_5B,
 
 /* Motorola XGATE reloc.
-This is the 8 bit high part of an absolute address.  */
-  BFD_RELOC_XGATE_HI8,
-
-/* Motorola XGATE reloc.
-This is the 8 bit low part of an absolute address.  */
-  BFD_RELOC_XGATE_LO8,
-
-/* Motorola XGATE reloc.
 This is the 3 bit of a value.  */
   BFD_RELOC_XGATE_3B,
 

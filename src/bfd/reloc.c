@@ -4951,16 +4951,6 @@ ENUMDOC
   Motorola 68HC12 reloc.
   This is the 5 bits of a value.
 ENUM
-  BFD_RELOC_XGATE_HI8
-ENUMDOC
-  Motorola XGATE reloc.
-  This is the 8 bit high part of an absolute address.
-ENUM
-  BFD_RELOC_XGATE_LO8
-ENUMDOC
-  Motorola XGATE reloc.
-  This is the 8 bit low part of an absolute address.
-ENUM
   BFD_RELOC_XGATE_3B
 ENUMDOC
   Motorola XGATE reloc.
