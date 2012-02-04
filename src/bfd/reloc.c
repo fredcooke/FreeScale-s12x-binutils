@@ -4951,11 +4951,6 @@ ENUMDOC
   Motorola 68HC12 reloc.
   This is the 5 bits of a value.
 ENUM
-  BFD_RELOC_XGATE_3B
-ENUMDOC
-  Motorola XGATE reloc.
-  This is the 3 bit of a value.
-ENUM
   BFD_RELOC_XGATE_RL_JUMP
 ENUMDOC
   Motorola XGATE reloc.
