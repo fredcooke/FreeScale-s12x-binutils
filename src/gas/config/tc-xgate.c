@@ -648,7 +648,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case R_XGATE_16:
-  case 0x2: /* seems to be the default value for no fixup TODO figure out how to remove */
+//  case 0x2: /* seems to be the default value for no fixup TODO figure out how to remove */
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
@@ -679,8 +679,8 @@ tc_xgate_fix_adjustable (fixS * fixP)
     {
 //       For the linker relaxation to work correctly, these relocs
 //         need to be on the symbol itself.
-    case BFD_RELOC_XGATE_IMM8_LO:
-    case BFD_RELOC_XGATE_IMM8_HI:
+//    case BFD_RELOC_XGATE_IMM8_LO:
+//    case BFD_RELOC_XGATE_IMM8_HI:
     case BFD_RELOC_16:
     case BFD_RELOC_XGATE_RL_JUMP:
     case BFD_RELOC_XGATE_RL_GROUP:
@@ -689,9 +689,9 @@ tc_xgate_fix_adjustable (fixS * fixP)
     case BFD_RELOC_32:
 //       The memory bank addressing translation also needs the original
 //         symbol.
-    case BFD_RELOC_XGATE_LO16:
-    case BFD_RELOC_XGATE_PAGE:
-    case BFD_RELOC_XGATE_24:
+//    case BFD_RELOC_XGATE_LO16:
+//    case BFD_RELOC_XGATE_PAGE:
+//    case BFD_RELOC_XGATE_24:
       return 0;
     default:
       return 1;
