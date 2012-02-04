@@ -471,13 +471,12 @@ bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       i < sizeof (xgate_reloc_map) / sizeof (struct xgate_reloc_map);
       i++)
     {
-    // printf("\n about to compare %d and %d", (int)code, (int) xgate_reloc_map[i].bfd_reloc_val);
     if (xgate_reloc_map[i].bfd_reloc_val == code){
-
+      printf("\n FOUND about to compare %d and %d", (int)code, (int) xgate_reloc_map[i].bfd_reloc_val);
       return &elf_xgate_howto_table[xgate_reloc_map[i].elf_reloc_val];
     }
     }
-  //printf("\n about to return null");
+  printf("\n about to return null");
   return NULL;
     }
 
@@ -494,7 +493,7 @@ bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       i++)
     if (elf_xgate_howto_table[i].name != NULL
         && strcasecmp (elf_xgate_howto_table[i].name, r_name) == 0){
-      //printf("\n returning howto %s", elf_xgate_howto_table[i].name);
+      printf("\n returning howto %s", elf_xgate_howto_table[i].name);
       return &elf_xgate_howto_table[i];
     }
 
