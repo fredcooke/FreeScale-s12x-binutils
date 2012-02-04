@@ -36,8 +36,10 @@
 #include "opcode/xgate.h"
 
 /* Relocation functions.  */
-static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
-(bfd *, bfd_reloc_code_real_type);
+//static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
+//(bfd *, bfd_reloc_code_real_type);
+static reloc_howto_type *bfd_elf32_bfd_reloc_name_lookup
+(bfd *abfd ATTRIBUTE_UNUSED, const char *r_name);
 static void xgate_info_to_howto_rel
 (bfd *, arelent *, Elf_Internal_Rela *);
 static bfd_boolean xgate_elf_size_one_stub
@@ -48,7 +50,22 @@ static struct bfd_link_hash_table* xgate_elf_bfd_link_hash_table_create
 (bfd*);
 static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
 
-#define ELF_TARGET_ID           XGATE_ELF_DATA
+static struct elf32_xgate_stub_hash_entry* xgate_add_stub
+(const char *stub_name,
+    asection *section,
+    struct xgate_elf_link_hash_table *htab);
+
+static struct bfd_hash_entry *stub_hash_newfunc
+(struct bfd_hash_entry *, struct bfd_hash_table *, const char *);
+
+static void xgate_elf_set_symbol (bfd* abfd, struct bfd_link_info *info,
+    const char* name, bfd_vma value,
+    asection* sec);
+
+static bfd_boolean xgate_elf_export_one_stub
+(struct bfd_hash_entry *gen_entry, void *in_arg);
+
+static void scan_sections_for_abi (bfd*, asection*, PTR);
 
 /* Use REL instead of RELA to save space */
 #define USE_REL	1
@@ -447,7 +464,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     bfd_reloc_code_real_type code)
     {
-  //printf("\n in bfd_elf32_bfd_reloc_type_lookup");
+  printf("\n in bfd_elf32_bfd_reloc_type_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -468,7 +485,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     const char *r_name)
     {
-  //printf("\n in bfd_elf32_bfd_reloc_name_lookup");
+  printf("\n in bfd_elf32_bfd_reloc_name_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -558,26 +575,6 @@ static const struct bfd_elf_special_section elf32_xgate_special_sections[] =
         { NULL,                       0,  0, 0,            0 }
     };
 
-#define xgate_stub_hash_lookup(table, string, create, copy) \
-    ((struct elf32_xgate_stub_hash_entry *) \
-        bfd_hash_lookup ((table), (string), (create), (copy)))
-
-static struct elf32_xgate_stub_hash_entry* xgate_add_stub
-(const char *stub_name,
-    asection *section,
-    struct xgate_elf_link_hash_table *htab);
-
-static struct bfd_hash_entry *stub_hash_newfunc
-(struct bfd_hash_entry *, struct bfd_hash_table *, const char *);
-
-static void xgate_elf_set_symbol (bfd* abfd, struct bfd_link_info *info,
-    const char* name, bfd_vma value,
-    asection* sec);
-
-static bfd_boolean xgate_elf_export_one_stub
-(struct bfd_hash_entry *gen_entry, void *in_arg);
-
-static void scan_sections_for_abi (bfd*, asection*, PTR);
 
 struct xgate_scan_param
 {
@@ -829,6 +826,7 @@ elf32_xgate_post_process_headers (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_in
 #define ELF_ARCH                bfd_arch_xgate
 //#define ELF_ARCH                bfd_arch_mc9s12x
 #define ELF_MACHINE_CODE        EM_XGATE
+#define ELF_TARGET_ID           XGATE_ELF_DATA
 
 //#define ELF_MACHINE_CODE      EM_68HC12 /* testing value */
 #define ELF_MAXPAGESIZE         0x1000
@@ -856,5 +854,8 @@ elf32_xgate_post_process_headers (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_in
 #define bfd_elf32_bfd_set_private_flags _bfd_xgate_elf_set_private_flags
 #define bfd_elf32_bfd_print_private_bfd_data \
     _bfd_xgate_elf_print_private_bfd_data
+#define xgate_stub_hash_lookup(table, string, create, copy) \
+    ((struct elf32_xgate_stub_hash_entry *) \
+        bfd_hash_lookup ((table), (string), (create), (copy)))
 
 #include "elf32-target.h"
