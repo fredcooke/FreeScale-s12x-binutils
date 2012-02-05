@@ -1,4 +1,4 @@
-/* m68hc11 & m68hc12 ELF support for BFD.
+/* XGATE ELF support for BFD.
    Copyright 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -26,14 +26,10 @@
 START_RELOC_NUMBERS (elf_xgate_reloc_type)
   RELOC_NUMBER (R_XGATE_NONE, 0)
   RELOC_NUMBER (R_XGATE_8, 1)
-//  RELOC_NUMBER (R_XGATE_HI8, 2)
-//  RELOC_NUMBER (R_XGATE_LO8, 2)
   RELOC_NUMBER (R_XGATE_PCREL_8, 2)
   RELOC_NUMBER (R_XGATE_16, 3)
   RELOC_NUMBER (R_XGATE_32, 4)
-//  RELOC_NUMBER (R_XGATE_3B, 5)
   RELOC_NUMBER (R_XGATE_PCREL_16, 5)
-
      /* These are GNU extensions to enable C++ vtable garbage collection.  */
   RELOC_NUMBER (R_XGATE_GNU_VTINHERIT, 6)
   RELOC_NUMBER (R_XGATE_GNU_VTENTRY, 7)
@@ -70,7 +66,7 @@ END_RELOC_NUMBERS (R_XGATE_max)
 
 #define EF_XGATE_MACH_MASK 0xF0
 
-#define EF_XGATE_MACH   0x20 /* XGATE microcontroller.  */
+#define EF_XGATE_MACH   0x20 /* XGATE micro controller.  */
 
 #define E_XGATE_GLOBAL  0x20
 
