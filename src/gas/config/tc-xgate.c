@@ -97,13 +97,9 @@ static char oper_check;
 static unsigned int oper1 = 0;
 static unsigned int oper2 = 0;
 static unsigned int oper3 = 0;
-static int oper1_present = 0;
 static int oper1_bit_length = 0;
-static int oper2_present = 0;
 static int oper2_bit_length = 0;
-static int oper3_present = 0;
 static int oper3_bit_length = 0;
-
 
 //static struct mcu_type_s mcu_types[] =
 //{
@@ -843,11 +839,8 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
   oper1 = 0;
   oper2 = 0;
   oper3 = 0;
-  oper1_present = 0;
   oper1_bit_length = 0;
-  oper2_present = 0;
   oper2_bit_length = 0;
-  oper3_present = 0;
   oper3_bit_length = 0;
   char n_operand_bits = 0;
   char first_can_equal_second = 0;
@@ -877,15 +870,14 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           first_can_equal_second = 1;
           ++op;
         }
-      oper1_present = 1;
       oper1 = xgate_operand(opcode, &oper1_bit_length, where, &op, &str);
       ++op;
+      bin = xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
       /* Parse second operand.  */
       if (*op)
         {
           if (*op == ',')
             ++op;
-          oper2_present = 1;
           str = skip_whitespace(str);
            if (*str++ != ',')
             {
@@ -906,29 +898,21 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
                   &str);
               ++op;
             }
-
+           bin = xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
         }
       /* parse the third register */
       if (*op)
         {
           if (*op == ',')
             ++op;
-
-          oper3_present = 1;
-
           str = skip_whitespace(str);
           if (*str++ != ',')
             as_bad(_("`,' required before third operand"));
           str = skip_whitespace(str);
           oper3 = xgate_operand(opcode, &oper3_bit_length, where, &op, &str);
+          bin = xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
         }
     }
-  if (oper1_present)
-    bin = xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
-  if (oper2_present)
-    bin = xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
-  if (oper3_present)
-    bin = xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
   if (opcode->size == 4 && fixup_required)
     {
       /* not used */
