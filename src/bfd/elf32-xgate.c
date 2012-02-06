@@ -149,21 +149,6 @@ HOWTO (R_XGATE_32, /* type */
 		0xffffffff, /* dst_mask */
 		FALSE), /* pcrel_offset */
 
-///* A 3 bit absolute relocation */
-//HOWTO (R_XGATE_3B, /* type */
-//		0, /* rightshift */
-//		0, /* size (0 = byte, 1 = short, 2 = long) */
-//		3, /* bitsize */
-//		FALSE, /* pc_relative */
-//		0, /* bitpos */
-//		complain_overflow_bitfield, /* complain_on_overflow */
-//		bfd_elf_generic_reloc, /* special_function */
-//		"R_XGATE_4B", /* name */
-//		FALSE, /* partial_inplace */
-//		0x003, /* src_mask */
-//		0x003, /* dst_mask */
-//		FALSE), /* pcrel_offset */
-
 /* A 16 bit PC-rel relocation */
 HOWTO (R_XGATE_PCREL_16, /* type */
 		0, /* rightshift */
@@ -354,12 +339,7 @@ HOWTO (R_XGATE_IMM5, /* type */
 		0x00ff, /* src_mask */
 		0x00ff, /* dst_mask */
 		FALSE), /* pcrel_offset */
-        //EMPTY_HOWTO (14),
-		//EMPTY_HOWTO (15),
-		//EMPTY_HOWTO (16),
-		//EMPTY_HOWTO (17),
-		//EMPTY_HOWTO (18),
-		//EMPTY_HOWTO (19),
+
 /* Mark beginning of a jump instruction (any form).  */
 HOWTO (R_XGATE_RL_JUMP, /* type */
 		0, /* rightshift */
@@ -403,13 +383,10 @@ struct xgate_reloc_map
 static const struct xgate_reloc_map xgate_reloc_map[] = {
     {BFD_RELOC_NONE, R_XGATE_NONE,},
     {BFD_RELOC_8, R_XGATE_8},
-//    {BFD_RELOC_XGATE_HI8, R_XGATE_HI8},
-//    {BFD_RELOC_XGATE_LO8, R_XGATE_LO8},
     {BFD_RELOC_8_PCREL, R_XGATE_PCREL_8},
     {BFD_RELOC_16_PCREL, R_XGATE_PCREL_16},
     {BFD_RELOC_16, R_XGATE_16},
     {BFD_RELOC_32, R_XGATE_32},
-//    {BFD_RELOC_XGATE_3B, R_XGATE_3B},
 
     {BFD_RELOC_VTABLE_INHERIT, R_XGATE_GNU_VTINHERIT},
     {BFD_RELOC_VTABLE_ENTRY, R_XGATE_GNU_VTENTRY},
