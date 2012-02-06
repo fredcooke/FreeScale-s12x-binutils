@@ -67,7 +67,6 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 #define XGATE_OP_DYA		 "r,r"
 #define XGATE_OP_IMM16        "r,if"
 #define XGATE_OP_IMM8	 "r,i8"
-#define XGATE_OP_IMM8m	 "r,m8"
 #define XGATE_OP_IMM4         "r,i4"
 #define XGATE_OP_IMM3	 "i3"
 #define XGATE_OP_MON		 "r"

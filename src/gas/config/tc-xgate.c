@@ -27,7 +27,7 @@
 #include "opcode/xgate.h"
 #include "dwarf2dbg.h"
 #include "elf/xgate.h"
-//#include "stdio.h"
+#include "stdio.h"
 
 const char comment_chars[] = ";!";
 const char line_comment_chars[] = "#*";
@@ -538,10 +538,7 @@ tc_gen_reloc(asection * section ATTRIBUTE_UNUSED, fixS * fixp)
   else
     {
       reloc->howto = bfd_reloc_type_lookup(stdoutput, fixp->fx_r_type);
-    }
-  if (fixp->fx_r_type == 14)
-    {
-      reloc->howto = bfd_reloc_name_lookup(stdoutput, "R_XGATE_IMM8");
+      printf("\n found %s", reloc->howto->name);
     }
   if (reloc->howto == (reloc_howto_type *) NULL)
     {
@@ -567,7 +564,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
 {
   char *where;
   long value = *valP;
-   int opcode = 0;
+  int opcode = 0;
   ldiv_t result;
   /* if the fixup is done mark it done so no further symbol resolution will take place */
   if (fixP->fx_addsy == (symbolS *) NULL)
@@ -594,10 +591,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     mask = 0x1FF; /* Clip into 8-bit field FIXME I'm sure there is a more proper place for this */
     value &= mask;
     number_to_chars_bigendian(where, (opcode | value), 2);
-    /* todo attempt to use internal fixups if applicable */
-    //fixP = fix_new_exp (frag_now, f - frag_now->fr_literal -1, 2,
-    //                        oper, TRUE, BFD_RELOC_M68HC12_9_PCREL);
-    //              fixP->fx_pcrel_adjust = 1;
     break;
   case R_XGATE_PCREL_10:
     if (value < -1024 || value > 1023)
@@ -613,18 +606,21 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case BFD_RELOC_XGATE_IMM8_HI:
+    printf("\n performing a HI8 %x", value);
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 16-bit range."));
     value >>= 8;
-    bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
+    value &= 0x00ff;
+    bfd_putb16((bfd_vma) value | opcode, (void *) where);
     break;
   case BFD_RELOC_XGATE_IMM8_LO:
+    printf("\n performing a LO8 %x", value);
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 16-bit range."));
     value &= 0x00ff;
-    bfd_putb16((bfd_vma) value | opcode, (unsigned char *) where);
+    bfd_putb16((bfd_vma) value | opcode, (void *) where);
     break;
   case BFD_RELOC_XGATE_IMM3:
     if (value < 0 || value > 7)
@@ -648,7 +644,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case R_XGATE_16:
-//  case 0x2: /* seems to be the default value for no fixup TODO figure out how to remove */
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
@@ -1097,13 +1092,13 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	      if ((opcode->name[strlen (opcode->name) - 1] == 'l')
 		  && macroClipping)
 		{
-		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM8_LO);	/* BFD_RELOC_XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_XGATE_HI8 */
+		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM8_LO);
 		  fixp->fx_pcrel_adjust = 0;
 		}
 	      if ((opcode->name[strlen (opcode->name) - 1]) == 'h'
 		  && macroClipping)
 		{
-		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM8_HI);	/* BFD_RELOC_XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_XGATE_HI8 */
+		  fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM8_HI);
 		  fixp->fx_pcrel_adjust = 0;
 		}
 	      if (!fixp)
@@ -1192,33 +1187,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	  as_fatal (_("Operand `%x' not recognized in fixup8."),
 		    op_expr.X_op);
 	}
-      break;
-    case 'm':   /* immediate value from macro expansion */
-      (*op_con)++;      /* advance the original format pointer */
-      op_constraint++;
-      if (ISDIGIT (*op_constraint))
-	{
-	  *bit_width = (int) *op_constraint - '0';
-	}
-      else if (*op_constraint == 'a')
-	{
-	  *bit_width = 0xA;
-	}
-      if (*str == '#')  /* go past # character */
-	str++;
-      if (!ISDIGIT (*op_constraint))
-	as_bad (_
-		(":expected bit length with constraint type i(# immediate) read %c"),
-		*op_constraint);
-      op_mask = (unsigned int) strtol (str, &str, 10);
-      /* make sure it fits */
-      for (i = *bit_width; i; i--)
-	{
-	  max_size <<= 1;
-	  max_size += 1;
-	}
-      if (op_mask > max_size)
-	as_bad (_(":operand too big for constraint"));
       break;
     case '?':
       break;
@@ -1355,7 +1323,7 @@ xgate_detect_format (char *line_in)
       return XGATE_R_R_I;
     }
   as_bad ((":Error unable to detect operand format"));
-  printf ("\n sh reads sh_format %s", sh_format);
+  //printf ("\n sh reads sh_format %s", sh_format);
   return 0;
 }
 
@@ -1365,7 +1333,7 @@ xgate_find_match (struct xgate_opcode_handle *opcode_handle,
 {
   struct xgate_opcode *opcode = 0;
   /* TODO make this into a loop */
-  printf("\n number of modes for opcode are %d", numberOfModes);
+  //printf("\n number of modes for opcode are %d", numberOfModes);
   while (numberOfModes)
     {
       switch (numberOfModes)
