@@ -4973,7 +4973,7 @@ ENUMDOC
   instruction to specify the symbol address without any special
   transformation (due to memory bank window).
 ENUM
-  BFD_RELOC_XGATE_PAGE
+  BFD_RELOC_XGATE_GPAGE
 ENUMDOC
   Motorola XGATE reloc.
   This is a 8-bit reloc that specifies the page number of an address.

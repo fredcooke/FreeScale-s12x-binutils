@@ -4478,7 +4478,7 @@ transformation (due to memory bank window).  */
 This is a 8-bit reloc that specifies the page number of an address.
 It is used by 'call' instruction to specify the page number of
 the symbol.  */
-  BFD_RELOC_XGATE_PAGE,
+  BFD_RELOC_XGATE_GPAGE,
 
 /* Motorola XGATE reloc.
 This is a 24-bit reloc that represents the address with a 16-bit

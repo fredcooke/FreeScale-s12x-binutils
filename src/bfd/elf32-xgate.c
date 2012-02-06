@@ -225,7 +225,7 @@ HOWTO (R_XGATE_LO16, /* type */
 		FALSE), /* pcrel_offset */
 
 /* A page relocation */
-HOWTO (R_XGATE_PAGE, /* type */
+HOWTO (R_XGATE_GPAGE, /* type */
 		0, /* rightshift */
 		0, /* size (0 = byte, 1 = short, 2 = long) */
 		8, /* bitsize */
@@ -233,7 +233,7 @@ HOWTO (R_XGATE_PAGE, /* type */
 		0, /* bitpos */
 		complain_overflow_dont, /* complain_on_overflow */
 		xgate_elf_special_reloc,/* special_function */
-		"R_XGATE_PAGE", /* name */
+		"R_XGATE_GPAGE", /* name */
 		FALSE, /* partial_inplace */
 		0x00ff, /* src_mask */
 		0x00ff, /* dst_mask */
@@ -372,7 +372,7 @@ HOWTO (R_XGATE_RL_GROUP, /* type */
 };
 
 
-/* Map BFD reloc types to M68HC11 ELF reloc types.  */
+/* Map BFD reloc types to XGATE ELF reloc types.  */
 
 struct xgate_reloc_map
 {
@@ -392,7 +392,7 @@ static const struct xgate_reloc_map xgate_reloc_map[] = {
     {BFD_RELOC_VTABLE_ENTRY, R_XGATE_GNU_VTENTRY},
 
     {BFD_RELOC_XGATE_LO16, R_XGATE_LO16},
-    {BFD_RELOC_XGATE_PAGE, R_XGATE_PAGE},
+    {BFD_RELOC_XGATE_GPAGE, R_XGATE_GPAGE},
     {BFD_RELOC_XGATE_24, R_XGATE_24},
     {BFD_RELOC_XGATE_PCREL_9, R_XGATE_PCREL_9},
     {BFD_RELOC_XGATE_PCREL_10,  R_XGATE_PCREL_10},
