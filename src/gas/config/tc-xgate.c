@@ -395,7 +395,6 @@ md_assemble(char *input_line)
   struct xgate_opcode *macro_opcode = 0;
   struct xgate_opcode_handle *opcode_handle = 0;
   char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
-//  unsigned short opcode_bin = 0;
   char op_name[9] = { 0 };
   char handle_enum_alias = 0;
   unsigned int sh_format = 0;
@@ -403,7 +402,7 @@ md_assemble(char *input_line)
   fixup_required = 0;
   oper_check = 0; /* set error flags */
   input_line = extract_word(input_line, op_name, sizeof(op_name));
-  /* check to make sure we are not reading a bugus line */
+  /* check to make sure we are not reading a bogus line */
   if (!op_name[0])
     as_bad(_("opcode missing or not found on input line"));
   if (!(opcode_handle = (struct xgate_opcode_handle *) hash_find(
@@ -668,21 +667,15 @@ tc_xgate_fix_adjustable (fixS * fixP)
 {
   switch (fixP->fx_r_type)
     {
-//       For the linker relaxation to work correctly, these relocs
-//         need to be on the symbol itself.
-//    case BFD_RELOC_XGATE_IMM8_LO:
-//    case BFD_RELOC_XGATE_IMM8_HI:
+/*       For the linker relaxation to work correctly, these relocs
+         need to be on the symbol itself. */
+
     case BFD_RELOC_16:
     case BFD_RELOC_XGATE_RL_JUMP:
     case BFD_RELOC_XGATE_RL_GROUP:
     case BFD_RELOC_VTABLE_INHERIT:
     case BFD_RELOC_VTABLE_ENTRY:
     case BFD_RELOC_32:
-//       The memory bank addressing translation also needs the original
-//         symbol.
-//    case BFD_RELOC_XGATE_LO16:
-//    case BFD_RELOC_XGATE_PAGE:
-//    case BFD_RELOC_XGATE_24:
       return 0;
     default:
       return 1;
@@ -702,9 +695,7 @@ md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED, asection * sec ATTRIBUTE_UNUSED,
 void
 xgate_elf_final_processing (void)
 {
-  /* TODO make this always true */
-  if (current_architecture & cpuxgate)
-    elf_flags |= EF_XGATE_MACH;
+  elf_flags |= EF_XGATE_MACH;
   elf_elfheader (stdoutput)->e_flags &= ~EF_XGATE_ABI;
   elf_elfheader (stdoutput)->e_flags |= elf_flags;
 }
@@ -861,7 +852,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           n_operand_bits++;
         }
     }
-  /* Opcode have operands.  */
+  /* Opcode has operands.  */
   /* Parse first operand.  */
   if (*op)
     {
@@ -913,12 +904,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           bin = xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
         }
     }
-  if (opcode->size == 4 && fixup_required)
-    {
-      /* not used */
-      //bfd_putl32(opcode->bin_opcode, frag);
-    }
-  else if (opcode->size == 2 && fixup_required)
+  if (opcode->size == 2 && fixup_required)
     {
       bfd_putl16(bin, frag);
     }
@@ -932,7 +918,6 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
     }
   prev = bin;
   *line = str;
-  //return bin;
   return;
 }
 

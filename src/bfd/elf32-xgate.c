@@ -36,8 +36,8 @@
 #include "opcode/xgate.h"
 
 /* Relocation functions.  */
-//static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
-//(bfd *, bfd_reloc_code_real_type);
+static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
+(bfd *, bfd_reloc_code_real_type);
 static reloc_howto_type *bfd_elf32_bfd_reloc_name_lookup
 (bfd *abfd ATTRIBUTE_UNUSED, const char *r_name);
 static void xgate_info_to_howto_rel
@@ -781,7 +781,7 @@ elf32_xgate_post_process_headers (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_in
 #define TARGET_BIG_NAME         "elf32-xgate"
 
 #define elf_info_to_howto       0
-#define elf_info_to_howto_rel        xgate_info_to_howto_rel  /* TODO figure out why this has to be here */
+#define elf_info_to_howto_rel        xgate_info_to_howto_rel
 #define elf_backend_check_relocs     elf32_xgate_check_relocs
 #define elf_backend_relocate_section elf32_xgate_relocate_section
 #define elf_backend_object_p            xgate_elf_set_mach_from_flags
