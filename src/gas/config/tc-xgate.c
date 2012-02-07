@@ -878,7 +878,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
   int operand_bit_length = 0;
   unsigned int operand = 0;
   char n_operand_bits = 0;
-  char first_can_equal_second = 0;
+  char first_operand_equals_second = 0;
   int i = 0;
   char c = 0;
 
@@ -902,7 +902,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
     {
       if (*op == '=')
         {
-          first_can_equal_second = 1;
+          first_operand_equals_second = 1;
           ++op;
         }
       operand = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
@@ -916,7 +916,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           str = skip_whitespace(str);
            if (*str++ != ',')
             {
-              if (first_can_equal_second)
+              if (first_operand_equals_second)
                 {
                   bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
                   ++op;
@@ -931,9 +931,9 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
               str = skip_whitespace(str);
               operand = xgate_operand(opcode, &operand_bit_length, where, &op,
                   &str);
+              bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
               ++op;
             }
-           bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
         }
       /* parse the third register */
       if (*op)
