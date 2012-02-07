@@ -98,9 +98,6 @@ static char oper_check;
 static unsigned int oper1 = 0;
 static unsigned int oper2 = 0;
 static unsigned int oper3 = 0;
-static int oper1_bit_length = 0;
-static int oper2_bit_length = 0;
-static int oper3_bit_length = 0;
 static char flag_print_insn_syntax = 0;
 static char flag_print_opcodes = 0;
 
@@ -693,7 +690,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case BFD_RELOC_32:
-  //case R_XGATE_16:
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
@@ -885,9 +881,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
   oper1 = 0;
   oper2 = 0;
   oper3 = 0;
-  oper1_bit_length = 0;
-  oper2_bit_length = 0;
-  oper3_bit_length = 0;
+  int operand_bit_length = 0;
   char n_operand_bits = 0;
   char first_can_equal_second = 0;
   int i = 0;
@@ -916,9 +910,9 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           first_can_equal_second = 1;
           ++op;
         }
-      oper1 = xgate_operand(opcode, &oper1_bit_length, where, &op, &str);
+      oper1 = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
       ++op;
-      bin = xgate_apply_operand(oper1, &oper_mask, bin, oper1_bit_length);
+      bin = xgate_apply_operand(oper1, &oper_mask, bin, operand_bit_length);
       /* Parse second operand.  */
       if (*op)
         {
@@ -940,11 +934,11 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           else
             {
               str = skip_whitespace(str);
-              oper2 = xgate_operand(opcode, &oper2_bit_length, where, &op,
+              oper2 = xgate_operand(opcode, &operand_bit_length, where, &op,
                   &str);
               ++op;
             }
-           bin = xgate_apply_operand(oper2, &oper_mask, bin, oper2_bit_length);
+           bin = xgate_apply_operand(oper2, &oper_mask, bin, operand_bit_length);
         }
       /* parse the third register */
       if (*op)
@@ -955,8 +949,8 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           if (*str++ != ',')
             as_bad(_("`,' required before third operand"));
           str = skip_whitespace(str);
-          oper3 = xgate_operand(opcode, &oper3_bit_length, where, &op, &str);
-          bin = xgate_apply_operand(oper3, &oper_mask, bin, oper3_bit_length);
+          oper3 = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
+          bin = xgate_apply_operand(oper3, &oper_mask, bin, operand_bit_length);
         }
     }
   if (opcode->size == 2 && fixup_required)
@@ -995,8 +989,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
     {
       /* TODO should be able to combine with with case R */
     case '+':			/* indexed register operand +/- or plain r  */
-      //pp_fix = 0x0b00; /* default to neither inc or dec */
-      pp_fix = 0;
+      pp_fix = 0; /* default to neither inc or dec */
       //TODO maybe use a loop so the order is not important
       *bit_width = 5;
       str = skip_whitespace (str);
