@@ -62,22 +62,22 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 
 /* XGATE operand formats as stored in the XGATE_opcode table.
    They are only used by GAS to recognize operands.  */
-#define XGATE_OP_INH		 ""
-#define XGATE_OP_TRI		 "r,r,r"
-#define XGATE_OP_DYA		 "r,r"
-#define XGATE_OP_IMM16        "r,if"
-#define XGATE_OP_IMM8	 "r,i8"
-#define XGATE_OP_IMM4         "r,i4"
-#define XGATE_OP_IMM3	 "i3"
-#define XGATE_OP_MON		 "r"
-#define XGATE_OP_MON_R_C	 "r,c"
-#define XGATE_OP_MON_C_R	 "c,r"
-#define XGATE_OP_MON_R_P	 "r,p"
-#define XGATE_OP_IDR		 "r,r,+"
-#define XGATE_OP_IDO5	 "r,r,i5"
-#define XGATE_OP_REL9	 "b9"
-#define XGATE_OP_REL10	 "ba"
-#define XGATE_OP_DYA_MON	 "=r,r"
+#define XGATE_OP_INH		""
+#define XGATE_OP_TRI		"r,r,r"
+#define XGATE_OP_DYA		"r,r"
+#define XGATE_OP_IMM16          "r,if"
+#define XGATE_OP_IMM8	        "r,i8"
+#define XGATE_OP_IMM4           "r,i4"
+#define XGATE_OP_IMM3	        "i3"
+#define XGATE_OP_MON		"r"
+#define XGATE_OP_MON_R_C	"r,c"
+#define XGATE_OP_MON_C_R	"c,r"
+#define XGATE_OP_MON_R_P	"r,p"
+#define XGATE_OP_IDR		"r,r,+"
+#define XGATE_OP_IDO5	        "r,r,i5"
+#define XGATE_OP_REL9	        "b9"
+#define XGATE_OP_REL10	        "ba"
+#define XGATE_OP_DYA_MON	"=r,r"
 /* macro definitions */
 #define XGATE_OP_IMM16mADD    "r,if; addl addh"
 #define XGATE_OP_IMM16mAND    "r,if; andl andh"
@@ -85,26 +85,10 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 #define XGATE_OP_IMM16mSUB    "r,if; subl subh"
 #define XGATE_OP_IMM16mLDW    "r,if; ldl ldh"
 
-/* todo used by the linker check to see if all are necessary */
-#define XGATE_BANK_VIRT 0x010000
-#define XGATE_BANK_MASK 0x00003fff
-#define XGATE_BANK_BASE 0x00008000
-#define XGATE_BANK_SHIFT 14
-#define XGATE_BANK_PAGE_MASK 0x0ff
-
-/* CPU identification.  */
-#define cpumc9xgate 0x06  /* was 0x4 somewhere it is bit-wised to 0x06 otherwise objdump will see it as UNKNOWN*/
-/* CPU variant */
-#define XGATE_V1 1
-#define XGATE_V2 2
-#define XGATE_V3 4
-
-struct mcu_type_s
-{
-  char* name;
-  int isa;
-  int bfd_mach;
-};
+/* CPU variant identification  */
+#define XGATE_V1 0x1
+#define XGATE_V2 0x2
+#define XGATE_V3 0x4
 
 /* The opcode table definitions */
 struct xgate_opcode

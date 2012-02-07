@@ -48,6 +48,7 @@ const char FLT_CHARS[] = "dD";
 
 #define OPTION_MMCU 'm'
 
+
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
 
@@ -100,6 +101,8 @@ static unsigned int oper3 = 0;
 static int oper1_bit_length = 0;
 static int oper2_bit_length = 0;
 static int oper3_bit_length = 0;
+static char flag_print_insn_syntax = 0;
+static char flag_print_opcodes = 0;
 
 //static struct mcu_type_s mcu_types[] =
 //{
@@ -157,13 +160,34 @@ static int current_architecture;
 static int xgate_nb_opcode_defs = 0;
 static const char *default_cpu;
 static int elf_flags = E_XGATE_F64; /* ELF flags to set in the output file header.  */
+
 const char *md_shortopts = "m:";
 
-struct option md_longopts[] =
-  {
-    { "mmcu", required_argument, NULL, OPTION_MMCU },
-    { NULL, no_argument, NULL, 0 } };
+struct option md_longopts[] = {
 
+#define OPTION_PRINT_INSN_SYNTAX  (OPTION_MD_BASE + 0)
+  {"print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX},
+
+#define OPTION_PRINT_OPCODES  (OPTION_MD_BASE + 1)
+  {"print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES},
+
+#define OPTION_GENERATE_EXAMPLE  (OPTION_MD_BASE + 2)
+  {"generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE},
+
+#define OPTION_MSHORT  (OPTION_MD_BASE + 3)
+  {"mshort", no_argument, NULL, OPTION_MSHORT},
+
+#define OPTION_MLONG  (OPTION_MD_BASE + 4)
+  {"mlong", no_argument, NULL, OPTION_MLONG},
+
+#define OPTION_MSHORT_DOUBLE  (OPTION_MD_BASE + 5)
+  {"mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE},
+
+#define OPTION_MLONG_DOUBLE  (OPTION_MD_BASE + 6)
+  {"mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE},
+
+  {NULL, no_argument, NULL, 0}
+};
 size_t md_longopts_size = sizeof (md_longopts);
 
 char *
@@ -173,16 +197,52 @@ md_atof (int type, char *litP, int *sizeP)
 }
 
 int
-md_parse_option (int c, char *arg)
+md_parse_option(int c, char *arg)
 {
-  switch(c)
+  switch (c)
   {
   case OPTION_MMCU:
-    //todo loop though table searching for a match
+    if (strcasecmp (arg, "v1") == 0)
+      current_architecture = XGATE_V1;
+    else if (strcasecmp (arg, "v2") == 0)
+          current_architecture = XGATE_V2;
+    else if (strcasecmp (arg, "v3") == 0)
+          current_architecture = XGATE_V3;
+    else
+      as_bad(_(" architecture variant invalid"));
     break;
+
+  case OPTION_PRINT_INSN_SYNTAX:
+    flag_print_insn_syntax = 1;
+    break;
+
+  case OPTION_PRINT_OPCODES:
+    flag_print_opcodes = 1;
+    break;
+
+  case OPTION_GENERATE_EXAMPLE:
+    flag_print_opcodes = 2;
+    break;
+
+  case OPTION_MSHORT:
+    elf_flags &= ~E_XGATE_I32;
+    break;
+
+  case OPTION_MLONG:
+    elf_flags |= E_XGATE_I32;
+    break;
+
+  case OPTION_MSHORT_DOUBLE:
+    elf_flags &= ~E_XGATE_F64;
+    break;
+
+  case OPTION_MLONG_DOUBLE:
+    elf_flags |= E_XGATE_F64;
+    break;
+
+  default:
+    return 0;
   }
-  //c = 0;			//for testing
-  *arg = 't';			//for testing
   return 1;
 }
 
