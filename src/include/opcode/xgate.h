@@ -48,11 +48,11 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 
 /* Opcode format abbreviations */
 #define XGATE_INH		0x0001  /* inherent */
-#define XGATE_I		0x0002  /* 3-bit immediate address */
+#define XGATE_I		        0x0002  /* 3-bit immediate address */
 #define XGATE_R_I		0x0004  /* register followed by 4/8-bit immediate value */
 #define XGATE_R_R		0x0008  /* register followed by a register */
 #define XGATE_R_R_R		0x0010  /* register followed by two registers */
-#define XGATE_R		0x0020  /* single register */
+#define XGATE_R		        0x0020  /* single register */
 #define XGATE_PC		0x0040  /* pc relative 10 or 11 bit */
 #define XGATE_R_C		0x0080  /* general register followed by ccr register */
 #define XGATE_C_R		0x0100  /* ccr register followed by a general register */
