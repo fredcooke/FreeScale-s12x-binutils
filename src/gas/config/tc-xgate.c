@@ -104,13 +104,6 @@ static int oper3_bit_length = 0;
 static char flag_print_insn_syntax = 0;
 static char flag_print_opcodes = 0;
 
-//static struct mcu_type_s mcu_types[] =
-//{
-//  {"xgatev1",       XGATE_V1,    cpuxgate}, //todo user proper arch defined in bfd
-//  {"xgatev2",       XGATE_V2,    cpuxgate},
-//  {"xgatev3",       XGATE_V2,    cpuxgate}
-//};
-
 /* This table describes how you change sizes for the various types of variable
  size expressions.  This version only supports two kinds.  */
 
@@ -163,32 +156,31 @@ static int elf_flags = E_XGATE_F64; /* ELF flags to set in the output file heade
 
 const char *md_shortopts = "m:";
 
-struct option md_longopts[] = {
-
+struct option md_longopts[] =  {
 #define OPTION_PRINT_INSN_SYNTAX  (OPTION_MD_BASE + 0)
-  {"print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX},
+        { "print-insn-syntax", no_argument, NULL, OPTION_PRINT_INSN_SYNTAX },
 
 #define OPTION_PRINT_OPCODES  (OPTION_MD_BASE + 1)
-  {"print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES},
+        { "print-opcodes", no_argument, NULL, OPTION_PRINT_OPCODES },
 
 #define OPTION_GENERATE_EXAMPLE  (OPTION_MD_BASE + 2)
-  {"generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE},
+        { "generate-example", no_argument, NULL, OPTION_GENERATE_EXAMPLE },
 
 #define OPTION_MSHORT  (OPTION_MD_BASE + 3)
-  {"mshort", no_argument, NULL, OPTION_MSHORT},
+        { "mshort", no_argument, NULL, OPTION_MSHORT },
 
 #define OPTION_MLONG  (OPTION_MD_BASE + 4)
-  {"mlong", no_argument, NULL, OPTION_MLONG},
+        { "mlong", no_argument, NULL, OPTION_MLONG },
 
 #define OPTION_MSHORT_DOUBLE  (OPTION_MD_BASE + 5)
-  {"mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE},
+        { "mshort-double", no_argument, NULL, OPTION_MSHORT_DOUBLE },
 
 #define OPTION_MLONG_DOUBLE  (OPTION_MD_BASE + 6)
-  {"mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE},
+        { "mlong-double", no_argument, NULL, OPTION_MLONG_DOUBLE },
 
-  {NULL, no_argument, NULL, 0}
+        { NULL, no_argument, NULL, 0 }
 };
-size_t md_longopts_size = sizeof (md_longopts);
+size_t md_longopts_size = sizeof(md_longopts);
 
 char *
 md_atof (int type, char *litP, int *sizeP)
@@ -200,14 +192,14 @@ int
 md_parse_option(int c, char *arg)
 {
   switch (c)
-  {
+    {
   case OPTION_MMCU:
-    if (strcasecmp (arg, "v1") == 0)
+    if (strcasecmp(arg, "v1") == 0)
       current_architecture = XGATE_V1;
-    else if (strcasecmp (arg, "v2") == 0)
-          current_architecture = XGATE_V2;
-    else if (strcasecmp (arg, "v3") == 0)
-          current_architecture = XGATE_V3;
+    else if (strcasecmp(arg, "v2") == 0)
+      current_architecture = XGATE_V2;
+    else if (strcasecmp(arg, "v3") == 0)
+      current_architecture = XGATE_V3;
     else
       as_bad(_(" architecture variant invalid"));
     break;
@@ -242,7 +234,7 @@ md_parse_option(int c, char *arg)
 
   default:
     return 0;
-  }
+    }
   return 1;
 }
 
@@ -274,7 +266,7 @@ get_default_target (void)
       if (strcmp (target->name, "elf32-xgate") == 0)
 	{
 	  current_architecture = cpuxgate;
-	  default_cpu = "xgate";
+	  default_cpu = "XGATE V1";
 	  return;
 	}
       else
@@ -383,7 +375,11 @@ md_show_usage(FILE * stream)
       stream,
       _("\
       Freescale XGATE co-processor options:\n\
-      -mxgate                 specify the processor variant[default %s]\n\
+       -mshort                 use 16-bit int ABI (default)\n\
+       -mlong                  use 32-bit int ABI\n\
+       -mshort-double          use 32-bit double ABI\n\
+       -mlong-double           use 64-bit double ABI (default)\n\
+      --mxgate                 specify the processor variant[default %s]\n\
       --print-insn-syntax     print the syntax of instruction in case of error\n\
       --print-opcodes         print the list of instructions with syntax\n\
       --generate-example      generate an example of each instruction"),
@@ -631,6 +627,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
   where = fixP->fx_frag->fr_literal + fixP->fx_where;
   opcode = bfd_getl16(where);
   int mask = 0;
+
   switch (fixP->fx_r_type)
     {
   case R_XGATE_PCREL_9:
@@ -695,7 +692,8 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     value <<= 5; /* align the operand bits */
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
-  case R_XGATE_16:
+  case BFD_RELOC_32:
+  //case R_XGATE_16:
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
