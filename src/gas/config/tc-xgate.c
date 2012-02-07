@@ -95,9 +95,6 @@ static unsigned int prev = 0;	/* Previous opcode.  */
 static unsigned char fixup_required = 0;
 static unsigned char macroClipping = 0;	/* used to enable clipping of 16 bit operands into 8 bit constraints */
 static char oper_check;
-static unsigned int oper1 = 0;
-static unsigned int oper2 = 0;
-static unsigned int oper3 = 0;
 static char flag_print_insn_syntax = 0;
 static char flag_print_opcodes = 0;
 
@@ -878,10 +875,8 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
   char *str = *line;
   /* TODO Structure this */
   unsigned short oper_mask = 0;
-  oper1 = 0;
-  oper2 = 0;
-  oper3 = 0;
   int operand_bit_length = 0;
+  unsigned int operand = 0;
   char n_operand_bits = 0;
   char first_can_equal_second = 0;
   int i = 0;
@@ -910,9 +905,9 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           first_can_equal_second = 1;
           ++op;
         }
-      oper1 = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
+      operand = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
       ++op;
-      bin = xgate_apply_operand(oper1, &oper_mask, bin, operand_bit_length);
+      bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
       /* Parse second operand.  */
       if (*op)
         {
@@ -923,7 +918,7 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
             {
               if (first_can_equal_second)
                 {
-                  oper2 = oper1;
+                  bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
                   ++op;
                 }
               else
@@ -934,11 +929,11 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           else
             {
               str = skip_whitespace(str);
-              oper2 = xgate_operand(opcode, &operand_bit_length, where, &op,
+              operand = xgate_operand(opcode, &operand_bit_length, where, &op,
                   &str);
               ++op;
             }
-           bin = xgate_apply_operand(oper2, &oper_mask, bin, operand_bit_length);
+           bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
         }
       /* parse the third register */
       if (*op)
@@ -949,8 +944,8 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
           if (*str++ != ',')
             as_bad(_("`,' required before third operand"));
           str = skip_whitespace(str);
-          oper3 = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
-          bin = xgate_apply_operand(oper3, &oper_mask, bin, operand_bit_length);
+          operand = xgate_operand(opcode, &operand_bit_length, where, &op, &str);
+          bin = xgate_apply_operand(operand, &oper_mask, bin, operand_bit_length);
         }
     }
   if (opcode->size == 2 && fixup_required)
