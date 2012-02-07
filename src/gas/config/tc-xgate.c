@@ -533,7 +533,6 @@ tc_gen_reloc(asection * section ATTRIBUTE_UNUSED, fixS * fixp)
   else
     {
       reloc->howto = bfd_reloc_type_lookup(stdoutput, fixp->fx_r_type);
-      printf("\n found %s", reloc->howto->name);
     }
   if (reloc->howto == (reloc_howto_type *) NULL)
     {
@@ -601,7 +600,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
   case BFD_RELOC_XGATE_IMM8_HI:
-    printf("\n performing a HI8 %x", value);
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 16-bit range."));
@@ -610,7 +608,6 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     bfd_putb16((bfd_vma) value | opcode, (void *) where);
     break;
   case BFD_RELOC_XGATE_IMM8_LO:
-    printf("\n performing a LO8 %x", value);
     if (value < -65537 || value > 65535)
       as_bad_where(fixP->fx_file, fixP->fx_line,
           _("Value out of 16-bit range."));
@@ -944,10 +941,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
       pp_fix = 0;
       //TODO maybe use a loop so the order is not important
       *bit_width = 5;
-      //printf("\n found +/- line reads %s", str);
-      //str = extract_word (str, r_name, sizeof (r_name));
       str = skip_whitespace (str);
-      //printf("\n found +/- extracted %s", r_name);
       while (*str != ' ' && *str != '\t')
 	{
 	  if (*str == '-')
@@ -1092,14 +1086,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	    }
 	  else
 	    {
-	      printf (" constraint is %c opcode is %s", *op_constraint,
-		      opcode->format);
 	      as_bad (_(":unknown relocation constraint size"));
-	      //if (*op_constraint == 'f') { /* mode == M68XG_OP_REL10 */
-	      //  printf("\n not 0_register parsing 16");
-	      //  fixp = fix_new_exp (frag_now, where , 4,
-	      //                  &op_expr, FALSE, BFD_RELOC_XGATE_IMM8_HI); /* forced type into bfd-in-2 around line 2367 */
-	      //  fixp->fx_pcrel_adjust = 0;
 	    }
 	}
       break;
@@ -1133,9 +1120,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
       str = xgate_parse_exp (str, &op_expr);
       (*op_con)++;
       op_constraint++;
-      //          if ((j = op_expr->X_add_number) > 9)
-      //                  as_bad(_(":branch longer than max bits"));
-      //printf("\n reloc number is %d and %d constraint is %c", R_XGATE_PCREL_9, BFD_RELOC_XGATE_PCREL_9, *op_constraint);
       if (op_expr.X_op != O_register)
 	{
 	  if (*op_constraint == '9')
@@ -1292,7 +1276,6 @@ xgate_detect_format (char *line_in)
       return XGATE_R_R_I;
     }
   as_bad ((":Error unable to detect operand format"));
-  //printf ("\n sh reads sh_format %s", sh_format);
   return 0;
 }
 
@@ -1302,7 +1285,6 @@ xgate_find_match (struct xgate_opcode_handle *opcode_handle,
 {
   struct xgate_opcode *opcode = 0;
   /* TODO make this into a loop */
-  //printf("\n number of modes for opcode are %d", numberOfModes);
   while (numberOfModes)
     {
       switch (numberOfModes)
