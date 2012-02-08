@@ -27,6 +27,7 @@
 #include "opcode/xgate.h"
 #include "dwarf2dbg.h"
 #include "elf/xgate.h"
+
 #include "stdio.h"
 
 const char comment_chars[] = ";!";
@@ -39,15 +40,14 @@ const char FLT_CHARS[] = "dD";
 #define N_BITS_IN_WORD	16	/* number of bits in a word */
 
 //#define STATE_CONDITIONAL_BRANCH		(1)
-#define STATE_PC_RELATIVE				(2)
+#define STATE_PC_RELATIVE	(2)
 #define REGISTER_P(ptr)		(ptr == 'r')
-#define INCREMENT			01
-#define DECREMENT			02
-#define MAXREGISTER			07
-#define MINREGISTER			00
+#define INCREMENT		01
+#define DECREMENT		02
+#define MAXREGISTER		07
+#define MINREGISTER		00
 
 #define OPTION_MMCU 'm'
-
 
 /* This macro has no side-effects.  */
 #define ENCODE_RELAX(what,length) (((what) << 2) + (length))
@@ -697,11 +697,10 @@ tc_xgate_fix_adjustable (fixS * fixP)
 
 void
 md_convert_frag (bfd * abfd ATTRIBUTE_UNUSED, asection * sec ATTRIBUTE_UNUSED,
-		 fragS * fragP)
+		 fragS * fragP ATTRIBUTE_UNUSED)
 {
-  int temp = fragP->fr_address;
-  temp++;
-  return;
+  as_bad(("md_convert_frag not implemented yet"));
+  abort();
 }
 
 /* Set the ELF specific flags.  */
@@ -940,7 +939,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
   char r_name[20] = { 0 };
   unsigned int pp_fix = 0;
   unsigned short max_size = 0;
-//  char reg_expected = 0;
   int i;
   *bit_width = 0;
   /* reset */
@@ -1177,8 +1175,8 @@ xgate_detect_format (char *line_in)
 	  i = 0;
 	  continue;
 	}
-      if (i > 20)
-	{			/* we should never need more than 20 chars to figure out what it is */
+      if (i > MAX_DETECT_CHARS)
+	{
 	  continue;
 	}
       operands_stripped[j][i++] = c;
@@ -1235,8 +1233,8 @@ xgate_detect_format (char *line_in)
 	      sh_format[j++] = 'i';
 	    }
 	}
-      else
-	{			//default to immediate
+      else //default to immediate
+	{
 	  sh_format[j++] = 'i';
 	}
     }
@@ -1250,7 +1248,7 @@ xgate_detect_format (char *line_in)
   char *c_r_string = { "c,r" };
   char *r_p_string = { "r,p" };
   char *r_r_i_string = { "r,r,i" };
-  /* TODO Clean this */
+  /* see if we have a match */
   if (!strcmp (i_string, sh_format) && num_operands == 1)
     return XGATE_I;
   if (!strcmp (r_i_string, sh_format) && num_operands == 2)
