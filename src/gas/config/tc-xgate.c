@@ -438,16 +438,8 @@ md_assemble(char *input_line)
       /* detect operand format so we can pull the proper opcode bin */
       handle_enum_alias = opcode_handle->number_of_modes;
       sh_format = xgate_detect_format(input_line);
-//      if (handle_enum_alias > 1)
-//        {
-          opcode = xgate_find_match(opcode_handle,
-              opcode_handle->number_of_modes, sh_format);
-//        }
-//      else
-//        {
-          /* todo i suspect that this code should not be here if xgate_find_match was more thorough ? */
-//          opcode = opcode_handle->opc0[0];
-//        }
+      opcode = xgate_find_match(opcode_handle,
+          opcode_handle->number_of_modes, sh_format);
       if (!opcode)
         {
           as_bad(_("matching operands to opcode"));
@@ -846,7 +838,6 @@ xgate_operands(struct xgate_opcode *opcode, char **line)
   char *op = opcode->constraints;
   unsigned int bin = (int) opcode->bin_opcode;
   char *str = *line;
-  /* TODO Structure this */
   unsigned short oper_mask = 0;
   int operand_bit_length = 0;
   unsigned int operand = 0;
@@ -958,7 +949,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
       /* TODO should be able to combine with with case R */
     case '+':			/* indexed register operand +/- or plain r  */
       pp_fix = 0; /* default to neither inc or dec */
-      //TODO maybe use a loop so the order is not important
       *bit_width = 5;
       str = skip_whitespace (str);
       while (*str != ' ' && *str != '\t')
@@ -969,7 +959,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	    pp_fix = INCREMENT;
 	  else if (*str == 'r' || *str == 'R')
 	    {
-//	      reg_expected = 1;
 	      str = extract_word (str, r_name, sizeof (r_name));
 	      if (ISDIGIT (r_name[1]))
 		{
@@ -978,15 +967,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 		  if (r_name[2] != '\0' && (r_name[1] - '0' > 7))
 		    as_bad (_(": expected register name r0-r7 read %s"),
 			    r_name);
-		  //else{ //if (r_name[1] != '0'
-		  //      && ISDIGIT (r_name[2])
-		  //      && r_name[3] == '\0')
-		  //      op_mask = (r_name[1] - '0') * 10 + r_name[2] - '0';
-		  /* TODO fix so it checks for range 0-7 */
 		  continue;
-		  as_bad (_
-			  (": not digit expected register name r0-r7 read %s"),
-			  r_name);
 		}
 	    }
 	  str++;
@@ -1031,10 +1012,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	{
 	  *bit_width = 0x0F;
 	}
-      //as_bad(_(":expected numerical value after i constraint"));
-      /* todo test not treating the # as constant value required, instead just treat it as *immediate value
-       * http://tigcc.ticalc.org/doc/gnuasm.html#SEC31
-       */
+       /* http://tigcc.ticalc.org/doc/gnuasm.html#SEC31 */
       if (*str == '#')
 	str++;
       str = xgate_parse_exp (str, &op_expr);
@@ -1044,7 +1022,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	    as_bad (_
 		    (":expected bit length with constraint type i(# immediate) read %c"),
 		    *op_constraint);
-	  //op_mask = xgate_get_constant(str, 0xFFFF);
 	  op_mask = op_expr.X_add_number;
 	  if ((opcode->name[strlen (opcode->name) - 1] == 'l')
 	      && macroClipping)
