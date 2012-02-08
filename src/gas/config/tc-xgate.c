@@ -55,13 +55,9 @@ const char FLT_CHARS[] = "dD";
 /* what this is */
 struct xgate_opcode_handle
 {
-  unsigned char number_of_modes;
+  int number_of_modes;
   char *name;
-  struct xgate_opcode *opc0;
-  struct xgate_opcode *opc1;
-  struct xgate_opcode *opc2;
-  struct xgate_opcode *opc3;
-  struct xgate_opcode *opc4;
+  struct xgate_opcode *opc0[MAX_OPCODES];
 };
 
 /*  LOCAL FUNCTIONS */
@@ -82,8 +78,7 @@ static unsigned int xgate_operand (struct xgate_opcode *opcode,
 static struct xgate_opcode * xgate_find_match (struct
 						    xgate_opcode_handle
 						    *opcode_handle,
-						    unsigned char
-						    numberOfModes,
+						    int numberOfModes,
 						    unsigned int sh_format);
 void append_str (char *in, char c);
 static int cmp_opcode (struct xgate_opcode *, struct xgate_opcode *);
@@ -271,87 +266,65 @@ get_default_target (void)
 }
 
 void
-md_begin (void)
+md_begin(void)
 {
   struct xgate_opcode *xgate_opcode_ptr = NULL;
   struct xgate_opcode *xgate_op_table = NULL;
   struct xgate_opcode_handle *op_handles = 0;
   char prev_op_name[9];
-  char handle_enum = 0;
+  int handle_enum = 0;
   unsigned int number_of_handle_rows = 0;
   int i, j = 0;
   /* create a local copy of our opcode table including and an extra line for NULL termination */
-  xgate_op_table =
-    (struct xgate_opcode *) xmalloc ((xgate_num_opcodes + 1) *
-					sizeof (struct xgate_opcode));
-  memset (xgate_op_table, 0,
-	  sizeof (struct xgate_opcode) * (xgate_num_opcodes + 1));
+  xgate_op_table = (struct xgate_opcode *) xmalloc(
+      (xgate_num_opcodes + 1) * sizeof(struct xgate_opcode));
+  memset(xgate_op_table, 0,
+      sizeof(struct xgate_opcode) * (xgate_num_opcodes + 1));
   for (xgate_opcode_ptr = (struct xgate_opcode*) xgate_opcodes, i = 0;
-       i < xgate_num_opcodes; i++)
+      i < xgate_num_opcodes; i++)
     {
       xgate_op_table[i] = xgate_opcode_ptr[i];
     }
-  qsort(xgate_op_table, xgate_num_opcodes,
-      sizeof(struct xgate_opcode), (int
-      (*)(const void *, const void *)) cmp_opcode);
+  qsort(xgate_op_table, xgate_num_opcodes, sizeof(struct xgate_opcode), (int
+  (*)(const void *, const void *)) cmp_opcode);
   /* Calculate number of handles since this will be smaller than the raw number of opcodes in the table */
   for (xgate_opcode_ptr = xgate_op_table; xgate_opcode_ptr->name;
-       xgate_opcode_ptr++)
+      xgate_opcode_ptr++)
     {
-      if (strcmp (prev_op_name, xgate_opcode_ptr->name))
-	{
-	  number_of_handle_rows++;
-	}
-      strcpy (prev_op_name, xgate_opcode_ptr->name);
+      if (strcmp(prev_op_name, xgate_opcode_ptr->name))
+        {
+          number_of_handle_rows++;
+        }
+      strcpy(prev_op_name, xgate_opcode_ptr->name);
     }
-  op_handles =
-    (struct xgate_opcode_handle *)
-    xmalloc (sizeof (struct xgate_opcode_handle) *
-	     (number_of_handle_rows + 1));
+  op_handles = (struct xgate_opcode_handle *) xmalloc(
+      sizeof(struct xgate_opcode_handle) * (number_of_handle_rows + 1));
   /* insert opcode names into hash table, aliasing duplicates */
-  /* TODO do this dynamically with xmalloc and a loop */
-  xgate_hash = hash_new ();	/* create a new has control table */
-  for (xgate_opcode_ptr = xgate_op_table, i = 0, j = 0; i
-       < xgate_num_opcodes; i++, xgate_opcode_ptr++)
+  xgate_hash = hash_new(); /* create a new has control table */
+  for (xgate_opcode_ptr = xgate_op_table, i = 0, j = 0; i < xgate_num_opcodes;
+      i++, xgate_opcode_ptr++)
     {
-      if (strcmp (prev_op_name, xgate_opcode_ptr->name))
-	{
-	  handle_enum = 1;
-	  if (i)
-	    {
-	      j++;
-	    }
-	  op_handles[j].name = xgate_opcode_ptr->name;
-	  op_handles[j].opc0 = xgate_opcode_ptr;
-	}
+      if (strcmp(prev_op_name, xgate_opcode_ptr->name))
+        {
+          handle_enum = 0;
+          if (i)
+            {
+              j++;
+            }
+          op_handles[j].name = xgate_opcode_ptr->name;
+          op_handles[j].opc0[0] = xgate_opcode_ptr;
+        }
       else
-	{
-	  handle_enum++;
-	  switch (handle_enum)
-	    {
-	    case 2:
-	      op_handles[j].opc1 = xgate_opcode_ptr;
-	      break;
-	    case 3:
-	      op_handles[j].opc2 = xgate_opcode_ptr;
-	      break;
-	    case 4:
-	      op_handles[j].opc3 = xgate_opcode_ptr;
-	      break;
-	    case 5:
-	      op_handles[j].opc4 = xgate_opcode_ptr;
-	      break;
-	    default:
-	      as_bad (_(":error adding operand handle"));
-	      break;
-	    }
-	}
+        {
+          handle_enum++;
+          op_handles[j].opc0[handle_enum] = xgate_opcode_ptr;
+        }
       op_handles[j].number_of_modes = handle_enum;
-      strcpy (prev_op_name, op_handles[j].name);
+      strcpy(prev_op_name, op_handles[j].name);
     }
   while (op_handles->name)
     {
-      hash_insert (xgate_hash, op_handles->name, (char *) op_handles);
+      hash_insert(xgate_hash, op_handles->name, (char *) op_handles);
       op_handles++;
     }
 }
@@ -446,7 +419,7 @@ md_assemble(char *input_line)
   struct xgate_opcode_handle *opcode_handle = 0;
   char *saved_input_line = input_line; /* caller expects it to be returned as it was passed */
   char op_name[9] = { 0 };
-  char handle_enum_alias = 0;
+  int handle_enum_alias = 0;
   unsigned int sh_format = 0;
   char *p = 0;
   fixup_required = 0;
@@ -458,26 +431,26 @@ md_assemble(char *input_line)
   if (!(opcode_handle = (struct xgate_opcode_handle *) hash_find(
       xgate_hash, op_name)))
     {
-      as_bad(_("opcode not found in hash"));
+      as_bad(_("opcode not found in opcode hash table"));
     }
   else
     {
       /* detect operand format so we can pull the proper opcode bin */
       handle_enum_alias = opcode_handle->number_of_modes;
       sh_format = xgate_detect_format(input_line);
-      if (handle_enum_alias > 1)
-        {
+//      if (handle_enum_alias > 1)
+//        {
           opcode = xgate_find_match(opcode_handle,
               opcode_handle->number_of_modes, sh_format);
-        }
-      else
-        {
+//        }
+//      else
+//        {
           /* todo i suspect that this code should not be here if xgate_find_match was more thorough ? */
-          opcode = opcode_handle->opc0;
-        }
+//          opcode = opcode_handle->opc0[0];
+//        }
       if (!opcode)
         {
-          as_bad(_(":error matching operands to opcode"));
+          as_bad(_("matching operands to opcode"));
           //TODO print list of possibilities
         }
       else if (opcode->size == 2)
@@ -1321,45 +1294,25 @@ xgate_detect_format (char *line_in)
     {
       return XGATE_R_R_I;
     }
-  as_bad ((":Error unable to detect operand format"));
+  as_bad (("unable to detect operand format"));
   return 0;
 }
 
 static struct xgate_opcode *
-xgate_find_match (struct xgate_opcode_handle *opcode_handle,
-		     unsigned char numberOfModes, unsigned int sh_format)
+xgate_find_match(struct xgate_opcode_handle *opcode_handle, int numberOfModes,
+    unsigned int sh_format)
 {
   struct xgate_opcode *opcode = 0;
-  /* TODO make this into a loop */
-  while (numberOfModes)
+  int i;
+  if (numberOfModes == 0)
+    return opcode_handle->opc0[0];
+  for (i = 0; i <= numberOfModes; i++)
     {
-      switch (numberOfModes)
-	{
-	case 1:
-	  if (opcode_handle->opc0->sh_format & sh_format)
-	    opcode = opcode_handle->opc0;
-	  break;
-	case 2:
-	  if (opcode_handle->opc1->sh_format & sh_format)
-	    opcode = opcode_handle->opc1;
-	  break;
-	case 3:
-	  if (opcode_handle->opc2->sh_format & sh_format)
-	    opcode = opcode_handle->opc2;
-	  break;
-	case 4:
-	  if (opcode_handle->opc3->sh_format & sh_format)
-	    opcode = opcode_handle->opc3;
-	  break;
-	case 5:
-	  if (opcode_handle->opc2->sh_format & sh_format)
-	    opcode = opcode_handle->opc2;
-	  break;
-	default:
-	  as_bad ((":Error too many operand to opcode combinations"));
-	  break;
-	}
-      numberOfModes--;
+      if (opcode_handle->opc0[i]->sh_format & sh_format)
+        {
+          return opcode_handle->opc0[i];
+        }
     }
-  return opcode;
+  as_bad(_("could not find an opcode match for the given operands."));
+  return NULL;
 }

@@ -90,6 +90,9 @@ f — Free cycle: no read or write, lasts for one RISC core cycles */
 #define XGATE_V2 0x2
 #define XGATE_V3 0x4
 
+/* Max opcodes per opcode handle */
+#define MAX_OPCODES     0x05
+
 /* The opcode table definitions */
 struct xgate_opcode
 {
