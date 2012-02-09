@@ -381,7 +381,7 @@ struct xgate_reloc_map
 };
 
 static const struct xgate_reloc_map xgate_reloc_map[] = {
-    {BFD_RELOC_NONE, R_XGATE_NONE,},
+    {BFD_RELOC_NONE, R_XGATE_NONE},
     {BFD_RELOC_8, R_XGATE_8},
     {BFD_RELOC_8_PCREL, R_XGATE_PCREL_8},
     {BFD_RELOC_16_PCREL, R_XGATE_PCREL_16},
@@ -411,7 +411,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     bfd_reloc_code_real_type code)
     {
-  printf("\n in bfd_elf32_bfd_reloc_type_lookup");
+  //printf("\n in bfd_elf32_bfd_reloc_type_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -419,11 +419,11 @@ bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       i++)
     {
     if (xgate_reloc_map[i].bfd_reloc_val == code){
-      printf("\n FOUND about to compare %d and %d", (int)code, (int) xgate_reloc_map[i].bfd_reloc_val);
+      //printf("\n FOUND bfd %d and elf %d", (int) xgate_reloc_map[i].bfd_reloc_val, xgate_reloc_map[i].elf_reloc_val);
       return &elf_xgate_howto_table[xgate_reloc_map[i].elf_reloc_val];
     }
     }
-  printf("\n about to return null");
+  //printf("\n about to return null");
   return NULL;
     }
 
@@ -431,7 +431,7 @@ static reloc_howto_type *
 bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
     const char *r_name)
     {
-  printf("\n in bfd_elf32_bfd_reloc_name_lookup");
+  //printf("\n in bfd_elf32_bfd_reloc_name_lookup");
   unsigned int i;
 
   for (i = 0;
@@ -440,7 +440,7 @@ bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
       i++)
     if (elf_xgate_howto_table[i].name != NULL
         && strcasecmp (elf_xgate_howto_table[i].name, r_name) == 0){
-      printf("\n returning howto %s", elf_xgate_howto_table[i].name);
+      //printf("\n returning howto %s", elf_xgate_howto_table[i].name);
       return &elf_xgate_howto_table[i];
     }
 
@@ -788,15 +788,11 @@ _bfd_xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
     fprintf (file, _("64-bit double, "));
   else
     fprintf (file, _("32-bit double, "));
-  /* TODO reduce to 1 target */
-  if (strcmp (bfd_get_target (abfd), "elf32-mc9s12X") == 0)
-    fprintf (file, _("cpu=XGATE]"));
-  else if (elf_elfheader (abfd)->e_flags & EF_XGATE_MACH)
+  if (elf_elfheader (abfd)->e_flags & EF_XGATE_MACH)
     fprintf (file, _("cpu=XGATE]"));
   else
-    fprintf (file, _("cpu=XGATE]"));
-
-//  if (elf_elfheader (abfd)->e_flags & E_XGATE_BANKS)
+    fprintf (file, _("error reading cpu type from elf private data"));
+  //  if (elf_elfheader (abfd)->e_flags & E_XGATE_BANKS)
 //    fprintf (file, _(" [memory=bank-model]"));
 //  else
 //    fprintf (file, _(" [memory=flat]"));
