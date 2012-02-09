@@ -27,8 +27,8 @@ const bfd_arch_info_type bfd_xgate_arch =
     16, /* 16 bits in a word */
     32, /* 16 bits in an address */
     8,  /* 8 bits in a byte */
-    bfd_arch_xgate, //bfd_arch_mc9xgate,
-    bfd_mach_xgate, /* TODO figure out if this should be 0 */
+    bfd_arch_xgate, /* bfd_arch_xgate */
+    bfd_mach_xgate, /* bfd_mach_xgate */
     "xgate",
     "xgate",
     4, /* section alignment power */
