@@ -543,8 +543,11 @@ tc_gen_reloc(asection * section ATTRIBUTE_UNUSED, fixS * fixp)
   reloc->sym_ptr_ptr = (asymbol **) xmalloc(sizeof(asymbol *));
   *reloc->sym_ptr_ptr = symbol_get_bfdsym(fixp->fx_addsy);
   reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
+
   if (fixp->fx_r_type == 0)
-    reloc->howto = bfd_reloc_type_lookup(stdoutput, BFD_RELOC_16);
+    {
+      reloc->howto = bfd_reloc_type_lookup(stdoutput, BFD_RELOC_16);
+    }
   else
     {
       reloc->howto = bfd_reloc_type_lookup(stdoutput, fixp->fx_r_type);
@@ -583,6 +586,7 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
   /* We don't actually support subtracting a symbol.  */
   if (fixP->fx_subsy != (symbolS *) NULL)
     as_bad_where(fixP->fx_file, fixP->fx_line, _("Expression too complex."));
+
   where = fixP->fx_frag->fr_literal + fixP->fx_where;
   opcode = bfd_getl16(where);
   int mask = 0;
@@ -651,7 +655,15 @@ md_apply_fix(fixS * fixP, valueT * valP, segT seg ATTRIBUTE_UNUSED)
     value <<= 5; /* align the operand bits */
     number_to_chars_bigendian(where, (opcode | value), 2);
     break;
+  case BFD_RELOC_8:
+    ((bfd_byte *) where)[0] = (bfd_byte) value;
+    break;
   case BFD_RELOC_32:
+    bfd_putb32 ((bfd_vma) value, (unsigned char *) where);
+    /* todo figure out how to make BFD_RELOC_16 the default */
+    break;
+  case BFD_RELOC_16:
+    bfd_putb16((bfd_vma) value, (unsigned char *) where);
     break;
   default:
     as_fatal(_("Line %d: unknown relocation type: 0x%x."), fixP->fx_line,
@@ -665,8 +677,8 @@ int
 tc_xgate_force_relocation (fixS * fixP)
 {
   //printf("\n in force_relocation");
-  //if (fixP->fx_r_type == BFD_RELOC_XGATE_RL_GROUP)
-  //  return 1;
+  if (fixP->fx_r_type == BFD_RELOC_XGATE_RL_GROUP)
+    return 1;
   return generic_force_reloc (fixP);
 }
 
@@ -933,6 +945,7 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 		  char **op_con, char **line)
 {
   expressionS op_expr;
+  fixS *fixp;
   char *op_constraint = *op_con;
   unsigned int op_mask = 0;
   char *str = skip_whitespace (*line);
@@ -1042,7 +1055,6 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	}
       else
 	{
-	  fixS *fixp = 0;
 	  fixup_required = 1;
 	  if (*op_constraint == '8')
 	    {
@@ -1118,13 +1130,11 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	{
 	  if (*op_constraint == '9')
 	    {   /* mode == M68XG_OP_REL9 */
-	      fixS *fixp;
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_9);	/* forced type into bfd-in-2 around line 2367 */
 	      fixp->fx_pcrel_adjust = 1;
 	    }
 	  else if (*op_constraint == 'a')
 	    {	/* mode == M68XG_OP_REL10 */
-	      fixS *fixp;
 	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_10);	/* forced type into bfd-in-2 around line 2367 */
 	      fixp->fx_pcrel_adjust = 1;
 	    }
