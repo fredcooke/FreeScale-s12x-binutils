@@ -44,13 +44,13 @@ struct decodeInfo {
 
 /* Prototypes for local functions.  */
 static int
-print_insn(bfd_vma, struct disassemble_info*);
+print_insn( bfd_vma, struct disassemble_info*);
 static int
-read_memory(bfd_vma, bfd_byte*, int, struct disassemble_info*);
+read_memory( bfd_vma, bfd_byte*, int, struct disassemble_info*);
 static int
 ripBits(unsigned int *operandBitsRemaining, int numBitsRequested,
     struct xgate_opcode *opcodePTR, unsigned int memory);
-void
+int
 macro_search(char *currentName, char *lastName);
 struct decodeInfo*
 find_match(unsigned int raw_code);
@@ -59,6 +59,7 @@ find_match(unsigned int raw_code);
 static struct decodeInfo *decodeTable;
 static int initialized;
 static char previousOpName[10];
+static unsigned int perviousBin;
 
 /* Disassemble one instruction at address 'memaddr'.  Returns the number
  of bytes used by that instruction.  */
@@ -77,8 +78,8 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
   signed int relAddr = 0;
   signed int operandOne = 0;
   signed int operandTwo = 0;
-  int found = 0;
   bfd_byte buffer[4];
+  bfd_vma absAddress;
 
   unsigned int operMaskReg = 0;
   /* initialize our array of opcode masks and check them against our constant table */
@@ -122,7 +123,6 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
       if (decodePTR)
         {
           operMaskReg = decodePTR->operMasksRegisterBits;
-          found = 1;
           (*info->fprintf_func)(info->stream, "%s", decodePTR->opcodePTR->name);
           /*  First we compare the shorthand format of the constraints. If we still are unable to pinpoint the operands
            we analyze the opcodes constraint string. */
@@ -225,7 +225,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                   relAddr = (relAddr << 1) + 2;
                 }
               (*info->fprintf_func)(info->stream, " *%d", relAddr);
-              (*info->fprintf_func)(info->stream, "  Absolute: ");
+              (*info->fprintf_func)(info->stream, "  Abs* 0x");
               (*info->print_address_func)(memaddr + relAddr, info);
             }
           else if (!strcmp(decodePTR->opcodePTR->constraints, XGATE_OP_REL10))
@@ -244,7 +244,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                   relAddr = (relAddr << 1) + 2;
                 }
               (*info->fprintf_func)(info->stream, " *%d", relAddr);
-              (*info->fprintf_func)(info->stream, "  Absolute: ");
+              (*info->fprintf_func)(info->stream, "  Abs* 0x");
               (*info->print_address_func)(memaddr + relAddr, info);
             }
           else
@@ -262,16 +262,21 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
               }
             else if (!strcmp(decodePTR->opcodePTR->constraints, XGATE_OP_IMM8))
               {
-                (*info->fprintf_func)(info->stream, " R%x, #0x%02x",
-                    (raw_code >> 8) & 0x7, raw_code & 0xff);
-
-                //macro_search(opcodePTR->name, previousOpName);
-                //if (macro_search(opcodePTR->name, previousOpName))
-                //  {
-                //    printf("\n mabye add ");
-                /* search for macro */
-                //(*info->print_address_func)(relAddr, info);
-                //  }
+                if (macro_search(decodePTR->opcodePTR->name, previousOpName) && previousOpName[0])
+                  {
+                    absAddress = (0xFF & raw_code) << 8;
+                    absAddress |= perviousBin & 0xFF;
+                    (*info->fprintf_func)(info->stream, " R%x, #0x%02x Abs* 0x",
+                        (raw_code >> 8) & 0x7, raw_code & 0xff);
+                    (*info->print_address_func)(absAddress, info);
+                    previousOpName[0] = 0;
+                  }
+                else
+                  {
+                    strcpy(previousOpName, decodePTR->opcodePTR->name);
+                    (*info->fprintf_func)(info->stream, " R%x, #0x%02x",
+                        (raw_code >> 8) & 0x7, raw_code & 0xff);
+                  }
               }
             else
               {
@@ -289,7 +294,7 @@ print_insn (bfd_vma memaddr, struct disassemble_info* info)
                 opcodePTR->bin_opcode);
             break;
           }
-          strcpy(previousOpName, decodePTR->opcodePTR->name);
+          perviousBin = raw_code;
         }
       else
         {
@@ -338,46 +343,30 @@ ripBits(unsigned int *operandBitsRemaining, int numBitsRequested,
   return operand;
 }
 
-void
+int
 macro_search(char *currentName, char *lastName)
 {
   int i;
-//  int foundFirst = 0;
   int length = 0;
-  int lenghttwo = 0;
   char *where;
   for (i = 0; i < xgate_num_opcodes; i++)
     {
-      //printf(" last name is %s", lastName);
-     where = strstr(xgate_opcodes[i].constraints, currentName);
-     if(where)
-       length = strlen(where);
-     printf("\n first Length is %d", length);
-     if (length)
-       {
-         where = strstr(xgate_opcodes[i].constraints, currentName);
-         if(where)
-           length = strlen(where);
-         //    lenghttwo = strlen(where);
-         if (lenghttwo)
-           {
-//             printf("\n macro found %s", xgate_opcodes[i].name);
-             printf("\n second Length is %d", length);
-           }
-       }
-//      if ((length = strlen(strstr(xgate_opcodes[i].constraints, currentName))))
-//        {
-////          foundFirst = 1;
-//          //printf("\n found %s"), (struct xgate_opcode)xgate_opcodes[i]);
-//          //printf("\n found %s", xgate_opcodes[i].constraints);
-//          if((lenghttwo = strlen(strstr(xgate_opcodes[i].constraints, lastName))))
-//            printf("\n length is %d and %d ", length, lenghttwo);
-//            //printf("\n found %s ", strstr(xgate_opcodes[i].constraints, lastName));
-//        }
-      //if (strstr(xgate_opcodes[i].constraints, currentName) && foundFirst)
-      //        //printf("\n found %s"), xgate_opcodes[i].name;
+      where = strstr(xgate_opcodes[i].constraints, lastName);
+      if (where)
+        {
+          length = strlen(where);
+        }
+      if (length)
+        {
+          where = strstr(xgate_opcodes[i].constraints, currentName);
+          if (where)
+            {
+              length = strlen(where);
+              return 1;
+            }
+        }
     }
-  return;
+  return 0;
 }
 
 struct decodeInfo*
