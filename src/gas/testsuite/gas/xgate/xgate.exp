@@ -30,82 +30,83 @@ if ![istarget "xgate-*-*"] then {
 
 
 # Test for a message produced when assembling a file
-proc gas_xgate_message { kind options line expect } {
-    global srcdir
-    global subdir
+#proc gas_xgate_message { kind options line expect } {
+#    global srcdir
+#    global subdir
 
-    regsub -all "\n" "$line: $expect" " " title
+#    regsub -all "\n" "$line: $expect" " " title
 
     # Make a file containing the instructions to assemble.
-    set fd [open "$srcdir/$subdir/tst-xgate.s" "w"]
-    puts -nonewline $fd "$line"
-    close $fd
+#    set fd [open "$srcdir/$subdir/tst-xgate.s" "w"]
+#    puts -nonewline $fd "$line"
+#    close $fd
 
-    verbose -log "Test: $title"
-    gas_start "tst-xgate.s" "$options"
-    set ok 0
-    while 1 {
-	expect {
-	    -re ".*: Assembler messages:\n" { }
-	    -re ".*1: $kind: $expect" { incr ok; break }
-	    timeout       { perror "timeout\n"; break }
-	    eof		  { verbose "EOF from gas"; break }
-	}
-    }
+#    verbose -log "Test: $title"
+#    gas_start "tst-xgate.s" "$options"
+#    set ok 0
+#    while 1 {
+#	expect {
+#	    -re ".*: Assembler messages:\n" { }
+#	    -re ".*1: $kind: $expect" { incr ok; break }
+#	    timeout       { perror "timeout\n"; break }
+#	    eof		  { verbose "EOF from gas"; break }
+#	}
+#    }
     #sleep 1 # Uncomment this line when using gcov
-    gas_finish
-    if { $ok > 0 } then {
-	pass $title
-    } else {
-	fail $title
-    }
-    catch "exec rm -f $srcdir/$subdir/tst-xgate.s"
-}
+#    gas_finish
+#    if { $ok > 0 } then {
+#	pass $title
+#    } else {
+#	fail $title
+#    }
+#    catch "exec rm -f $srcdir/$subdir/tst-xgate.s"
+#}
 
 # Test for an error message produced by gas
-proc gas_xgate_error { options line expect } {
-    gas_xgate_message "Error" $options $line $expect
-}
+#proc gas_xgate_error { options line expect } {
+#    gas_xgate_message "Error" $options $line $expect
+#}
 
 # Test for a warning message produced by gas
-proc gas_xgate_warning { options line expect } {
-    gas_xgate_message "Warning" $options $line $expect
+#proc gas_xgate_warning { options line expect } {
+#    gas_xgate_message "Warning" $options $line $expect
 }
 
 # ------------------
 # XGATE error tests
-gas_xgate_error "" "ldab 1,x+\n" "Post-increment mode is not valid"
-gas_xgate_error "" "ldab 1,x-\n" "Post-decrement mode is not valid"
-gas_xgate_error "" "ldd \#65536\n" "Operand out of 16-bit range"
-gas_xgate_error "--short-branchs" "bne 200\n" \
-    "Operand out of range for a relative branch"
-gas_xgate_error "" "bar\n" "Opcode .bar. is not recognized."
-gas_xgate_error "--print-insn-syntax" "bne\n" \
-    "Instruction formats for .bne..*"
+#gas_xgate_error "" "ldab 1,x+\n" "Post-increment mode is not valid"
+#gas_xgate_error "" "ldab 1,x-\n" "Post-decrement mode is not valid"
+#gas_xgate_error "" "ldd \#65536\n" "Operand out of 16-bit range"
+#gas_xgate_error "--short-branchs" "bne 200\n" \
+#    "Operand out of range for a relative branch"
+#gas_xgate_error "" "bar\n" "Opcode .bar. is not recognized."
+#gas_xgate_error "--print-insn-syntax" "bne\n" \
+#    "Instruction formats for .bne..*"
 
 # ------------------
 # Specific commands
-gas_xgate_warning "" ".mode \"bar\"\n" "Invalid mode: .bar."
-gas_xgate_error "" ".relax 23\n" "bad .relax format"
-gas_xgate_error "" ".relax bar-23\n" "bad .relax format"
-gas_xgate_error "" ".far bar bar\n" "junk at end of line"
+#gas_xgate_warning "" ".mode \"bar\"\n" "Invalid mode: .bar."
+#gas_xgate_error "" ".relax 23\n" "bad .relax format"
+#gas_xgate_error "" ".relax bar-23\n" "bad .relax format"
+#gas_xgate_error "" ".far bar bar\n" "junk at end of line"
 
 
 #run_dump_test insns
 #run_dump_test lbranch
-#run_dump_test all_insns
+run_dump_test all_insns
 #run_dump_test insns-dwarf2
 #run_dump_test lbranch-dwarf2
 run_dump_test abi-xgate-16-64
 run_dump_test abi-xgate-16-32
 run_dump_test abi-xgate-32-64
+run_dump_test abi-xgate-32-32
 
 # Compliance with Freescale RISC Assembly Language Input Standard
 #run_dump_test malis
 
 # Some XGATE tests
-run_dump_test oper
-run_dump_test oper-dwarf2
-run_dump_test branch
-run_dump_test insns
+#run_dump_test oper
+#run_dump_test oper-dwarf2
+#run_dump_test branch
+#run_dump_test insns
 
