@@ -66,9 +66,9 @@ END_RELOC_NUMBERS (R_XGATE_max)
 
 #define EF_XGATE_MACH_MASK 0xF0
 
-#define EF_XGATE_MACH   0x20 /* XGATE micro controller.  */
+#define EF_XGATE_MACH 0x80 /* XGATE microcontroller.    */
 
-#define E_XGATE_GLOBAL  0x20
+#define E_M68HCS12X_GLOBAL  0x100
 
 /* Identify interrupt handlers.  This is used by the debugger to
    correctly compute the stack frame.  */
