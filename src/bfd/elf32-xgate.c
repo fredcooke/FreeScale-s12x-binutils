@@ -36,34 +36,31 @@
 #include "opcode/xgate.h"
 
 /* Relocation functions.  */
-static reloc_howto_type *bfd_elf32_bfd_reloc_type_lookup
-(bfd *, bfd_reloc_code_real_type);
-static reloc_howto_type *bfd_elf32_bfd_reloc_name_lookup
-(bfd *abfd ATTRIBUTE_UNUSED, const char *r_name);
-static void xgate_info_to_howto_rel
-(bfd *, arelent *, Elf_Internal_Rela *);
-static bfd_boolean xgate_elf_size_one_stub
-(struct bfd_hash_entry *gen_entry, void *in_arg);
-static bfd_boolean xgate_elf_build_one_stub
-(struct bfd_hash_entry *gen_entry, void *in_arg);
-static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
-
-static struct elf32_xgate_stub_hash_entry* xgate_add_stub
-(const char *stub_name,
-    asection *section,
+static reloc_howto_type *
+bfd_elf32_bfd_reloc_type_lookup(bfd *, bfd_reloc_code_real_type);
+static reloc_howto_type *
+bfd_elf32_bfd_reloc_name_lookup(bfd *abfd ATTRIBUTE_UNUSED, const char *r_name);
+static void
+xgate_info_to_howto_rel(bfd *, arelent *, Elf_Internal_Rela *);
+static bfd_boolean
+xgate_elf_size_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
+static bfd_boolean
+xgate_elf_build_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
+static bfd_boolean
+xgate_elf_set_mach_from_flagsPARAMS ((bfd *));
+static struct elf32_xgate_stub_hash_entry*
+xgate_add_stub(const char *stub_name, asection *section,
     struct xgate_elf_link_hash_table *htab);
-
-static struct bfd_hash_entry *stub_hash_newfunc
-(struct bfd_hash_entry *, struct bfd_hash_table *, const char *);
-
-static void xgate_elf_set_symbol (bfd* abfd, struct bfd_link_info *info,
-    const char* name, bfd_vma value,
-    asection* sec);
-
-static bfd_boolean xgate_elf_export_one_stub
-(struct bfd_hash_entry *gen_entry, void *in_arg);
-
-static void scan_sections_for_abi (bfd*, asection*, PTR);
+static struct bfd_hash_entry *
+stub_hash_newfunc(struct bfd_hash_entry *, struct bfd_hash_table *,
+    const char *);
+static void
+xgate_elf_set_symbol(bfd* abfd, struct bfd_link_info *info, const char* name,
+    bfd_vma value, asection* sec);
+static bfd_boolean
+xgate_elf_export_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
+static void
+scan_sections_for_abi(bfd*, asection*, PTR);
 
 /* Use REL instead of RELA to save space */
 #define USE_REL	1
