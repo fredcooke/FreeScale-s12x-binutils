@@ -1,114 +1,84 @@
 #objdump: -S
-#as: -m68hc11 -gdwarf2
+#as: -gdwarf2
 #name: Dwarf2 test on insns.s
 #source: insns.s
 
 # Test handling of basic instructions.
 
-.*: +file format elf32\-m68hc11
+.*: +file format elf32\-xgate
 
 Disassembly of section .text:
 
-00000000 <_start>:
-#...
+0+0000 <_start>:
+	
 	.globl _start
 	.sect .text
 
 _start:
-	lds #stack\+1024
-   0:	8e 04 00    	lds	#400 <stack_end>
-	ldx #1
-   3:	ce 00 01    	ldx	#1 <_start\+0x1>
+	ldw R2, #block\+1024
+   0:	f2 00       	ldl R2, #0x00
+   2:	fa 04       	ldh R2, #0x04 Abs\* 0x400 <block_end>
+	ldw R3, #block
+   4:	f3 00       	ldl R3, #0x00
+   6:	fb 00       	ldh R3, #0x00 Abs\* 0x0 <_start>
+	ldw R1, #1
+   8:	f1 01       	ldl R1, #0x01
+   a:	f9 00       	ldh R1, #0x00 Abs\* 0x1 <_start\+0x1>
 
-0+06 <Loop>:
+0+000c <Loop>:
 Loop:	
-	jsr test
-   6:	bd 00 00    	jsr	0 <_start>
-	dex
-   9:	09          	dex
+	bra test
+   c:	3c 04       	bra \*10  Abs\* 0x16 <test>
+	nop
+   e:	01 00       	nop
 	bne Loop
-   a:	26 fa       	bne	6 <Loop>
+  10:	25 fd       	bne \*-4  Abs\* 0xc <Loop>
 
-0000000c <Stop>:
-   c:	cd 03       	.byte	0xcd, 0x03
+0+0012 <Stop>:
+  12:	cd 03       	subh R5, #0x03
 Stop:
 	
 	.byte 0xcd
 	.byte 3	
 	bra _start
-   e:	20 f0       	bra	0 <_start>
+  14:	3f f5       	bra \*-20  Abs\* 0x0 <_start>
 
-00000010 <test>:
+0+0016 <test>:
 
 test:
-	ldd #2
-  10:	cc 00 02    	ldd	#2 <_start\+0x2>
-	jsr test2
-  13:	bd 00 00    	jsr	0 <_start>
+	ldw R5, #2
+  16:	f5 02       	ldl R5, #0x02
+  18:	fd 00       	ldh R5, #0x00 Abs\* 0x2 <_start\+0x2>
+	bra test2
+  1a:	3c 01       	bra \*4  Abs\* 0x1e <test2>
 	rts
-  16:	39          	rts
+  1c:	02 00       	rts
 
-00000017 <test2>:
+0+001e <test2>:
 
-D_low = 50
 value = 23
 		
 	.globl test2
 test2:
-	ldx value,y
-  17:	cd ee 17    	ldx	23,y
-	std value,x
-  1a:	ed 17       	std	23,x
-	ldd ,x
-  1c:	ec 00       	ldd	0,x
-	sty ,y
-  1e:	18 ef 00    	sty	0,y
-	stx ,y
-  21:	cd ef 00    	stx	0,y
-	brclr 6,x,#4,test2
-  24:	1f 06 04 ef 	brclr	6,x #\$04 17 <test2>
-	brclr 12,x #8 test2
-  28:	1f 0c 08 eb 	brclr	12,x #\$08 17 <test2>
-	ldd \*ZD1
-  2c:	dc 00       	ldd	\*0 <_start>
-	ldx \*ZD1\+2
-  2e:	de 02       	ldx	\*2 <_start\+0x2>
-	clr \*ZD2
-  30:	7f 00 00    	clr	0 <_start>
-	clr \*ZD2\+1
-  33:	7f 00 01    	clr	1 <_start\+0x1>
-	bne .-4
-  36:	26 fc       	bne	34 <test2\+0x1d>
-	beq .\+2
-  38:	27 02       	beq	3c <test2\+0x25>
-	bclr \*ZD1\+1, #32
-  3a:	15 01 20    	bclr	\*1 <_start\+0x1> #\$20
-	brclr \*ZD2\+2, #40, test2
-  3d:	13 02 28 d6 	brclr	\*2 <_start\+0x2> #\$28 17 <test2>
-	ldy #24\+_start-44
-  41:	18 ce ff ec 	ldy	#ffec <stack_end\+0xfbec>
-	ldd B_low,y
-  45:	18 ec 0c    	ldd	12,y
-	addd A_low,y
-  48:	18 e3 2c    	addd	44,y
-	addd D_low,y
-  4b:	18 e3 32    	addd	50,y
-	subd A_low
-  4e:	b3 00 2c    	subd	2c <test2\+0x15>
-	subd #A_low
-  51:	83 00 2c    	subd	#2c <test2\+0x15>
-	jmp Stop
-  54:	7e 00 00    	jmp	0 <_start>
+	ldw R3, #value
+  1e:	f3 17       	ldl R3, #0x17
+  20:	fb 00       	ldh R3, #0x00 Abs\* 0x17 <test\+0x1>
+	stw R4, \(R3, #0\)
+  22:	5c 60       	stw R4, \(R3, #0x0\)
+	ldw R4, #24\+_start\-44
+  24:	f4 ec       	ldl R4, #0xec
+  26:	fc ff       	ldh R4, #0xff Abs\* 0xffec <block_end\+0xfbec>
+	bra Stop
+  28:	3f f4       	bra \*-22  Abs\* 0x12 <Stop>
 
-00000057 <L1>:
+0+002a <L1>:
 L1:	
-	anda #%lo\(test2\)
-  57:	84 17       	anda	#23
-	andb #%hi\(test2\)
-  59:	c4 00       	andb	#0
-	ldab #%page\(test2\)	; Check that the relocs are against symbol
-  5b:	c6 00       	ldab	#0
-	ldy  #%addr\(test2\)	; otherwise linker relaxation fails
-  5d:	18 ce 00 00 	ldy	#0 <_start>
+	ldw R1, test2
+  2a:	f1 1e       	ldl R1, #0x1e
+  2c:	f9 00       	ldh R1, #0x00 Abs\* 0x1e <test2>
+	ldw R2, test2
+  2e:	f2 1e       	ldl R2, #0x1e
+  30:	fa 00       	ldh R2, #0x00 Abs\* 0x1e <test2>
 	rts
-  61:	39          	rts
+  32:	02 00       	rts
+
