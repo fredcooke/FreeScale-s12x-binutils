@@ -46,8 +46,6 @@ static bfd_boolean xgate_elf_size_one_stub
 (struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean xgate_elf_build_one_stub
 (struct bfd_hash_entry *gen_entry, void *in_arg);
-//static struct bfd_link_hash_table* xgate_elf_bfd_link_hash_table_create
-//(bfd*);
 static bfd_boolean xgate_elf_set_mach_from_flags PARAMS ((bfd *));
 
 static struct elf32_xgate_stub_hash_entry* xgate_add_stub
@@ -408,78 +406,61 @@ static const struct xgate_reloc_map xgate_reloc_map[] = {
 };
 
 static reloc_howto_type *
-bfd_elf32_bfd_reloc_type_lookup (bfd *abfd ATTRIBUTE_UNUSED,
+bfd_elf32_bfd_reloc_type_lookup(bfd *abfd ATTRIBUTE_UNUSED,
     bfd_reloc_code_real_type code)
-    {
-  //printf("\n in bfd_elf32_bfd_reloc_type_lookup");
+{
   unsigned int i;
 
-  for (i = 0;
-      i < sizeof (xgate_reloc_map) / sizeof (struct xgate_reloc_map);
-      i++)
+  for (i = 0; i < sizeof(xgate_reloc_map) / sizeof(struct xgate_reloc_map); i++)
     {
-    if (xgate_reloc_map[i].bfd_reloc_val == code){
-      //printf("\n FOUND bfd %d and elf %d", (int) xgate_reloc_map[i].bfd_reloc_val, xgate_reloc_map[i].elf_reloc_val);
-      return &elf_xgate_howto_table[xgate_reloc_map[i].elf_reloc_val];
+      if (xgate_reloc_map[i].bfd_reloc_val == code)
+        {
+          return &elf_xgate_howto_table[xgate_reloc_map[i].elf_reloc_val];
+        }
     }
-    }
-  //printf("\n about to return null");
   return NULL;
-    }
+}
 
 static reloc_howto_type *
-bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
-    const char *r_name)
-    {
-  //printf("\n in bfd_elf32_bfd_reloc_name_lookup");
+bfd_elf32_bfd_reloc_name_lookup(bfd *abfd ATTRIBUTE_UNUSED, const char *r_name)
+{
   unsigned int i;
 
   for (i = 0;
-      i < (sizeof (elf_xgate_howto_table)
-          / sizeof (elf_xgate_howto_table[0]));
+      i < (sizeof(elf_xgate_howto_table) / sizeof(elf_xgate_howto_table[0]));
       i++)
     if (elf_xgate_howto_table[i].name != NULL
-        && strcasecmp (elf_xgate_howto_table[i].name, r_name) == 0){
-      //printf("\n returning howto %s", elf_xgate_howto_table[i].name);
-      return &elf_xgate_howto_table[i];
-    }
+        && strcasecmp(elf_xgate_howto_table[i].name, r_name) == 0)
+      {
+        return &elf_xgate_howto_table[i];
+      }
 
   return NULL;
-    }
+}
 
-/* Set the howto pointer for an M68HC11/XGATE ELF reloc.  */
+/* Set the howto pointer for an XGATE ELF reloc.  */
 
 static void
 xgate_info_to_howto_rel (bfd *abfd ATTRIBUTE_UNUSED,
     arelent *cache_ptr, Elf_Internal_Rela *dst)
 {
- // //printf("\n in info_to_howto_rel");
   unsigned int r_type;
 
   r_type = ELF32_R_TYPE (dst->r_info);
   BFD_ASSERT (r_type < (unsigned int) R_XGATE_max);
   cache_ptr->howto = &elf_xgate_howto_table[r_type];
- // //printf("\n in info_to_howto_rel howto is %s", cache_ptr->howto->name);
 }
 
-
-/* Far trampoline generation.  */
-
-/* Build a 68HC12 trampoline stub.  */
 static bfd_boolean
 xgate_elf_build_one_stub (struct bfd_hash_entry *gen_entry ATTRIBUTE_UNUSED, void *in_arg ATTRIBUTE_UNUSED)
 {
   return TRUE;
 }
 
-/* As above, but don't actually build the stub.  Just bump offset so
-   we know stub section sizes.  */
-
 static bfd_boolean
 xgate_elf_size_one_stub (struct bfd_hash_entry *gen_entry,
     void *in_arg ATTRIBUTE_UNUSED)
 {
-  //printf("\n in elf_size_one_stub");
   struct elf32_xgate_stub_hash_entry *stub_entry;
 
   /* Massage our args to the form they really have.  */
@@ -505,7 +486,7 @@ xgate_elf_bfd_link_hash_table_free (struct bfd_link_hash_table *hash)
 
 /* This function is just a straight passthrough to the real
    function in linker.c.  Its prupose is so that its address
-   can be compared inside the avr_link_hash_table macro.  */
+   can be compared inside the xgate_link_hash_table macro.  */
 
 static struct bfd_hash_entry *
 elf32_xgate_link_hash_newfunc (struct bfd_hash_entry * entry,
@@ -588,7 +569,7 @@ struct xgate_scan_param
 };
 
 
-/* Create a 68HC11/68HC12 ELF linker hash table.  M68HC11_ELF_DATA */
+/* Create a XGATE ELF linker hash table.  XGATE_ELF_DATA */
 
 struct xgate_elf_link_hash_table*
 xgate_elf_hash_table_create (bfd *abfd ATTRIBUTE_UNUSED)
@@ -608,7 +589,7 @@ stub_hash_newfunc (struct bfd_hash_entry *entry, struct bfd_hash_table *table AT
     }
 
 /* Add a new stub entry to the stub hash.  Not all fields of the new
-   stub entry are initialised.  */
+   stub entry are initialized.  */
 
 static struct elf32_xgate_stub_hash_entry *
 xgate_add_stub (const char *stub_name ATTRIBUTE_UNUSED, asection *section ATTRIBUTE_UNUSED,
@@ -618,8 +599,7 @@ xgate_add_stub (const char *stub_name ATTRIBUTE_UNUSED, asection *section ATTRIB
     }
 
 /* Hook called by the linker routine which adds symbols from an object
-   file.  We use it for identify far symbols and force a loading of
-   the trampoline handler.  */
+   file. */
 
 bfd_boolean
 elf32_xgate_add_symbol_hook (bfd *abfd, struct bfd_link_info *info ATTRIBUTE_UNUSED,
@@ -674,7 +654,6 @@ xgate_elf_set_symbol (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_info *info ATT
 
 }
 
-
 /* Build all the stubs associated with the current output file.  The
    stubs are kept in a hash table attached to the main linker hash
    table.  This function is called via m68hc12elf_finish in the
@@ -704,7 +683,6 @@ xgate_elf_ignore_reloc (bfd *abfd ATTRIBUTE_UNUSED,
     bfd *output_bfd,
     char **error_message ATTRIBUTE_UNUSED)
 {
-  //printf("\n in elf ignore reloc");
   if (output_bfd != NULL)
     reloc_entry->address += input_section->output_offset;
   return bfd_reloc_ok;
@@ -734,7 +712,7 @@ elf32_xgate_check_relocs (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_info *info
   return TRUE;
 }
 
-/* Relocate a 68hc11/68hc12 ELF section.  */
+/* Relocate a XGATE/S12x ELF section.  */
 bfd_boolean
 elf32_xgate_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
     struct bfd_link_info *info ATTRIBUTE_UNUSED,
@@ -768,7 +746,6 @@ _bfd_xgate_elf_merge_private_bfd_data (bfd *ibfd ATTRIBUTE_UNUSED, bfd *obfd ATT
 bfd_boolean
 _bfd_xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
 {
-  //printf("\n in elf_print_private_bfd_data");
   FILE *file = (FILE *) ptr;
 
   BFD_ASSERT (abfd != NULL && ptr != NULL);
@@ -792,11 +769,6 @@ _bfd_xgate_elf_print_private_bfd_data (bfd *abfd, void *ptr)
     fprintf (file, _("cpu=XGATE]"));
   else
     fprintf (file, _("error reading cpu type from elf private data"));
-  //  if (elf_elfheader (abfd)->e_flags & E_XGATE_BANKS)
-//    fprintf (file, _(" [memory=bank-model]"));
-//  else
-//    fprintf (file, _(" [memory=flat]"));
-
   fputc ('\n', file);
 
   return TRUE;
@@ -817,11 +789,9 @@ elf32_xgate_post_process_headers (bfd *abfd ATTRIBUTE_UNUSED, struct bfd_link_in
 }
 
 #define ELF_ARCH                bfd_arch_xgate
-//#define ELF_ARCH                bfd_arch_mc9s12x
 #define ELF_MACHINE_CODE        EM_XGATE
 #define ELF_TARGET_ID           XGATE_ELF_DATA
 
-//#define ELF_MACHINE_CODE      EM_68HC12 /* testing value */
 #define ELF_MAXPAGESIZE         0x1000
 
 #define TARGET_BIG_SYM          bfd_elf32_xgate_vec
