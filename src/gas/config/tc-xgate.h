@@ -107,6 +107,5 @@ extern int tc_xgate_fix_adjustable (struct fix *);
 #define elf_tc_final_processing	xgate_elf_final_processing
 extern void xgate_elf_final_processing (void);
 
-#define tc_print_statistics(FILE) xgate_print_statistics (FILE)
-extern void xgate_print_statistics (FILE *);
-
+//#define tc_print_statistics(FILE) xgate_print_statistics (FILE)
+//extern void xgate_print_statistics (FILE *);

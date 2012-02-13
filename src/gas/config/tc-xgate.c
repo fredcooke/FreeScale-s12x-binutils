@@ -28,8 +28,6 @@
 #include "dwarf2dbg.h"
 #include "elf/xgate.h"
 
-//#include "stdio.h"
-
 const char comment_chars[] = ";!";
 const char line_comment_chars[] = "#*";
 const char line_separator_chars[] = "";
@@ -83,6 +81,8 @@ static struct xgate_opcode * xgate_find_match (struct
 void append_str (char *in, char c);
 static int cmp_opcode (struct xgate_opcode *, struct xgate_opcode *);
 unsigned int xgate_detect_format (char *line_in);
+void
+xgate_print_syntax(char *name);
 
 /* LOCAL DATA */
 static struct hash_control *xgate_hash;
@@ -327,6 +327,8 @@ md_begin(void)
       hash_insert(xgate_hash, op_handles->name, (char *) op_handles);
       op_handles++;
     }
+  if (flag_print_opcodes == 1)
+    xgate_print_table();
 }
 
 void
@@ -367,23 +369,56 @@ xgate_mach (void)
 }
 
 void
-xgate_print_statistics (FILE * file)
+xgate_print_syntax(char *name)
 {
-  //  int i;
-  struct xgate_opcode *opc;
-  hash_print_statistics (file, "opcode table", xgate_hash);
-  opc = (struct xgate_opcode*)xgate_opcodes;
-  if (opc == 0 || xgate_nb_opcode_defs == 0)
-    return;
-  /* Dump the opcode statistics table.  */
-  //  fprintf (file, _("Name   # Modes  Min ops  Max ops  Modes mask  # Used\n"));
-  //  for (i = 0; i < xgate_nb_opcode_defs; i++, opc++)
-  //   {
-  //     fprintf (file, "%-7.7s  %5d  %7d  %7d  0x%08lx  %7d\n",
-  //           opc->opcode->name,
-  //           opc->nb_modes,
-  //           opc->min_operands, opc->max_operands, opc->format, opc->used);
-  //    }
+  int i;
+  for (i = 0; i < xgate_num_opcodes; i++)
+    {
+      if (!strcmp(xgate_opcodes[i].name, name))
+        {
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IDR))
+            printf("\tFormat is %s\tRx, Rx, Rx+|-Rx|Rx\n",
+                xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_INH))
+            printf("\tFormat is %s\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_TRI))
+            printf("\tFormat is %s\tRx, Rx, Rx\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_DYA))
+            printf("\tFormat is %s\tRx, Rx\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_DYA_MON)
+              || !strcmp(xgate_opcodes[i].constraints, XGATE_OP_MON))
+            printf("\tFormat is %s\tRx\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IMM3))
+            printf("\tFormat is %s\t<3-bit value>\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IMM4))
+            printf("\tFormat is %s\t<4 -bit value>\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IMM8))
+            printf("\tFormat is %s\tRx, <8-bit value>\n",
+                xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IMM16))
+            printf("\tFormat is %s\tRx, <16-bit value>\n",
+                xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_MON_R_C))
+            printf("\tFormat is %s\tRx, CCR\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_MON_C_R))
+            printf("\tFormat is %s\tCCR, Rx\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_MON_R_P))
+            printf("\tFormat is %s\tRx, PC\n", xgate_opcodes[i].name);
+          if (!strcmp(xgate_opcodes[i].constraints, XGATE_OP_IMM16mLDW))
+            printf("\tFormat is %s\tRx, <16-bit value>\n",
+                xgate_opcodes[i].name);
+        }
+    }
+}
+
+void
+xgate_print_table ()
+{
+  int i;
+  for (i = 0; i < xgate_num_opcodes; i++)
+    {
+      xgate_print_syntax(xgate_opcodes[i].name);
+    }
 }
 
 const char *
@@ -442,8 +477,8 @@ md_assemble(char *input_line)
           opcode_handle->number_of_modes, sh_format);
       if (!opcode)
         {
-          as_bad(_("matching operands to opcode"));
-          //TODO print list of possibilities
+          as_bad(_("matching operands to opcode "));
+          xgate_print_syntax(opcode_handle->opc0[0]->name);
         }
       else if (opcode->size == 2)
         { /* if size is one word assemble that native insn */
@@ -1077,17 +1112,17 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	    }
 	  else if (*op_constraint == '5')
 	    {
-	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM5);	/* BFD_RELOC_XGATE_IMM5 forced type into bfd-in-2 around line 2367 R_XGATE_HI8 */
+	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM5);
 	      fixp->fx_pcrel_adjust = 0;
 	    }
 	  else if (*op_constraint == '4')
 	    {
-	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM4);	/* BFD_RELOC_XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_XGATE_HI8 */
+	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM4);
 	      fixp->fx_pcrel_adjust = 0;
 	    }
 	  else if (*op_constraint == '3')
 	    {
-	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM3);	/* BFD_RELOC_XGATE_IMM8 forced type into bfd-in-2 around line 2367 R_XGATE_HI8 */
+	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, FALSE, BFD_RELOC_XGATE_IMM3);
 	      fixp->fx_pcrel_adjust = 0;
 	    }
 	  else
@@ -1130,12 +1165,12 @@ xgate_operand (struct xgate_opcode *opcode, int *bit_width, int where,
 	{
 	  if (*op_constraint == '9')
 	    {   /* mode == M68XG_OP_REL9 */
-	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_9);	/* forced type into bfd-in-2 around line 2367 */
+	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_9);
 	      fixp->fx_pcrel_adjust = 1;
 	    }
 	  else if (*op_constraint == 'a')
 	    {	/* mode == M68XG_OP_REL10 */
-	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_10);	/* forced type into bfd-in-2 around line 2367 */
+	      fixp = fix_new_exp (frag_now, where, 2, &op_expr, TRUE, R_XGATE_PCREL_10);
 	      fixp->fx_pcrel_adjust = 1;
 	    }
 	}
@@ -1279,7 +1314,6 @@ xgate_detect_format (char *line_in)
     {
       return XGATE_R_R_I;
     }
-  as_bad (("unable to detect operand format"));
   return 0;
 }
 
@@ -1298,6 +1332,5 @@ xgate_find_match(struct xgate_opcode_handle *opcode_handle, int numberOfModes,
           return opcode_handle->opc0[i];
         }
     }
-  as_bad(_("could not find an opcode match for the given operands."));
   return NULL;
 }
