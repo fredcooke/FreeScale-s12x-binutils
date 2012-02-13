@@ -93,13 +93,17 @@ if ![istarget "xgate-*-*"] then {
 
 #run_dump_test insns
 #run_dump_test lbranch
-run_dump_test all_insns
+
 #run_dump_test insns-dwarf2
 #run_dump_test lbranch-dwarf2
-#run_dump_test abi-xgate-16-64
-#run_dump_test abi-xgate-16-32
-#run_dump_test abi-xgate-32-64
-#run_dump_test abi-xgate-32-32
+
+
+run_dump_test abi-xgate-16-64
+run_dump_test abi-xgate-16-32
+run_dump_test abi-xgate-32-64
+run_dump_test abi-xgate-32-32
+run_dump_test all_insns
+run_dump_test insns
 
 # Compliance with Freescale RISC Assembly Language Input Standard
 #run_dump_test malis

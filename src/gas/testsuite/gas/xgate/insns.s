@@ -1,14 +1,15 @@
-# Test for correct generation of 68HC11 insns.
+# Test for correct generation of XGATE insns.
 	
 	.globl _start
 	.sect .text
 
 _start:
-	lds #stack+1024
-	ldx #1
+	ldw R2, #block+1024
+	ldw R3, #block
+	ldw R1, #1
 Loop:	
-	jsr test
-	dex
+	bra test
+	nop
 	bne Loop
 Stop:
 	
@@ -17,49 +18,26 @@ Stop:
 	bra _start
 
 test:
-	ldd #2
-	jsr test2
+	ldw R5, #2
+	bra test2
 	rts
 
-B_low = 12
-A_low = 44
-D_low = 50
 value = 23
 		
 	.globl test2
 test2:
-	ldx value,y
-	std value,x
-	ldd ,x
-	sty ,y
-	stx ,y
-	brclr 6,x,#4,test2
-	brclr 12,x #8 test2
-	ldd *ZD1
-	ldx *ZD1+2
-	clr *ZD2
-	clr *ZD2+1
-	bne .-4
-	beq .+2
-	bclr *ZD1+1, #32
-	brclr *ZD2+2, #40, test2
-	ldy #24+_start-44
-	ldd B_low,y
-	addd A_low,y
-	addd D_low,y
-	subd A_low
-	subd #A_low
-	jmp Stop
+	ldw R3, #value
+	stw R4, (R3, #0)
+	ldw R4, #24+_start-44
+	bra Stop
 L1:	
-	anda #%lo(test2)
-	andb #%hi(test2)
-	ldab #%page(test2)	; Check that the relocs are against symbol
-	ldy  #%addr(test2)	; otherwise linker relaxation fails
+	ldw R1, test2
+	ldw R2, test2
 	rts
 
 	.sect .data
 
 	.sect .bss
-stack:
+block:
 	.space	1024
-stack_end:
+block_end:
