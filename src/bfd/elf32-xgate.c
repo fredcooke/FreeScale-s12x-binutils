@@ -47,7 +47,7 @@ xgate_elf_size_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean
 xgate_elf_build_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean
-xgate_elf_set_mach_from_flagsPARAMS ((bfd *));
+xgate_elf_set_mach_from_flagsPARAMS (bfd *);
 static struct elf32_xgate_stub_hash_entry*
 xgate_add_stub(const char *stub_name, asection *section,
     struct xgate_elf_link_hash_table *htab);
