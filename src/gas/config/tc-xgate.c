@@ -28,7 +28,7 @@
 #include "dwarf2dbg.h"
 #include "elf/xgate.h"
 
-#include "stdio.h"
+//#include "stdio.h"
 
 const char comment_chars[] = ";!";
 const char line_comment_chars[] = "#*";
@@ -431,7 +431,7 @@ md_assemble(char *input_line)
   if (!(opcode_handle = (struct xgate_opcode_handle *) hash_find(
       xgate_hash, op_name)))
     {
-      as_bad(_("opcode not found in opcode hash table"));
+      as_bad(_("opcode %s not found in opcode hash table"), op_name);
     }
   else
     {
