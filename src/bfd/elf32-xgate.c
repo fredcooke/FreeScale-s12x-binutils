@@ -47,7 +47,7 @@ xgate_elf_size_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean
 xgate_elf_build_one_stub(struct bfd_hash_entry *gen_entry, void *in_arg);
 static bfd_boolean
-xgate_elf_set_mach_from_flagsPARAMS (bfd *);
+xgate_elf_set_mach_from_flags (PARAMS (bfd *));
 static struct elf32_xgate_stub_hash_entry*
 xgate_add_stub(const char *stub_name, asection *section,
     struct xgate_elf_link_hash_table *htab);
@@ -579,21 +579,23 @@ xgate_elf_hash_table_create (bfd *abfd ATTRIBUTE_UNUSED)
 /* Initialize an entry in the stub hash table.  */
 
 static struct bfd_hash_entry *
-stub_hash_newfunc (struct bfd_hash_entry *entry, struct bfd_hash_table *table ATTRIBUTE_UNUSED,
+stub_hash_newfunc(struct bfd_hash_entry *entry,
+    struct bfd_hash_table *table ATTRIBUTE_UNUSED,
     const char *string ATTRIBUTE_UNUSED)
-    {
+{
   return entry;
-    }
+}
 
 /* Add a new stub entry to the stub hash.  Not all fields of the new
    stub entry are initialized.  */
 
 static struct elf32_xgate_stub_hash_entry *
-xgate_add_stub (const char *stub_name ATTRIBUTE_UNUSED, asection *section ATTRIBUTE_UNUSED,
+xgate_add_stub(const char *stub_name ATTRIBUTE_UNUSED,
+    asection *section ATTRIBUTE_UNUSED,
     struct xgate_elf_link_hash_table *htab ATTRIBUTE_UNUSED)
-    {
-
-    }
+{
+  return NULL;
+}
 
 /* Hook called by the linker routine which adds symbols from an object
    file. */
