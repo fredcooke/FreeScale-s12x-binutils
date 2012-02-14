@@ -1,3 +1,15 @@
+2012-02-01  Sean Keys  <skeys@ipdatasys.com>
+
+	* doc/Makefile.am (CPU_DOCS): Added XGATE file.
+	* doc/c-m68hc11.texi: Document XGATE and XGATE port.
+	* doc/as.texinfo: Ditto.
+	* configure, Makefile.in: Regenerate.
+	* configure.in (emulations): Recognize m6811 and m6812.
+	* Makefile.am (CPU_TYPES, TARGET_CPU_CFILES, TARGET_CPU_HFILES):
+	Added files for XGATE assembler.
+	* config/tc-xgate.c: Assembler for XGATE.
+	* config/tc-xgate.h: Header definition for that assembler
+
 2012-01-10  Tristan Gingold  <gingold@adacore.com>
 
 	* struc-symbol.h (struct symbol_flags): New struct, created from...
