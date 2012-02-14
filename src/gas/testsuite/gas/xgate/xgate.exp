@@ -90,19 +90,13 @@ if ![istarget "xgate-*-*"] then {
 #gas_xgate_error "" ".relax bar-23\n" "bad .relax format"
 #gas_xgate_error "" ".far bar bar\n" "junk at end of line"
 
-
-#run_dump_test insns
-#run_dump_test lbranch
-
-
-#run_dump_test lbranch-dwarf2
-
-
+# ABI tests
 run_dump_test abi-xgate-16-64
 run_dump_test abi-xgate-16-32
 run_dump_test abi-xgate-32-64
 run_dump_test abi-xgate-32-32
 
+# Some XGATE tests
 run_dump_test all_insns
 run_dump_test insns
 run_dump_test insns-dwarf2
@@ -110,7 +104,7 @@ run_dump_test insns-dwarf2
 # Compliance with Freescale RISC Assembly Language Input Standard
 #run_dump_test malis
 
-# Some XGATE tests
+
 #run_dump_test oper
 #run_dump_test oper-dwarf2
 #run_dump_test branch
