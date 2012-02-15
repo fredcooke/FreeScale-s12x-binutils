@@ -13,7 +13,7 @@
 	* configure: Ditto.
 	* bfd-in2.h: Ditto.
 	* libbfd.h: Ditto.
-
+	
 2012-01-11  Iain Sandoe  <idsandoe@googlemail.com>
 
 	* mach-o.c (bfd_mach_o_build_seg_command): Separate computation of
