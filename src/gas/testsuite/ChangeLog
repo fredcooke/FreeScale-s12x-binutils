@@ -1,3 +1,12 @@
+2012-02-01  Sean Keys  <skeys@ipdatasys.com>
+
+	* gas/m68hc11/all.exp: Specific tests for XGATE.
+	* gas/m68hc11/all_insns.[ds]: Check XGATE instructions.
+	* TODO finish
+	* gas/m68hc11/insns[ds]: Another test.
+	* gas/m68hc11/lbranch.[ds]: Check branch optimization (gas relax).
+	* gas/m68hc11/opers12.[ds]: New files, check m68hc12 operands.
+	
 2012-01-09  Iain Sandoe  <idsandoe@googlemail.com>
 
 	* gas/mach-o/err-syms-1.s: New.
