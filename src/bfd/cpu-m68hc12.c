@@ -25,7 +25,7 @@
 const bfd_arch_info_type bfd_m68hc12s_arch =
 {
     16,	/* 16 bits in a word */
-    32,	/* 16 bits in an address */
+    32,	/* 32 bits used as 16 bit address and PPAGE value */
     8,	/* 8 bits in a byte */
     bfd_arch_m68hc12,
     bfd_mach_m6812s,
@@ -42,7 +42,7 @@ const bfd_arch_info_type bfd_m68hc12s_arch =
 const bfd_arch_info_type bfd_m68hc12_arch =
 {
     16,	/* 16 bits in a word */
-    32,	/* 16 bits in an address */
+    32, /* 32 bits used as 16 bit address and PPAGE value */
     8,	/* 8 bits in a byte */
     bfd_arch_m68hc12,
     0,
