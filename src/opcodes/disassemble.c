@@ -90,6 +90,7 @@
 #define ARCH_w65
 #define ARCH_xstormy16
 #define ARCH_xc16x
+#define ARCH_xgate
 #define ARCH_xtensa
 #define ARCH_z80
 #define ARCH_z8k
@@ -427,6 +428,11 @@ disassembler (abfd)
 #ifdef ARCH_w65
     case bfd_arch_w65:
       disassemble = print_insn_w65;
+      break;
+#endif
+#ifdef ARCH_xgate
+    case bfd_arch_xgate:
+      disassemble = print_insn_xgate;
       break;
 #endif
 #ifdef ARCH_xstormy16
