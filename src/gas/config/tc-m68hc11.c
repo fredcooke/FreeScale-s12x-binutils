@@ -263,6 +263,7 @@ const pseudo_typeS md_pseudo_table[] = {
   /* The following pseudo-ops are supported for MRI compatibility.  */
   {"fcb", cons, 1},
   {"fdb", cons, 2},
+  {"fqb", cons, 4},
   {"fcc", stringer, 8 + 1},
   {"rmb", s_space, 0},
 
@@ -370,8 +371,8 @@ md_show_usage (FILE *stream)
   get_default_target ();
   fprintf (stream, _("\
 Motorola 68HC11/68HC12/68HCS12 options:\n\
-  -m68hc11 | -m68hc12 |\n\
-  -m68hcs12               specify the processor [default %s]\n\
+  -m68hc11 | -m68hc12 | -m9hcs12x|\n\
+  -m9hcs12x               specify the processor [default %s]\n\
   -mshort                 use 16-bit int ABI (default)\n\
   -mlong                  use 32-bit int ABI\n\
   -mshort-double          use 32-bit double ABI\n\
@@ -405,7 +406,7 @@ get_default_target (void)
       if (strcmp (target->name, "elf32-m68hc12") == 0)
 	{
 	  current_architecture = cpu6812;
-	  default_cpu = "m68hc12";
+	  default_cpu = "9hcs12x";
 	}
       else if (strcmp (target->name, "elf32-m68hc11") == 0)
 	{
@@ -497,6 +498,8 @@ md_parse_option (int c, char *arg)
 	current_architecture = cpu6812;
       else if (strcasecmp (arg, "68hcs12") == 0)
 	current_architecture = cpu6812 | cpu6812s;
+      else if (strcasecmp (arg, "9hcs12x") == 0)
+    current_architecture = cpu6812 | cpu6812s | cpu9hcs12x;
       else
 	as_bad (_("Option `%s' is not recognized."), arg);
       break;
