@@ -68,6 +68,8 @@ END_RELOC_NUMBERS (R_M68HC11_max)
 #define EF_M68HC11_GENERIC   0x00 /* Generic 68HC12/backward compatibility.  */
 #define EF_M68HC12_MACH      0x10 /* 68HC12 microcontroller.  */
 #define EF_M68HCS12_MACH     0x20 /* 68HCS12 microcontroller.  */
+#define EF_M68HCS12X_MACH    0x40 /* 68HCS12X microcontroller. */
+#define EF_XGATE_MACH        0x80 /* XGATE microcontroller.    */
 #define EF_M68HC11_MACH(mach) ((mach) & EF_M68HC11_MACH_MASK)
 
 /* True if we can merge machines.  A generic HC12 can work on any proc

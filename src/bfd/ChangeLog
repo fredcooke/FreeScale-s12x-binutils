@@ -1,3 +1,19 @@
+2012-02-01  Sean Keys	<skeys@ipdatasys.com>
+	* cpu-xgate.c: New file. Added XGATE support.
+	* archures.c (bfd_architecture): Add XGATE architecture.
+	(bfd_archures_list): Add reference to XGATE architecture info.
+	* elf.c (prep_headers): Handle bfd_arch_xgate.
+	* reloc.c: Add various XGATE relocation enums.
+	* targets.c (bfd_elf32_xgate_vec): Declare and add to target vector
+	list.
+	* Makefile.am: Add support for XGATE elf.
+	* configure.in: Ditto.
+	* config.bfd: Ditto.
+	* Makefile.in: Regenerate.
+	* configure: Ditto.
+	* bfd-in2.h: Ditto.
+	* libbfd.h: Ditto.
+
 2012-02-17  Iain Sandoe  <idsandoe@googlemail.com>
 
 	* mach-o-i386.c (i386_howto_table): Add support for 16 bit
