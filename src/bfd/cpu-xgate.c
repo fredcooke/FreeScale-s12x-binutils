@@ -25,7 +25,7 @@
 const bfd_arch_info_type bfd_xgate_arch =
 {
     16, /* 16 bits in a word */
-    32, /* 16 bits in an address */
+    32, /* 32 bits used as 16 bit address and PPAGE value */
     8,  /* 8 bits in a byte */
     bfd_arch_xgate, /* bfd_arch_xgate */
     bfd_mach_xgate, /* bfd_mach_xgate */
