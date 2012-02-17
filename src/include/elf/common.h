@@ -217,7 +217,7 @@
 #define EM_DXP		112	/* Icera Semiconductor Inc. Deep Execution Processor */
 #define EM_ALTERA_NIOS2	113	/* Altera Nios II soft-core processor */
 #define EM_CRX		114	/* National Semiconductor CRX */
-//#define EM_XGATE	115	/* Freescale XGATE embedded processor */
+#define EM_XGATE	115	/* Motorola XGATE embedded processor */
 #define EM_C166		116	/* Infineon C16x/XC16x processor */
 #define EM_M16C		117	/* Renesas M16C series microprocessors */
 #define EM_DSPIC30F	118	/* Microchip Technology dsPIC30F Digital Signal Controller */
@@ -298,8 +298,6 @@
 #define EM_TILEGX	191	/* Tilera TILE-Gx multicore architecture family */
 #define EM_RL78		197	/* Renesas RL78 family.  */
 #define EM_78K0R	199	/* Renesas 78K0R.  */
-
-#define EM_XGATE        200     /* Freescale XGATE embedded processor */
 
 /* If it is necessary to assign new unofficial EM_* values, please pick large
    random numbers (0x8523, 0xa7f2, etc.) to minimize the chances of collision

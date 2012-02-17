@@ -438,9 +438,7 @@ DESCRIPTION
 .  bfd_arch_xc16x,     {* Infineon's XC16X Series.               *}
 .#define bfd_mach_xc16x         1
 .#define bfd_mach_xc16xl        2
-.#define bfd_mach_xc16xs        3
-.  bfd_arch_xgate,   {* Freescale XGATE *}
-.#define bfd_mach_xgate         1
+.#define bfd_mach_xc16xs         3
 .  bfd_arch_xtensa,    {* Tensilica's Xtensa cores.  *}
 .#define bfd_mach_xtensa	1
 .  bfd_arch_z80,
@@ -486,6 +484,12 @@ DESCRIPTION
 .    (const struct bfd_arch_info *a, const struct bfd_arch_info *b);
 .
 .  bfd_boolean (*scan) (const struct bfd_arch_info *, const char *);
+.
+.  {* Allocate via bfd_malloc and return a fill buffer of size COUNT.  If
+.     IS_BIGENDIAN is TRUE, the order of bytes is big endian.  If CODE is
+.     TRUE, the buffer contains code.  *}
+.  void *(*fill) (bfd_size_type count, bfd_boolean is_bigendian,
+.		  bfd_boolean code);
 .
 .  const struct bfd_arch_info *next;
 .}
@@ -567,7 +571,6 @@ extern const bfd_arch_info_type bfd_we32k_arch;
 extern const bfd_arch_info_type bfd_xstormy16_arch;
 extern const bfd_arch_info_type bfd_xtensa_arch;
 extern const bfd_arch_info_type bfd_xc16x_arch;
-extern const bfd_arch_info_type bfd_xgate_arch;
 extern const bfd_arch_info_type bfd_z80_arch;
 extern const bfd_arch_info_type bfd_z8k_arch;
 
@@ -647,7 +650,6 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_xstormy16_arch,
     &bfd_xtensa_arch,
     &bfd_xc16x_arch,
-    &bfd_xgate_arch,
     &bfd_z80_arch,
     &bfd_z8k_arch,
 #endif
@@ -818,6 +820,7 @@ const bfd_arch_info_type bfd_default_arch_struct = {
   32, 32, 8, bfd_arch_unknown, 0, "unknown", "unknown", 2, TRUE,
   bfd_default_compatible,
   bfd_default_scan,
+  bfd_arch_default_fill,
   0,
 };
 
@@ -1312,4 +1315,30 @@ bfd_arch_mach_octets_per_byte (enum bfd_architecture arch,
   if (ap)
     return ap->bits_per_byte / 8;
   return 1;
+}
+
+/*
+INTERNAL_FUNCTION
+	bfd_arch_default_fill
+
+SYNOPSIS
+	void *bfd_arch_default_fill (bfd_size_type count,
+				     bfd_boolean is_bigendian,
+				     bfd_boolean code);
+
+DESCRIPTION
+	Allocate via bfd_malloc and return a fill buffer of size COUNT.
+	If IS_BIGENDIAN is TRUE, the order of bytes is big endian.  If
+	CODE is TRUE, the buffer contains code.
+*/
+
+void *
+bfd_arch_default_fill (bfd_size_type count,
+		       bfd_boolean is_bigendian ATTRIBUTE_UNUSED,
+		       bfd_boolean code ATTRIBUTE_UNUSED)
+{
+  void *fill = bfd_malloc (count);
+  if (fill != NULL)
+    memset (fill, 0, count);
+  return fill;
 }

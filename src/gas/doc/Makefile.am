@@ -72,7 +72,6 @@ CPU_DOCS = \
 	c-tilepro.texi \
 	c-vax.texi \
 	c-v850.texi \
-	c-xgate.texi \
 	c-xstormy16.texi \
 	c-xtensa.texi \
 	c-z80.texi \

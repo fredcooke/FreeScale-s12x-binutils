@@ -6975,9 +6975,6 @@ subject, see the hardware manufacturer's manual.
 @ifset V850
 * V850-Dependent::              V850 Dependent Features
 @end ifset
-@ifset XGATE
-* XGATE-Dependent::             XGATE Features
-@end ifset
 @ifset XSTORMY16
 * XSTORMY16-Dependent::         XStormy16 Dependent Features
 @end ifset
@@ -7203,10 +7200,6 @@ family.
 
 @ifset V850
 @include c-v850.texi
-@end ifset
-
-@ifset XGATE
-@include c-xgate.texi
 @end ifset
 
 @ifset XSTORMY16

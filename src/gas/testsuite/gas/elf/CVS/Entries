@@ -1,6 +1,6 @@
 /bad-group.d/1.1/Thu Aug  4 20:20:11 2011//
 /bad-group.err/1.1/Thu Aug  4 20:20:11 2011//
-/bad-group.s/1.1/Thu Aug  4 20:20:11 2011//
+/bad-group.s/1.2/Tue Feb 14 01:01:29 2012//
 /bad-section-flag.d/1.1/Thu Sep 16 23:55:10 2010//
 /bad-section-flag.err/1.1/Thu Sep 16 23:55:10 2010//
 /bad-section-flag.s/1.1/Thu Sep 16 23:55:10 2010//
@@ -17,7 +17,7 @@
 /dwarf2-4.s/1.2/Thu Feb 10 05:06:19 2011//
 /ehopt0.d/1.2/Wed May 23 05:33:31 2001//
 /ehopt0.s/1.3/Fri Aug 16 00:06:04 2002//
-/elf.exp/1.78/Thu Aug  4 20:20:11 2011//
+/elf.exp/1.81/Tue Feb 14 01:01:29 2012//
 /equ-reloc.d/1.1/Wed Nov 15 15:59:26 2006//
 /equ-reloc.s/1.1/Wed Nov 15 15:59:26 2006//
 /file.d/1.1/Mon Jul 27 10:04:25 2009//
@@ -65,7 +65,7 @@
 /section6.d/1.2/Wed Jan 13 14:08:53 2010//
 /section6.s/1.1/Thu Oct 11 20:20:55 2007//
 /section7.d/1.2/Mon Jan 31 16:43:15 2011//
-/section7.s/1.1/Sat Oct 27 17:45:53 2007//
+/section7.s/1.2/Tue Feb 14 01:01:29 2012//
 /section8.d/1.1/Tue May 18 03:31:04 2010//
 /section8.s/1.1/Tue May 18 03:31:04 2010//
 /section9.d/1.1/Sun Dec 12 14:49:25 2010//
@@ -76,9 +76,9 @@
 /symtab.s/1.1/Tue Dec 11 13:13:59 2007//
 /symver.d/1.2/Fri Apr 23 14:15:21 2004//
 /symver.s/1.2/Sun May  4 06:52:38 2003//
-/type-noifunc.e/1.2/Wed Sep 23 03:12:24 2009//
+/type-noifunc.e/1.3/Tue Feb 14 01:01:29 2012//
 /type-noifunc.s/1.1/Thu Apr 30 15:47:12 2009//
 /type.e/1.8/Wed Sep 23 03:12:24 2009//
 /type.s/1.8/Thu Jul 23 15:03:39 2009//
-/warn-2.s/1.2/Fri Jul 29 11:02:40 2011//
+/warn-2.s/1.3/Tue Feb 14 01:01:29 2012//
 D
