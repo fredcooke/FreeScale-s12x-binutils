@@ -13,6 +13,7 @@ run_dump_test abi-xgate-32-64
 run_dump_test abi-xgate-32-32
 
 # Some XGATE tests
+run_dump_test insns-dwarf2
 run_dump_test all_insns
 run_dump_test insns
-run_dump_test insns-dwarf2
+
