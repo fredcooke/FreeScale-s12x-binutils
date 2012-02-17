@@ -2161,7 +2161,6 @@ enum bfd_architecture
 #define bfd_mach_tilegx    1
   bfd_arch_last
   };
-
 typedef struct bfd_arch_info
 {
   int bits_per_word;
