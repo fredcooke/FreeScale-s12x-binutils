@@ -234,8 +234,6 @@ TARGET_LIBOPCODES_CFILES = \
 	xstormy16-ibld.c \
 	xstormy16-opc.c \
 	xtensa-dis.c \
-	xgate-dis.c \
- 	xgate-opc.c \
 	z80-dis.c \
 	z8k-dis.c
 

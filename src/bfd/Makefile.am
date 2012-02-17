@@ -142,7 +142,6 @@ ALL_MACHINES = \
 	cpu-w65.lo \
 	cpu-we32k.lo \
 	cpu-xc16x.lo \
-	cpu-xgate \
 	cpu-xstormy16.lo \
 	cpu-xtensa.lo \
 	cpu-z80.lo \
@@ -220,7 +219,6 @@ ALL_MACHINES_CFILES = \
 	cpu-w65.c \
 	cpu-we32k.c \
 	cpu-xc16x.c \
-	cpu-xgate.c \
 	cpu-xstormy16.c \
 	cpu-xtensa.c \
 	cpu-z80.c \
@@ -338,7 +336,6 @@ BFD32_BACKENDS = \
 	elf32-v850.lo \
 	elf32-vax.lo \
 	elf32-xc16x.lo \
-	elf32-xgate.lo \
 	elf32-xstormy16.lo \
 	elf32-xtensa.lo \
 	elf32.lo \
@@ -525,7 +522,6 @@ BFD32_BACKENDS_CFILES = \
 	elf32-v850.c \
 	elf32-vax.c \
 	elf32-xc16x.c \
-	elf32-xgate.c \
 	elf32-xstormy16.c \
 	elf32-xtensa.c \
 	elf32.c \

@@ -1,6 +1,6 @@
 /* readelf.c -- display contents of an ELF format file
    Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010, 2011
+   2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    Originally developed by Eric Youngdale <eric@andante.jic.com>
@@ -42,10 +42,8 @@
   ELF file than is provided by objdump.  In particular it can display DWARF
   debugging information which (at the moment) objdump cannot.  */
 
-#include "config.h"
 #include "sysdep.h"
 #include <assert.h>
-#include <sys/stat.h>
 #include <time.h>
 #ifdef HAVE_ZLIB_H
 #include <zlib.h>
@@ -148,7 +146,6 @@
 #include "elf/vax.h"
 #include "elf/x86-64.h"
 #include "elf/xc16x.h"
-#include "elf/xgate.h"
 #include "elf/xstormy16.h"
 #include "elf/xtensa.h"
 
@@ -1235,10 +1232,6 @@ dump_relocations (FILE * file,
 	  rtype = elf_xc16x_reloc_type (type);
 	  break;
 
-	case EM_XGATE:
-	  rtype = elf_xgate_reloc_type (type);
-	  break;
-
 	case EM_TI_C6000:
 	  rtype = elf_tic6x_reloc_type (type);
 	  break;
@@ -1935,7 +1928,6 @@ get_machine_name (unsigned e_machine)
     case EM_IQ2000:       	return "Vitesse IQ2000";
     case EM_XTENSA_OLD:
     case EM_XTENSA:		return "Tensilica Xtensa Processor";
-    case EM_XGATE:		return "Freescale XGATE";
     case EM_VIDEOCORE:		return "Alphamosaic VideoCore processor";
     case EM_TMM_GPP:		return "Thompson Multimedia General Purpose Processor";
     case EM_NS32K:		return "National Semiconductor 32000 series";
@@ -4967,7 +4959,8 @@ process_section_groups (FILE * file)
   if (section_headers == NULL)
     {
       error (_("Section headers are not available!\n"));
-      abort ();
+      /* PR 13622: This can happen with a corrupt ELF header.  */
+      return 0;
     }
 
   section_headers_groups = (struct group **) calloc (elf_header.e_shnum,
@@ -12999,7 +12992,7 @@ process_corefile_note_segment (FILE * file, bfd_vma offset, bfd_vma length)
       external = next;
 
       /* Prevent out-of-bounds indexing.  */
-      if (inote.namedata + inote.namesz >= (char *) pnotes + length
+      if (inote.namedata + inote.namesz > (char *) pnotes + length
 	  || inote.namedata + inote.namesz < inote.namedata)
         {
           warn (_("corrupt note found at offset %lx into core notes\n"),
@@ -13013,7 +13006,7 @@ process_corefile_note_segment (FILE * file, bfd_vma offset, bfd_vma length)
 	 one version of Linux (RedHat 6.0) generates corefiles that don't
 	 comply with the ELF spec by failing to include the null byte in
 	 namesz.  */
-      if (inote.namedata[inote.namesz] != '\0')
+      if (inote.namedata[inote.namesz - 1] != '\0')
 	{
 	  temp = (char *) malloc (inote.namesz + 1);
 
@@ -13076,7 +13069,7 @@ process_note_sections (FILE * file)
   int res = 1;
 
   for (i = 0, section = section_headers;
-       i < elf_header.e_shnum;
+       i < elf_header.e_shnum && section != NULL;
        i++, section++)
     if (section->sh_type == SHT_NOTE)
       res &= process_corefile_note_segment (file,

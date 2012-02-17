@@ -1,3 +1,87 @@
+2012-02-16  Cary Coutant  <ccoutant@google.com>
+
+	* testsuite/Makefile.am (initpri2): Add --ctors-in-init-array option.
+	* testsuite/Makefile.in: Regenerate.
+
+2012-02-14  Cary Coutant  <ccoutant@google.com>
+
+	* options.cc (General_options::finalize): Disallow -pie and -static.
+
+2012-02-03  Doug Kwan  <dougkwan@google.com>
+
+	* arm.cc (Arm_relocate_functions::abs8,
+	Arm_relocate_functions::abs16): Use
+	Bits::has_signed_unsigned_overflow32.
+	(Arm_relocate_functions::thm_abs8): Correct range of
+	overflow check.
+	* reloc.h (Bits class): Change minimum number of bits from 0 to 1
+	in assertions.
+
+2012-02-02  Doug Kwan  <dougkwan@google.com>
+
+	* arm.cc (Reloc_stub::stub_type_for_reloc): Use PIC stubs in all
+	position independent outputs, not just shared objects.
+
+2012-01-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Check if -fpic -mtls-dialect=gnu2 works.
+	* configure: Regenerated.
+
+2012-01-27  Ian Lance Taylor  <iant@google.com>
+
+	* reloc.h (Bits): New class with static functions, copied from
+	namespace utils in arm.cc.
+	* arm.cc (namespace utils): Remove.  Rewrite all uses to use Bits
+	instead.
+
+2012-01-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* incremental.cc (write_info_blocks): Correct relocation offset.
+
+2012-01-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* x86_64.cc (Relocate::tls_gd_to_ie): Support x32.
+	(Relocate::tls_gd_to_le): Likewise.
+
+2012-01-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* x86_64.cc (Scan::global): Support x32 IFUNC function pointer.
+
+2012-01-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Check if -mcmodel=medium works.
+	* configure: Regenerated.
+
+2012-01-24  Cary Coutant  <ccoutant@google.com>
+
+	* int_encoding.cc (read_unsigned_LEB_128): Replaced with inline
+	definition and ...
+	(read_unsigned_LEB_128_x): ... this new function.
+	(read_signed_LEB_128): Replaced with inline definition and ...
+	(read_signed_LEB_128_x): ... this new function.
+	* int_encoding.h  (read_unsigned_LEB_128_x): New function.
+	(read_unsigned_LEB_128): Add inline definition.
+	(read_signed_LEB_128_x): New function.
+	(read_signed_LEB_128): Add inline definition.
+	* testsuite/Makefile.am (leb128_unittest): New unit test.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/leb128_unittest.cc: New unit test.
+
+2012-01-23  Ian Lance Taylor  <iant@google.com>
+
+	PR gold/13617
+	* i386.cc (Target_i386::do_code_fill): When using a jmp
+	instruction, pad with nop instructions.
+	* x86_64.cc (Target_x86_64::do_code_fill): Likewise.
+
+2012-01-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* x86_64.cc (gc_process_relocs): Add typename on types used in
+	template.
+	(scan_relocs): Likewise.
+	(relocate_section): Likewise.
+	(apply_relocation): Likewise.
+
 2012-01-10  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* x86_64.cc (Scan::check_non_pic): Allow R_X86_64_32 for x32.

@@ -1,6 +1,6 @@
 /* ar.c - Archive modify and extract.
    Copyright 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    This file is part of GNU Binutils.
@@ -37,7 +37,6 @@
 #include "filenames.h"
 #include "binemul.h"
 #include "plugin.h"
-#include <sys/stat.h>
 
 #ifdef __GO32___
 #define EXT_NAME_LEN 3		/* Bufflen of addition to name if it's MS-DOS.  */
@@ -613,7 +612,18 @@ ranlib_main (int argc, char **argv)
 	case 'V':
 	  show_version = 1;
 	  break;
-        }
+
+	  /* PR binutils/13493: Support plugins.  */
+	case OPTION_PLUGIN:
+#if BFD_SUPPORTS_PLUGINS
+	  plugin_target = "plugin";
+	  bfd_plugin_set_plugin (optarg);
+#else
+	  fprintf (stderr, _("sorry - this program has been built without plugin support\n"));
+	  xexit (1);
+#endif
+	  break;
+	}
     }
 
   if (argc < 2)

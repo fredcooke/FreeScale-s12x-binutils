@@ -1,3 +1,53 @@
+2012-02-14  Alan Modra  <amodra@gmail.com>
+
+	* ld-elf/linkoncerdiff.d: Don't run for hppa64-hpux.
+	* ld-elf/pr11304a.s: Always have whitespace before directives.
+	* ld-elf/pr11304b.s: Likewise.
+	* ld-selective/selective.exp: Test m68hc1* variant of m6811, m6812.
+	* lib/ld-lib.exp: Likewise, and vice versa.
+
+2012-02-13  Richard Henderson  <rth@redhat.com>
+
+	PR ld/13621
+	* ld-elf/warn2.d: Expect ABS section for Foo.
+	* ld-elf/zerosize1.d, ld-elf/zerosize1.s: New test.
+
+2012-02-13  Alan Modra  <amodra@gmail.com>
+
+	* ld-m68hc11/m68hc11.exp: Run for m68hc11-*-* and m68hc12-*-*.
+	* ld-m68hc11/adj-brset.d: Remove redundant #target line.  Add
+	-m m68hc11elf to ld invocation.
+	* ld-m68hc11/adj-jump.d: Likewise.
+	* ld-m68hc11/bug-1403.d: Likewise.
+	* ld-m68hc11/bug-1417.d: Likewise.
+	* ld-m68hc11/bug-3331.d: Likewise.
+	* ld-m68hc11/relax-direct.d: Likewise.
+	* ld-m68hc11/relax-group.d: Likewise.
+	* ld-m68hc11/far-hc11.d: Remove redundant #target line.  Adjust for
+	changed addresses.
+	* ld-m68hc11/far-hc12.d: Remove redundant #target line.
+	* ld-m68hc11/link-hcs12.d: Likewise, and adjust for header changes.
+
+2012-02-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/13675
+	* ld-i386/tlsnopic.dd: Update no-op padding.
+	* ld-i386/tlspic.dd: Likewise.
+
+2012-01-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/13616
+	* ld-i386/tlsbindesc.dd: Update no-op padding.
+	* ld-i386/tlsnopic.dd: Likewise.
+	* ld-i386/tlspic.dd: Likewise.
+	* ld-x86-64/tlsbin.dd: Likewise.
+	* ld-x86-64/tlsbindesc.dd: Likewise.
+	* ld-x86-64/tlspic.dd: Likewise.
+
+2012-01-17  Alan Modra  <amodra@gmail.com>
+
+	* config/default.exp: Provide tmpdir/ld/collect-ld.
+
 2012-01-10  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR ld/13581

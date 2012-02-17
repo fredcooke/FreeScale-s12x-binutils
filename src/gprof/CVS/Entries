@@ -1,6 +1,6 @@
 /.gdbinit/1.1.1.1/Mon May  3 07:29:11 1999//
 /.gitignore/1.1/Thu Dec  9 09:03:16 2010//
-/ChangeLog/1.310/Thu Jan  5 10:09:39 2012//
+/ChangeLog/1.311/Mon Feb  6 13:42:32 2012//
 /ChangeLog-2004/1.1/Mon Jan 16 23:15:07 2006//
 /ChangeLog-2005/1.1/Mon Jan 16 23:15:07 2006//
 /ChangeLog-2006/1.1/Wed Sep  2 04:47:29 2009//
@@ -31,8 +31,8 @@
 /cg_dfn.h/1.2/Wed May 26 04:55:55 2004//
 /cg_print.c/1.21/Thu Apr 28 05:12:13 2011//
 /cg_print.h/1.9/Fri Jul  6 10:40:34 2007//
-/configure/1.75/Mon Oct 24 11:51:21 2011//
-/configure.in/1.47/Mon Oct 24 11:51:22 2011//
+/configure/1.76/Mon Feb  6 13:42:32 2012//
+/configure.in/1.48/Mon Feb  6 13:42:32 2012//
 /corefile.c/1.43/Tue Jun  7 13:33:20 2011//
 /corefile.h/1.14/Tue Jun 16 11:49:12 2009//
 /dep-in.sed/1.5/Thu Jun  4 06:57:40 2009//

@@ -317,8 +317,6 @@ ALL_EMULATION_SOURCES = \
 	em68hc11elfb.c \
 	em68hc12elf.c \
 	em68hc12elfb.c \
-	xgateelf.c \
- 	xgateelfb.c \
 	em68k4knbsd.c \
 	em68kaout.c \
 	em68kaux.c \
@@ -1381,14 +1379,6 @@ em68hc12elfb.c: $(srcdir)/emulparams/m68hc12elfb.sh \
   $(srcdir)/emultempl/m68hc1xelf.em $(ELF_DEPS) \
   $(srcdir)/scripttempl/elfm68hc12.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68hc12elfb "$(tdir_m68hc12b)"
-exgateelf.c: $(srcdir)/emulparams/xgateelf.sh \
-  $(srcdir)/emultempl/elf32.em $(ELF_DEPS) \
-  $(srcdir)/scripttempl/elfxgate.sc ${GEN_DEPENDS}
-	${GENSCRIPTS} xgateelf "$(tdir_xgate)"
-exgateelfb.c: $(srcdir)/emulparams/xgateelfb.sh \
-  $(srcdir)/emultempl/elf32.em.em $(ELF_DEPS) \
-  $(srcdir)/scripttempl/elfxgate.sc ${GEN_DEPENDS}
-	${GENSCRIPTS} xgateelfb "$(tdir_xgate)"  
 em68k4knbsd.c:	$(srcdir)/emulparams/m68k4knbsd.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68k4knbsd "$(tdir_m68k4knbsd)"

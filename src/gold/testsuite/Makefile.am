@@ -94,6 +94,9 @@ object_unittest_SOURCES = object_unittest.cc
 check_PROGRAMS += binary_unittest
 binary_unittest_SOURCES = binary_unittest.cc
 
+check_PROGRAMS += leb128_unittest
+leb128_unittest_SOURCES = leb128_unittest.cc
+
 endif NATIVE_OR_CROSS_LINKER
 
 # ---------------------------------------------------------------------
@@ -861,7 +864,7 @@ initpri1_LDADD =
 check_PROGRAMS += initpri2
 initpri2_SOURCES = initpri2.c
 initpri2_DEPENDENCIES = gcctestdir/ld
-initpri2_LDFLAGS = -Bgcctestdir/
+initpri2_LDFLAGS = -Bgcctestdir/ -Wl,--ctors-in-init-array
 initpri2_LDADD =
 
 check_PROGRAMS += initpri3a

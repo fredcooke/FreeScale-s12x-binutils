@@ -1,7 +1,7 @@
 /* ELF executable support for BFD.
 
    Copyright 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
@@ -7404,36 +7404,30 @@ elf_find_function (bfd *abfd,
 
   for (p = symbols; *p != NULL; p++)
     {
-      elf_symbol_type *q;
-      unsigned int type;
+      asymbol *sym = *p;
+      asection *code_sec;
+      bfd_vma code_off;
 
-      q = (elf_symbol_type *) *p;
-
-      type = ELF_ST_TYPE (q->internal_elf_sym.st_info);
-      switch (type)
+      if ((sym->flags & BSF_FILE) != 0)
 	{
-	case STT_FILE:
-	  file = &q->symbol;
+	  file = sym;
 	  if (state == symbol_seen)
 	    state = file_after_symbol_seen;
 	  continue;
-	default:
-	  if (!bed->is_function_type (type))
-	    break;
-	case STT_NOTYPE:
-	  if (bfd_get_section (&q->symbol) == section
-	      && q->symbol.value >= low_func
-	      && q->symbol.value <= offset)
-	    {
-	      func = (asymbol *) q;
-	      low_func = q->symbol.value;
-	      filename = NULL;
-	      if (file != NULL
-		  && (ELF_ST_BIND (q->internal_elf_sym.st_info) == STB_LOCAL
-		      || state != file_after_symbol_seen))
-		filename = bfd_asymbol_name (file);
-	    }
-	  break;
+	}
+
+      if (bed->maybe_function_sym (sym, &code_sec, &code_off)
+	  && code_sec == section
+	  && code_off >= low_func
+	  && code_off <= offset)
+	{
+	  func = sym;
+	  low_func = code_off;
+	  filename = NULL;
+	  if (file != NULL
+	      && ((sym->flags & BSF_LOCAL) != 0
+		  || state != file_after_symbol_seen))
+	    filename = bfd_asymbol_name (file);
 	}
       if (state == nothing_seen)
 	state = symbol_seen;
@@ -8890,7 +8884,6 @@ elfcore_write_note (bfd *abfd,
   return buf;
 }
 
-#if defined (HAVE_PRPSINFO_T) || defined (HAVE_PSINFO_T)
 char *
 elfcore_write_prpsinfo (bfd  *abfd,
 			char *buf,
@@ -8898,7 +8891,6 @@ elfcore_write_prpsinfo (bfd  *abfd,
 			const char *fname,
 			const char *psargs)
 {
-  const char *note_name = "CORE";
   const struct elf_backend_data *bed = get_elf_backend_data (abfd);
 
   if (bed->elf_backend_write_core_note != NULL)
@@ -8910,6 +8902,7 @@ elfcore_write_prpsinfo (bfd  *abfd,
 	return ret;
     }
 
+#if defined (HAVE_PRPSINFO_T) || defined (HAVE_PSINFO_T)
 #if defined (HAVE_PRPSINFO32_T) || defined (HAVE_PSINFO32_T)
   if (bed->s->elfclass == ELFCLASS32)
     {
@@ -8925,7 +8918,7 @@ elfcore_write_prpsinfo (bfd  *abfd,
       strncpy (data.pr_fname, fname, sizeof (data.pr_fname));
       strncpy (data.pr_psargs, psargs, sizeof (data.pr_psargs));
       return elfcore_write_note (abfd, buf, bufsiz,
-				 note_name, note_type, &data, sizeof (data));
+				 "CORE", note_type, &data, sizeof (data));
     }
   else
 #endif
@@ -8942,12 +8935,14 @@ elfcore_write_prpsinfo (bfd  *abfd,
       strncpy (data.pr_fname, fname, sizeof (data.pr_fname));
       strncpy (data.pr_psargs, psargs, sizeof (data.pr_psargs));
       return elfcore_write_note (abfd, buf, bufsiz,
-				 note_name, note_type, &data, sizeof (data));
+				 "CORE", note_type, &data, sizeof (data));
     }
-}
 #endif	/* PSINFO_T or PRPSINFO_T */
 
-#if defined (HAVE_PRSTATUS_T)
+  free (buf);
+  return NULL;
+}
+
 char *
 elfcore_write_prstatus (bfd *abfd,
 			char *buf,
@@ -8956,7 +8951,6 @@ elfcore_write_prstatus (bfd *abfd,
 			int cursig,
 			const void *gregs)
 {
-  const char *note_name = "CORE";
   const struct elf_backend_data *bed = get_elf_backend_data (abfd);
 
   if (bed->elf_backend_write_core_note != NULL)
@@ -8969,6 +8963,7 @@ elfcore_write_prstatus (bfd *abfd,
 	return ret;
     }
 
+#if defined (HAVE_PRSTATUS_T)
 #if defined (HAVE_PRSTATUS32_T)
   if (bed->s->elfclass == ELFCLASS32)
     {
@@ -8978,7 +8973,7 @@ elfcore_write_prstatus (bfd *abfd,
       prstat.pr_pid = pid;
       prstat.pr_cursig = cursig;
       memcpy (&prstat.pr_reg, gregs, sizeof (prstat.pr_reg));
-      return elfcore_write_note (abfd, buf, bufsiz, note_name,
+      return elfcore_write_note (abfd, buf, bufsiz, "CORE",
 				 NT_PRSTATUS, &prstat, sizeof (prstat));
     }
   else
@@ -8990,11 +8985,14 @@ elfcore_write_prstatus (bfd *abfd,
       prstat.pr_pid = pid;
       prstat.pr_cursig = cursig;
       memcpy (&prstat.pr_reg, gregs, sizeof (prstat.pr_reg));
-      return elfcore_write_note (abfd, buf, bufsiz, note_name,
+      return elfcore_write_note (abfd, buf, bufsiz, "CORE",
 				 NT_PRSTATUS, &prstat, sizeof (prstat));
     }
-}
 #endif /* HAVE_PRSTATUS_T */
+
+  free (buf);
+  return NULL;
+}
 
 #if defined (HAVE_LWPSTATUS_T)
 char *
@@ -9685,4 +9683,20 @@ _bfd_elf_is_function_type (unsigned int type)
 {
   return (type == STT_FUNC
 	  || type == STT_GNU_IFUNC);
+}
+
+/* Return TRUE iff the ELF symbol SYM might be a function.  Set *CODE_SEC
+   and *CODE_OFF to the function's entry point.  */
+
+bfd_boolean
+_bfd_elf_maybe_function_sym (const asymbol *sym,
+			     asection **code_sec, bfd_vma *code_off)
+{
+  if ((sym->flags & (BSF_SECTION_SYM | BSF_FILE | BSF_OBJECT
+		     | BSF_THREAD_LOCAL | BSF_RELC | BSF_SRELC)) != 0)
+    return FALSE;
+
+  *code_sec = sym->section;
+  *code_off = sym->value;
+  return TRUE;
 }

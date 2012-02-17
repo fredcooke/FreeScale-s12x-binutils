@@ -35,7 +35,7 @@
 /forward.s/1.1/Tue Oct 11 11:16:17 2005//
 /fwdexp.d/1.2/Fri Oct 22 08:13:58 2010//
 /fwdexp.s/1.1/Wed Sep 29 06:49:33 2010//
-/gas.exp/1.74/Sat May 14 00:52:07 2011//
+/gas.exp/1.75/Mon Feb 13 02:31:17 2012//
 /incbin.d/1.4/Tue Sep  8 02:54:55 2009//
 /incbin.dat/1.1/Fri Dec 21 11:40:53 2001/-ko/
 /incbin.s/1.3/Fri Dec 21 11:40:53 2001//
@@ -50,9 +50,9 @@
 /quad.s/1.1/Wed Jan 19 11:53:53 2005//
 /redef.d/1.2/Mon Nov 21 04:30:32 2005//
 /redef.s/1.1/Tue Oct 11 11:16:17 2005//
-/redef2.d/1.4/Fri Nov 25 02:08:22 2005//
+/redef2.d/1.5/Fri Jan 13 15:19:13 2012//
 /redef2.s/1.2/Thu Nov 17 07:29:28 2005//
-/redef3.d/1.2/Thu Sep 16 00:39:11 2010//
+/redef3.d/1.3/Fri Jan 13 15:19:13 2012//
 /redef3.s/1.1/Thu Nov 17 07:29:28 2005//
 /redef4.s/1.1/Thu Nov 17 07:29:28 2005//
 /redef5.s/1.1/Thu Nov 17 07:29:28 2005//
@@ -67,7 +67,7 @@
 /test-example.c/1.4/Wed Sep  2 07:24:21 2009//
 /test-gen.c/1.4/Wed Sep  2 07:24:21 2009//
 /warn-1.s/1.1/Mon Nov 22 13:00:24 2004//
-/weakref1.d/1.4/Fri Nov 25 02:08:22 2005//
+/weakref1.d/1.5/Fri Jan 13 15:19:13 2012//
 /weakref1.s/1.5/Thu Apr 16 04:24:06 2009//
 /weakref1g.d/1.2/Sun Nov 20 22:03:25 2005//
 /weakref1l.d/1.3/Sun Nov 20 22:03:25 2005//

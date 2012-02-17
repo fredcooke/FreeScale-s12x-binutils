@@ -1,3 +1,58 @@
+2012-02-13  Kai Tietz  <ktietz@redhat.com>
+
+	* deffilep.y (find_export_in_list): Set is_indent for
+	first or last element, if identical.
+	(find_import_in_list): Likewise.
+
+2012-02-11  Kai Tietz  <ktietz@redhat.com>
+
+	* deffilep.y (%union): New type id_const.
+	(opt_name2): New rule.
+	(keyword_as_name): New rule.
+	(dot_name): Replaced by opt_name2 rule.
+	(opt_name): Adjust rule.
+	(opt_equal_name): Likewise.
+
+2012-02-11  Pascal Obry  <pascal@obry.net>
+
+	* pe-dll.c (auto_export): Use bsearch to speed up scan of exports
+	table.
+	(process_def_file_and_drectve): Maintain sorting of exports table
+	after stripping leading @ signs.
+
+2012-02-09  Alan Modra  <amodra@gmail.com>
+
+	* ldgram.y (input_section_spec_no_keep): Don't ignore sect_flags.
+
+2012-01-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/13616
+	* emulparams/elf32_x86_64.sh: Remove NOP.
+	* emulparams/elf_i386.sh: Likewise.
+	* emulparams/elf_i386_be.sh: Likewise.
+	* emulparams/elf_i386_ldso.sh: Likewise.
+	* emulparams/elf_i386_vxworks.sh: Likewise.
+	* emulparams/elf_k1om.sh: Likewise.
+	* emulparams/elf_l1om.sh: Likewise.
+	* emulparams/elf_x86_64.sh: Likewise.
+
+	* ldlang.c (zero_fill): Initialized to 0.
+
+	* ldwrite.c (build_link_order): Set data size to linker odrder
+	size when they are the same.
+
+	* scripttempl/elf.sc: Don't specify fill if NOP is undefined.
+
+2012-01-17  Alan Modra  <amodra@gmail.com>
+
+	* ldver.c (ldversion): Update copyright message year.
+
+2012-01-15  Alan Modra  <amodra@gmail.com>
+
+	PR ld/12758
+	* ldlang.c (lang_process): Don't reopen all files, just those
+	newly added by plugin.
+
 2012-01-11  Alan Modra  <amodra@gmail.com>
 
 	* emultempl/ppc64elf.em (PARSE_AND_LIST_PROLOGUE,

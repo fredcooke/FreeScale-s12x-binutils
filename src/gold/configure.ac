@@ -312,9 +312,13 @@ error
 #endif
 ], [gold_cv_prog_gcc41=yes], [gold_cv_prog_gcc41=no])])
 
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -mcmodel=medium"
+AC_COMPILE_IFELSE([int i;], [have_mcmodel_medium=yes], [have_mcmodel_medium=no])
+CFLAGS="$save_CFLAGS"
 dnl Whether we can test -mcmodel=medium.
 AM_CONDITIONAL(MCMODEL_MEDIUM,
-[test "$target_cpu" = "x86_64" -a "$gold_cv_prog_gcc41" = "yes"])
+[test "$target_cpu" = "x86_64" -a "$have_mcmodel_medium" = "yes" -a "$gold_cv_prog_gcc41" = "yes"])
 
 dnl Test for __thread support.
 AC_CACHE_CHECK([for thread support], [gold_cv_c_thread],
@@ -355,8 +359,14 @@ AM_CONDITIONAL(OMP_SUPPORT, test "$gold_cv_c_threadprivate" = "yes")
 
 dnl Test for the -ftls-dialect=gnu2 option.
 save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -mtls-dialect=gnu2"
-AC_COMPILE_IFELSE([int i;], [have_tls_gnu2=yes], [have_tls_gnu2=no])
+CFLAGS="$CFLAGS -fpic -mtls-dialect=gnu2"
+AC_COMPILE_IFELSE([
+__thread int i;
+void foo (void)
+{
+  i = 10;
+}
+], [have_tls_gnu2=yes], [have_tls_gnu2=no])
 CFLAGS="$save_CFLAGS"
 AM_CONDITIONAL(TLS_GNU2_DIALECT, test "$have_tls_gnu2" = "yes")
 

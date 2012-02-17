@@ -121,10 +121,10 @@ static const mach_o_section_name_xlat text_section_names_xlat[] =
 	SEC_CODE | SEC_LOAD,			BFD_MACH_O_S_REGULAR,
 	BFD_MACH_O_S_ATTR_NONE,			0},
     {	".eh_frame",				"__eh_frame",
-	SEC_READONLY | SEC_LOAD,		BFD_MACH_O_S_COALESCED,
+	SEC_READONLY | SEC_DATA | SEC_LOAD,	BFD_MACH_O_S_COALESCED,
 	BFD_MACH_O_S_ATTR_LIVE_SUPPORT
 	| BFD_MACH_O_S_ATTR_STRIP_STATIC_SYMS
-	| BFD_MACH_O_S_ATTR_NO_TOC,		3},
+	| BFD_MACH_O_S_ATTR_NO_TOC,		2},
     { NULL, NULL, 0, 0, 0, 0}
   };
 
@@ -1185,7 +1185,6 @@ bfd_mach_o_canonicalize_dynamic_reloc (bfd *abfd, arelent **rels,
 static bfd_boolean
 bfd_mach_o_write_relocs (bfd *abfd, bfd_mach_o_section *section)
 {
-  bfd_mach_o_data_struct *mdata = bfd_mach_o_get_data (abfd);
   unsigned int i;
   arelent **entries;
   asection *sec;
@@ -1197,13 +1196,6 @@ bfd_mach_o_write_relocs (bfd *abfd, bfd_mach_o_section *section)
 
   if (bed->_bfd_mach_o_swap_reloc_out == NULL)
     return TRUE;
-
-  /* Allocate relocation room.  */
-  mdata->filelen = FILE_ALIGN(mdata->filelen, 2);
-  section->nreloc = sec->reloc_count;
-  sec->rel_filepos = mdata->filelen;
-  section->reloff = sec->rel_filepos;
-  mdata->filelen += sec->reloc_count * BFD_MACH_O_RELENT_SIZE;
 
   if (bfd_seek (abfd, section->reloff, SEEK_SET) != 0)
     return FALSE;
@@ -2034,7 +2026,12 @@ bfd_mach_o_build_seg_command (const char *segment,
   seg->sect_head = NULL;
   seg->sect_tail = NULL;
 
-  /*  Append sections to the segment.  */
+  /*  Append sections to the segment.  
+
+      This is a little tedious, we have to honor the need to account zerofill
+      sections after all the rest.  This forces us to do the calculation of
+      total vmsize in three passes so that any alignment increments are 
+      properly accounted.  */
 
   for (i = 0; i < mdata->nsects; ++i)
     {
@@ -2047,14 +2044,10 @@ bfd_mach_o_build_seg_command (const char *segment,
 	  && strncmp (segment, s->segname, BFD_MACH_O_SEGNAME_SIZE) != 0)
 	continue;
 
+      /* Although we account for zerofill section sizes in vm order, they are
+	 placed in the file in source sequence.  */
       bfd_mach_o_append_section_to_segment (seg, sec);
-
       s->offset = 0;
-      if (s->size > 0)
-       {
-          seg->vmsize = FILE_ALIGN (seg->vmsize, s->align);
-	  seg->vmsize += s->size;
-        }
       
       /* Zerofill sections have zero file size & offset, 
 	 and are not written.  */
@@ -2065,18 +2058,104 @@ bfd_mach_o_build_seg_command (const char *segment,
 
       if (s->size > 0)
        {
+	  seg->vmsize = FILE_ALIGN (seg->vmsize, s->align);
+	  seg->vmsize += s->size;
+
+	  seg->filesize = FILE_ALIGN (seg->filesize, s->align);
+	  seg->filesize += s->size;
+
           mdata->filelen = FILE_ALIGN (mdata->filelen, s->align);
           s->offset = mdata->filelen;
         }
 
       sec->filepos = s->offset;
-
       mdata->filelen += s->size;
     }
 
-  seg->filesize = mdata->filelen - seg->fileoff;
+  /* Now pass through again, for zerofill, only now we just update the vmsize.  */
+  for (i = 0; i < mdata->nsects; ++i)
+    {
+      bfd_mach_o_section *s = mdata->sections[i];
+
+      if ((s->flags & BFD_MACH_O_SECTION_TYPE_MASK) != BFD_MACH_O_S_ZEROFILL)
+        continue;
+
+      if (! is_mho 
+	  && strncmp (segment, s->segname, BFD_MACH_O_SEGNAME_SIZE) != 0)
+	continue;
+
+      if (s->size > 0)
+	{
+	  seg->vmsize = FILE_ALIGN (seg->vmsize, s->align);
+	  seg->vmsize += s->size;
+	}
+    }
+
+  /* Now pass through again, for zerofill_GB.  */
+  for (i = 0; i < mdata->nsects; ++i)
+    {
+      bfd_mach_o_section *s = mdata->sections[i];
+ 
+      if ((s->flags & BFD_MACH_O_SECTION_TYPE_MASK) != BFD_MACH_O_S_GB_ZEROFILL)
+        continue;
+
+      if (! is_mho 
+	  && strncmp (segment, s->segname, BFD_MACH_O_SEGNAME_SIZE) != 0)
+	continue;
+
+      if (s->size > 0)
+	{
+	  seg->vmsize = FILE_ALIGN (seg->vmsize, s->align);
+	  seg->vmsize += s->size;
+	}
+    }
+
+  /* Allocate space for the relocations.  */
+  mdata->filelen = FILE_ALIGN(mdata->filelen, 2);
+
+  for (i = 0; i < mdata->nsects; ++i)
+    {
+      bfd_mach_o_section *ms = mdata->sections[i];
+      asection *sec = ms->bfdsection;
+        
+      if ((ms->nreloc = sec->reloc_count) == 0)
+        {
+	  ms->reloff = 0;
+	  continue;
+        }
+      sec->rel_filepos = mdata->filelen;
+      ms->reloff = sec->rel_filepos;
+      mdata->filelen += sec->reloc_count * BFD_MACH_O_RELENT_SIZE;
+    }
 
   return TRUE;
+}
+
+/* Count the number of indirect symbols in the image.
+   Requires that the sections are in their final order.  */
+
+static unsigned int
+bfd_mach_o_count_indirect_symbols (bfd *abfd, bfd_mach_o_data_struct *mdata)
+{
+  unsigned int i;
+  unsigned int nisyms = 0;
+
+  for (i = 0; i < mdata->nsects; ++i)
+    {
+      bfd_mach_o_section *sec = mdata->sections[i];
+
+      switch (sec->flags & BFD_MACH_O_SECTION_TYPE_MASK)
+	{
+	  case BFD_MACH_O_S_NON_LAZY_SYMBOL_POINTERS:
+	  case BFD_MACH_O_S_LAZY_SYMBOL_POINTERS:
+	  case BFD_MACH_O_S_SYMBOL_STUBS:
+	    nisyms += bfd_mach_o_section_get_nbr_indirect (abfd, sec);
+	    break;
+	  default:
+	    break;
+	}
+    }
+  return nisyms;
 }
 
 static bfd_boolean
@@ -2135,9 +2214,11 @@ bfd_mach_o_build_dysymtab_command (bfd *abfd,
       dsym->nundefsym = 0;
     }
 
+  dsym->nindirectsyms = bfd_mach_o_count_indirect_symbols (abfd, mdata);
   if (dsym->nindirectsyms > 0)
     {
       unsigned i;
+      unsigned n;
 
       mdata->filelen = FILE_ALIGN (mdata->filelen, 2);
       dsym->indirectsymoff = mdata->filelen;
@@ -2146,11 +2227,42 @@ bfd_mach_o_build_dysymtab_command (bfd *abfd,
       dsym->indirect_syms = bfd_zalloc (abfd, dsym->nindirectsyms * 4);
       if (dsym->indirect_syms == NULL)
         return FALSE;
-      
-      /* So fill in the indices.  */
-      for (i = 0; i < dsym->nindirectsyms; ++i)
+		  
+      n = 0;
+      for (i = 0; i < mdata->nsects; ++i)
 	{
-	  /* TODO: fill in the table.  */
+	  bfd_mach_o_section *sec = mdata->sections[i];
+
+	  switch (sec->flags & BFD_MACH_O_SECTION_TYPE_MASK)
+	    {
+	      case BFD_MACH_O_S_NON_LAZY_SYMBOL_POINTERS:
+	      case BFD_MACH_O_S_LAZY_SYMBOL_POINTERS:
+	      case BFD_MACH_O_S_SYMBOL_STUBS:
+		{
+		  unsigned j, num;
+		  bfd_mach_o_asymbol **isyms = sec->indirect_syms;
+		  
+		  num = bfd_mach_o_section_get_nbr_indirect (abfd, sec);
+		  if (isyms == NULL || num == 0)
+		    break;
+		  /* Record the starting index in the reserved1 field.  */
+		  sec->reserved1 = n;
+		  for (j = 0; j < num; j++, n++)
+		    {
+		      if (isyms[j] == NULL)
+		        dsym->indirect_syms[n] = BFD_MACH_O_INDIRECT_SYM_LOCAL;
+		      else if (isyms[j]->symbol.section == bfd_abs_section_ptr
+			       && ! (isyms[j]->n_type & BFD_MACH_O_N_EXT))
+		        dsym->indirect_syms[n] = BFD_MACH_O_INDIRECT_SYM_LOCAL
+						 | BFD_MACH_O_INDIRECT_SYM_ABS;
+		      else
+		        dsym->indirect_syms[n] = isyms[j]->symbol.udata.i;
+		    }
+		}
+		break;
+	      default:
+		break;
+	    }
 	}
     }
 
@@ -2451,6 +2563,8 @@ bfd_mach_o_read_header (bfd *abfd, bfd_mach_o_header *header)
 
   if (mach_o_wide_p (header))
     header->reserved = (*get32) (raw.reserved);
+  else
+    header->reserved = 0;
 
   return TRUE;
 }
