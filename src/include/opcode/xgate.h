@@ -1,5 +1,5 @@
 /* xgate.h -- Motorola XGATE opcode list
-   Copyright 1999, 2000, 2002, 2005, 2007 Free Software Foundation, Inc.
+   Copyright 2010, 2011, 2012 Free Software Foundation, Inc.
    Written by Sean Keys (skeys@ipdatasys.com)
 
    This file is part of the GNU opcodes library.
