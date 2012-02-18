@@ -1,3 +1,8 @@
+2012-02-01  Sean Keys  <skeys@ipdatasys.com>
+
+	* dis-asm.h (print_insn_xgate): Define.
+	(print_insn_xgate): Ditto.
+
 2012-01-31  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR ld/13616
