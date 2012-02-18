@@ -69,10 +69,11 @@ instructions with their syntax. Once the list is printed
 @cindex XGATE syntax
 @cindex syntax, XGATE
 
-In XGATE risc syntax, the instruction name comes first and it may
-be followed by one or several operands (up to three). Operands are
-separated by comma (@samp{,}). @code{@value{AS}} will complain if too many operands are specified for
-a given instruction. The same will happen if you specified too few operands.
+In XGATE RISC syntax, the instruction name comes first and it may
+be followed by up to three operands. Operands are separated by commas
+(@samp{,}). @code{@value{AS}} will complain if too many operands are specified
+for a given instruction. The same will happen if you specified too few
+ operands.
 
 @smallexample
 nop
