@@ -499,7 +499,7 @@ md_parse_option (int c, char *arg)
       else if (strcasecmp (arg, "68hcs12") == 0)
 	current_architecture = cpu6812 | cpu6812s;
       else if (strcasecmp (arg, "9hcs12x") == 0)
-    current_architecture = cpu6812 | cpu6812s | cpu9hcs12x;
+        current_architecture = cpu6812 | cpu6812s | cpu9hcs12x;
       else
 	as_bad (_("Option `%s' is not recognized."), arg);
       break;

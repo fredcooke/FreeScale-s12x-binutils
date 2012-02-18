@@ -441,7 +441,7 @@ ALL_MACHINES = \
 	cpu-w65.lo \
 	cpu-we32k.lo \
 	cpu-xc16x.lo \
-	cpu-xgate \
+	cpu-xgate.lo \
 	cpu-xstormy16.lo \
 	cpu-xtensa.lo \
 	cpu-z80.lo \

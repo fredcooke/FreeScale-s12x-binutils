@@ -84,7 +84,7 @@ case ${cpu} in
   sparc*)		cpu_type=sparc arch=sparclite ;; # ??? See tc-sparc.c.
   v850*)		cpu_type=v850 ;;
   x86_64*)		cpu_type=i386 arch=x86_64;;
-  xgate)        cpu_type=xgate ;;
+  xgate)		cpu_type=xgate ;;
   xtensa*)		cpu_type=xtensa arch=xtensa ;;
   *)			cpu_type=${cpu} ;;
 esac
