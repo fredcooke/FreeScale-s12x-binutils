@@ -1,5 +1,5 @@
 /* XGATE ELF support for BFD.
-   Copyright 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+   Copyright 2010, 2011, 2012 Free Software Foundation, Inc.
 
    This file is part of BFD, the Binary File Descriptor library.
 
@@ -66,7 +66,7 @@ END_RELOC_NUMBERS (R_XGATE_max)
 
 #define EF_XGATE_MACH_MASK 0xF0
 
-#define EF_XGATE_MACH 0x80 /* XGATE microcontroller.    */
+#define EF_XGATE_MACH 0x80 /* XGATE microcontroller.  */
 
 #define E_M68HCS12X_GLOBAL  0x100
 

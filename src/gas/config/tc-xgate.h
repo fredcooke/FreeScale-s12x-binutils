@@ -1,6 +1,5 @@
 /* tc-xgate.h -- Header file for tc-xgate.c.
-   Copyright 1999, 2000, 2001, 2002, 2003, 2005, 2007
-   Free Software Foundation, Inc.
+   Copyright 2010, 2011, 2012 Free Software Foundation, Inc.
 
    This file is part of GAS, the GNU Assembler.
 
@@ -20,7 +19,6 @@
    02110-1301, USA.  */
 
 #define TC_XGATE
-//#define TC_M68HC12
 #define cpuxgate 1
 
 struct fix;

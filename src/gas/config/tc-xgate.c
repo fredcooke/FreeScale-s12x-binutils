@@ -1,5 +1,5 @@
 /* tc-xgate.c -- Assembler code for Freescale XGATE
- Copyright 2009, 2010, 2011, 2012
+ Copyright 2010, 2011, 2012
  Free Software Foundation, Inc.
  Contributed by Sean Keys <skeys@ipdatasys.com>
 
