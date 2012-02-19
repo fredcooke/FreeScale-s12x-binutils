@@ -1,13 +1,3 @@
-2012-02-01  Sean Keys  <skeys@ipdatasys.com>
-	* doc/Makefile.am (CPU_DOCS): Added XGATE file.
-	* doc/c-xgate.texi: Document XGATE and XGATE port.
-	* doc/as.texinfo: Ditto.
-	* configure, Makefile.in: Regenerate.
-	* Makefile.am (CPU_TYPES, TARGET_CPU_CFILES, TARGET_CPU_HFILES):
-	Added files for XGATE assembler.
-	* config/tc-xgate.c: Assembler for XGATE.
-	* config/tc-xgate.h: Header definition for assembler
-	
 2012-02-12  Iain Sandoe  <idsandoe@googlemail.com>
 
 	* config/obj-macho.c (obj_mach_o_indirect_symbol): Force promotion of
